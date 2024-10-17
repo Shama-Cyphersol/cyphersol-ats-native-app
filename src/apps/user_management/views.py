@@ -11,6 +11,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from apps.report.views import ReportsApp
+# src/apps/user_management/views.py
+from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QLabel, QVBoxLayout, QMessageBox
+from PyQt6.QtCore import Qt
+
 
 class UserManagementApp(QWidget):
     def __init__(self):
@@ -115,3 +119,59 @@ class UserManagementApp(QWidget):
 
     def show_report(self):
         self.tab_widget.setCurrentIndex(1)  # Switch to Report tab
+
+
+class LoginDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login")
+        self.setFixedSize(600, 400)  # Match size with other pages
+        self.setStyleSheet("background-color: #f5f5f5;")  # Light gray background
+
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center layout
+
+        # Title Label
+        title_label = QLabel("Please Login")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: black;")  # Set text color to black
+        layout.addWidget(title_label)
+
+        # Username Input
+        self.username_input = QLineEdit(self)
+        self.username_input.setPlaceholderText("Username")
+        self.username_input.setStyleSheet("padding: 10px; font-size: 18px; border: 1px solid #ccc; border-radius: 5px; color: black;")  # Set text color to black
+        layout.addWidget(self.username_input)
+
+        # Password Input
+        self.password_input = QLineEdit(self)
+        self.password_input.setPlaceholderText("Password")
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.setStyleSheet("padding: 10px; font-size: 18px; border: 1px solid #ccc; border-radius: 5px; color: black;")  # Set text color to black
+        layout.addWidget(self.password_input)
+
+        # Create a horizontal layout for the button
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the button horizontally
+
+        # Login Button
+        self.login_button = QPushButton("Login", self)
+        self.login_button.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border: none; border-radius: 5px; font-size: 18px;")
+        self.login_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)  # Allow focus on button with Tab
+        self.login_button.clicked.connect(self.handle_login)
+        button_layout.addWidget(self.login_button)  # Add the button to the horizontal layout
+
+        layout.addLayout(button_layout)  # Add the button layout to the main layout
+
+        # Add a spacer to push elements to the center
+        layout.addStretch()
+
+        self.setLayout(layout)
+
+        # Set the tab order to navigate correctly
+        self.setTabOrder(self.username_input, self.password_input)  # Tab from username to password
+        self.setTabOrder(self.password_input, self.login_button)     # Tab from password to login button
+
+    def handle_login(self):
+        # Bypass authentication
+        self.accept()  # Close dialog and return success to show the main app

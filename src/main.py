@@ -2,7 +2,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QDialog, QMessageBox
 from core.app import MainApp
-from core.login import LoginDialog  # Import the login dialog
+from apps.user_management.views import LoginDialog  # Import the login dialog
 
 class MyApp(QApplication):
     def __init__(self, argv):
