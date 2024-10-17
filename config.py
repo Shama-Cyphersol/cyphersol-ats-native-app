@@ -1,1 +1,0 @@
-DATABASE_URL = "sqlite:///my_database.db"  # Change this for MySQL/PostgreSQL in the future
