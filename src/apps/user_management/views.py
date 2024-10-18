@@ -94,13 +94,13 @@ class DashboardView(QWidget):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
-        self.report_count_widget = self.create_stat_widget("Total Reports", get_report_count())
+        self.report_count_widget = self.create_stat_widget("Cases", get_report_count())
         stats_layout.addWidget(self.report_count_widget)
 
-        self.monthly_report_widget = self.create_stat_widget("Monthly Reports", get_monthly_report_count())
+        self.monthly_report_widget = self.create_stat_widget("Pending Cases", get_monthly_report_count())
         stats_layout.addWidget(self.monthly_report_widget)
 
-        self.active_users_widget = self.create_stat_widget("Active Users", 42)  # Dummy data
+        self.active_users_widget = self.create_stat_widget("Closed Cases", 42)  # Dummy data
         stats_layout.addWidget(self.active_users_widget)
 
         layout.addLayout(stats_layout)
@@ -150,7 +150,7 @@ class DashboardView(QWidget):
 
     def create_recent_reports_table(self):
         table = QTableWidget(5, 3)
-        table.setHorizontalHeaderLabels(["Date", "Report Name", "Status"])
+        table.setHorizontalHeaderLabels(["Case ID","Date", "Report Name"])
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.setStyleSheet("""
             QTableWidget {
@@ -168,9 +168,10 @@ class DashboardView(QWidget):
 
         recent_reports = get_recent_reports()
         for row, report in enumerate(recent_reports):
-            table.setItem(row, 0, QTableWidgetItem(report['date']))
-            table.setItem(row, 1, QTableWidgetItem(report['name']))
-            table.setItem(row, 2, QTableWidgetItem(report['status']))
+            table.setItem(row, 0, QTableWidgetItem(str(report['id'])))
+            table.setItem(row, 1, QTableWidgetItem(report['date']))
+            table.setItem(row, 2, QTableWidgetItem(report['name']))
+            # table.setItem(row, 2, QTableWidgetItem(report['status']))
 
         self.add_shadow(table)
         return table

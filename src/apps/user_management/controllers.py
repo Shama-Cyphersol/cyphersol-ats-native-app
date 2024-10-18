@@ -12,8 +12,9 @@ def get_recent_reports():
     for i in range(5):
         date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
         reports.append({
+            'id': i + 1,
             'date': date,
             'name': f"Report {random.randint(1000, 9999)}",
-            'status': random.choice(['Completed', 'In Progress', 'Pending'])
+            # 'status': random.choice(['Completed', 'In Progress', 'Pending'])
         })
     return reports

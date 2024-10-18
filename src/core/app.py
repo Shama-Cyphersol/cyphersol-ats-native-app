@@ -57,7 +57,10 @@ class UserInterface(QMainWindow):
         for text, icon in [
             ("Dashboard", "dashboard.png"),
             ("Generate Report", "report.png"),
-            ("File Opener", "file.png"),
+            ("Analytics", "analystics.png"),
+            ("Visualization", "visualization.png"),
+            ("Master", "master.png"),
+            # ("File Opener", "file.png"),
             ("Settings", "settings.png")
         ]:
             btn = QPushButton(text)
