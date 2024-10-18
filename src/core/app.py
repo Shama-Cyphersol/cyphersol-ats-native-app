@@ -1,74 +1,98 @@
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 # from apps.user_management.views import UserManagementApp
-from apps.report.views import ReportsApp
+from apps.report.views import ReportsApp, FileOpenerTab
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QStackedWidget, QDialog, QFormLayout, QLineEdit, QPushButton, QLabel, QVBoxLayout
 from apps.user_management.views import DashboardView
-
-
-class UserInterface(QWidget):
+from PyQt6.QtGui import QIcon
+class UserInterface(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("User Management")
-        self.setFixedSize(800, 600)  # Set fixed size for the app
-
-        # Main layout
-        main_layout = QHBoxLayout()
-        self.setLayout(main_layout)
-
-        # Sidebar Navigation
-        self.sidebar = QFrame()
-        self.sidebar.setFixedWidth(200)  # Fixed width for the sidebar
-        self.sidebar.setStyleSheet("background-color: #1e1e1e;")  # Dark background for sidebar
-
-        sidebar_layout = QVBoxLayout()
-        sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Align items to the top
-
-        # Dashboard Button
-        button_dashboard = QPushButton("Dashboard")
-        button_dashboard.clicked.connect(self.show_dashboard)
-        button_dashboard.setStyleSheet(self.button_style())
-        sidebar_layout.addWidget(button_dashboard)
-
-        # Generate Report Button
-        button_report = QPushButton("Show Reports")
-        button_report.clicked.connect(self.show_reports)  # Changed connection
-        button_report.setStyleSheet(self.button_style())
-        sidebar_layout.addWidget(button_report)
-
-        self.sidebar.setLayout(sidebar_layout)
-        main_layout.addWidget(self.sidebar)
-
-        # Main Content Area
-        self.main_content = QStackedWidget()  # Use StackedWidget to switch views
-        self.dashboard_widget = DashboardView()  # Use the new DashboardView
-        self.report_widget = ReportsApp()  # Use the ReportsApp directly
-
-        self.main_content.addWidget(self.dashboard_widget)  # Add DashboardView to the stack
-        self.main_content.addWidget(self.report_widget)  # Add ReportsApp to the stack
-
-        main_layout.addWidget(self.main_content)
-
-    def button_style(self):
-        return """
+        self.setWindowTitle("CypherSol")
+        self.setGeometry(100, 100, 1200, 800)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f0f0f0;
+            }
             QPushButton {
+                background-color: #2c3e50;
                 color: white;
-                background-color: transparent;
-                padding: 10px;
-                font-size: 18px;
                 border: none;
+                padding: 20px;
+                text-align: left;
+                font-size: 18px;
+                border-radius: 10px;
+                margin: 5px 10px;
             }
             QPushButton:hover {
-                background-color: #4CAF50;  /* Hover effect */
-                border-radius: 5px;
+                background-color: #34495e;
             }
-        """
+            QPushButton:checked {
+                background-color: #3498db;
+            }
+        """)
 
-    def show_dashboard(self):
-        self.main_content.setCurrentIndex(0)  # Switch to Dashboard
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
-    def show_reports(self):
-        self.main_content.setCurrentIndex(1)  # Show ReportsApp
+        # Sidebar
+        sidebar = QWidget()
+        sidebar.setStyleSheet("background-color: #2c3e50;")
+        sidebar.setFixedWidth(300)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setSpacing(10)
+        sidebar_layout.setContentsMargins(0, 20, 0, 20)
+
+        # App title
+        app_title = QLabel("CypherSol")
+        app_title.setStyleSheet("color: white; font-size: 28px; font-weight: bold; padding: 20px 0;")
+        app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sidebar_layout.addWidget(app_title)
+
+        # Navigation buttons
+        self.nav_buttons = []
+        for text, icon in [
+            ("Dashboard", "dashboard.png"),
+            ("Generate Report", "report.png"),
+            ("File Opener", "file.png"),
+            ("Settings", "settings.png")
+        ]:
+            btn = QPushButton(text)
+            btn.setIcon(QIcon(f"resources/icons/{icon}"))
+            btn.setCheckable(True)
+            btn.setChecked(text == "Dashboard")
+            self.nav_buttons.append(btn)
+            sidebar_layout.addWidget(btn)
+
+        sidebar_layout.addStretch()
+        main_layout.addWidget(sidebar)
+
+        # Content area
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #f0f0f0;")
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+
+        self.content_area = QStackedWidget()
+        self.content_area.addWidget(DashboardView())
+        self.content_area.addWidget(ReportsApp())
+        self.content_area.addWidget(FileOpenerTab())
+        # self.content_area.addWidget(SettingsTab())
+        content_layout.addWidget(self.content_area)
+
+        main_layout.addWidget(content_widget)
+
+        # Connect buttons to switch pages
+        for i, btn in enumerate(self.nav_buttons):
+            btn.clicked.connect(lambda checked, index=i: self.switch_page(index))
+
+    def switch_page(self, index):
+        self.content_area.setCurrentIndex(index)
+        for i, btn in enumerate(self.nav_buttons):
+            btn.setChecked(i == index)
 
 
 class MainApp(QMainWindow):
