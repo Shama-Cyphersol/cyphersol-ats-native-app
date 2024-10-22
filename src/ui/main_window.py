@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QLabel
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QIcon, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt,QSize
 from .dashboard import DashboardTab
 from .file_opener import FileOpenerTab
 from .report_generator import ReportGeneratorTab
+from .test import NetworkGraphTabTest
 from .settings import SettingsTab
 
 class MainWindow(QMainWindow):
@@ -12,24 +14,30 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("CypherSol")
         self.setGeometry(100, 100, 1200, 800)
         self.setStyleSheet("""
+                           
             QMainWindow {
                 background-color: #f0f0f0;
             }
+                           
             QPushButton {
-                background-color: #2c3e50;
-                color: white;
-                border: none;
-                padding: 20px;
+                background-color: #ffffff;
+                color: #2c3e50;
+                border: none;  
+                padding: 12px 20px;
                 text-align: left;
-                font-size: 18px;
-                border-radius: 10px;
-                margin: 5px 10px;
+                font-size: 16px;
+                margin: 2px 10px;
+                outline: none;
+                border-left: 3px solid transparent;
             }
             QPushButton:hover {
-                background-color: #34495e;
+                background-color: #f8f9fa;
+                color: #3498db;
             }
             QPushButton:checked {
-                background-color: #3498db;
+                background-color: #f0f7ff;
+                color: #3498db;
+                border-left: 3px solid #3498db;
             }
         """)
 
@@ -39,41 +47,67 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Add footer label
+        footer_label = QLabel("© Copyright 2024 CypherSOL Fintech India Pvt Ltd.\nAll Rights Reserved")
+        footer_label.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 11px;
+                padding: 20px;
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        footer_label.setWordWrap(True)
+
         # Sidebar
         sidebar = QWidget()
-        sidebar.setStyleSheet("background-color: #2c3e50;")
+        sidebar.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border-right: 1px solid #e0e0e0;
+            }
+        """)
         sidebar.setFixedWidth(300)
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 20, 0, 20)
 
-        # App title
-        app_title = QLabel("CypherSol")
-        app_title.setStyleSheet("color: white; font-size: 28px; font-weight: bold; padding: 20px 0;")
-        app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sidebar_layout.addWidget(app_title)
+        # Logo
+        logo_label = QLabel()
+        logo_pixmap = QPixmap("assets/logo.png")
+        scaled_pixmap = logo_pixmap.scaled(200, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        logo_label.setPixmap(scaled_pixmap)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_label.setContentsMargins(0, 10, 0, 45)
+        sidebar_layout.addWidget(logo_label)
 
-        # Navigation buttons
+        # Navigation buttons with updated styles
         self.nav_buttons = []
-        for text, icon in [
+        button_icons = [
             ("Dashboard", "dashboard.png"),
             ("File Opener", "file.png"),
             ("Generate Report", "report.png"),
-            ("Settings", "settings.png")
-        ]:
+            ("Settings", "settings.png"),
+            ("Network Graph Test", "test.png"),
+        ]
+
+        for text, icon in button_icons:
             btn = QPushButton(text)
             btn.setIcon(QIcon(f"resources/icons/{icon}"))
+            btn.setIconSize(QSize(24, 24))  # Make icons slightly larger
             btn.setCheckable(True)
             btn.setChecked(text == "Dashboard")
             self.nav_buttons.append(btn)
             sidebar_layout.addWidget(btn)
 
         sidebar_layout.addStretch()
+        sidebar_layout.addWidget(footer_label)
+
         main_layout.addWidget(sidebar)
 
-        # Content area
+        # Content area with updated background
         content_widget = QWidget()
-        content_widget.setStyleSheet("background-color: #f0f0f0;")
+        content_widget.setStyleSheet("background-color: #f8f9fa;")
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(20, 20, 20, 20)
 
@@ -82,11 +116,12 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(FileOpenerTab())
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(SettingsTab())
-        content_layout.addWidget(self.content_area)
+        self.content_area.addWidget(NetworkGraphTabTest())
 
+        content_layout.addWidget(self.content_area)
         main_layout.addWidget(content_widget)
 
-        # Connect buttons to switch pages
+        # Connect buttons
         for i, btn in enumerate(self.nav_buttons):
             btn.clicked.connect(lambda checked, index=i: self.switch_page(index))
 
