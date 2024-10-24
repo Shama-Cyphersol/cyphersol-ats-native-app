@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 # from apps.user_management.views import UserManagementApp
-from apps.report.views import ReportsApp, FileOpenerTab
+from apps.report.views import ReportsApp, FileOpenerTab,SettingsTab
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QStackedWidget, QDialog, QFormLayout, QLineEdit, QPushButton, QLabel, QVBoxLayout
 from apps.user_management.views import DashboardView
@@ -83,7 +83,7 @@ class UserInterface(QMainWindow):
         self.content_area.addWidget(DashboardView())
         self.content_area.addWidget(ReportsApp())
         self.content_area.addWidget(FileOpenerTab())
-        # self.content_area.addWidget(SettingsTab())
+        self.content_area.addWidget(SettingsTab())
         content_layout.addWidget(self.content_area)
 
         main_layout.addWidget(content_widget)
