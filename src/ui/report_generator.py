@@ -1,121 +1,3 @@
-# from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QDateEdit, QCheckBox,
-#                              QLabel, QFrame, QScrollArea, QHBoxLayout)
-# from PyQt6.QtGui import QFont
-# from PyQt6.QtCore import QDate, Qt
-# from modules.report_generator import generate_report
-
-# class ReportGeneratorTab(QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         self.init_ui()
-
-#     def init_ui(self):
-#         main_layout = QVBoxLayout()
-#         main_layout.setSpacing(20)
-#         main_layout.setContentsMargins(0, 0, 0, 0)
-
-#         # Title
-#         title = QLabel("Generate Report")
-#         title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-#         title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
-#         main_layout.addWidget(title)
-
-#         # Form frame
-#         form_frame = QFrame()
-#         form_frame.setStyleSheet("""
-#             QFrame {
-#                 background-color: white;
-#                 border-radius: 10px;
-#                 padding: 20px;
-#             }
-#         """)
-#         form_layout = QVBoxLayout(form_frame)
-
-#         # Scroll area for form
-#         scroll_area = QScrollArea()
-#         scroll_area.setWidgetResizable(True)
-#         scroll_area.setStyleSheet("""
-#             QScrollArea {
-#                 border: none;
-#             }
-#         """)
-#         form_layout.addWidget(scroll_area)
-
-#         # Form container
-#         form_container = QWidget()
-#         scroll_area.setWidget(form_container)
-#         form_container_layout = QFormLayout(form_container)
-#         form_container_layout.setSpacing(20)
-
-#         # Report Name
-#         self.report_name = QLineEdit()
-#         self.report_name.setPlaceholderText("Enter report name...")
-#         self.style_input(self.report_name)
-#         form_container_layout.addRow(self.create_label("Report Name:"), self.report_name)
-
-#         # Auto Date
-#         date_layout = QHBoxLayout()
-#         self.auto_date = QCheckBox("Use current date")
-#         self.auto_date.setStyleSheet("QCheckBox { font-size: 16px; }")
-#         self.auto_date.stateChanged.connect(self.toggle_date_input)
-#         date_layout.addWidget(self.auto_date)
-
-#         # Date Input
-#         self.date_input = QDateEdit()
-#         self.date_input.setDate(QDate.currentDate())
-#         self.style_input(self.date_input)
-#         date_layout.addWidget(self.date_input)
-#         form_container_layout.addRow(self.create_label("Report Date:"), date_layout)
-
-#         # Add more form fields here as needed
-
-#         main_layout.addWidget(form_frame)
-
-#         # Generate Button
-#         self.generate_button = QPushButton("Generate Report")
-#         self.generate_button.clicked.connect(self.on_generate)
-#         self.generate_button.setStyleSheet("""
-#             QPushButton {
-#                 background-color: #2ecc71;
-#                 color: white;
-#                 padding: 15px 30px;
-#                 font-size: 18px;
-#                 font-weight: bold;
-#                 border: none;
-#                 border-radius: 5px;
-#             }
-#             QPushButton:hover {
-#                 background-color: #27ae60;
-#             }
-#         """)
-#         main_layout.addWidget(self.generate_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-#         self.setLayout(main_layout)
-
-#     def create_label(self, text):
-#         label = QLabel(text)
-#         label.setFont(QFont("Arial", 16))
-#         label.setStyleSheet("color: #2c3e50;")
-#         return label
-
-#     def style_input(self, widget):
-#         widget.setStyleSheet("""
-#             QLineEdit, QDateEdit {
-#                 padding: 12px;
-#                 font-size: 16px;
-#                 border: 1px solid #bdc3c7;
-#                 border-radius: 5px;
-#             }
-#         """)
-
-#     def toggle_date_input(self, state):
-#         self.date_input.setEnabled(not state)
-
-#     def on_generate(self):
-#         name = self.report_name.text()
-#         date = self.date_input.date().toString("yyyy-MM-dd") if not self.auto_date.isChecked() else "auto"
-#         generate_report(name, date)
-#         # You might want to show a success message or update some status here
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QDateEdit, QCheckBox, QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
@@ -128,6 +10,7 @@ import sys
 class ReportGeneratorTab(QWidget):
     def __init__(self):
         super().__init__()
+        self.selected_files = []  # Store selected files
         self.init_ui()
 
     def init_ui(self):
@@ -180,26 +63,51 @@ class ReportGeneratorTab(QWidget):
 
         # Bank Statement and Password in one row (horizontal layout)
         bp_layout = QHBoxLayout()
-        self.bank_statement = QLineEdit()
-        self.bank_statement.setPlaceholderText("Enter Bank Statement")
-        self.bank_statement.setStyleSheet("""
+
+        # File input section
+        file_input_layout = QVBoxLayout()
+        file_label = self.create_label("Bank Statements")
+        file_input_layout.addWidget(file_label)
+
+        # Create a horizontal layout for file input and button
+        file_selection_layout = QHBoxLayout()
+         # File display field
+        self.file_display = QLineEdit()
+        self.file_display.setReadOnly(True)
+        self.file_display.setPlaceholderText("Select PDF or Excel files...")
+        self.file_display.setStyleSheet("""
             QLineEdit {
                 padding: 10px;
                 font-size: 16px;
                 border: 1px solid #bdc3c7;
                 border-radius: 5px;
-                color: #34495e;  /* Text color */
-            }
-            QLineEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
-            }
-            QLineEdit::placeholder {
-                color: #95a5a6;  /* Placeholder text color */
-                font-style: italic;  /* Optional: make placeholder italic */
+                color: #34495e;
+                background-color: #f5f6fa;
             }
         """)
-        bp_layout.addLayout(self.create_labeled_field("Bank Statement", self.bank_statement))
+        # Browse button
+        self.browse_button = QPushButton("Browse")
+        self.browse_button.setStyleSheet("""
+            QPushButton {
+                padding: 10px 20px;
+                background-color: #3498db;
+                color: white;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        self.browse_button.clicked.connect(self.browse_files)
 
+        file_selection_layout.addWidget(self.file_display)
+        file_selection_layout.addWidget(self.browse_button)
+        file_input_layout.addLayout(file_selection_layout)
+
+        bp_layout.addLayout(file_input_layout)
+
+        # Password field
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
         self.password.setPlaceholderText("Enter Password")
@@ -230,17 +138,27 @@ class ReportGeneratorTab(QWidget):
 
         self.start_date = QDateEdit()
         self.start_date.setCalendarPopup(True)
+        start_date_calendar_widget = self.start_date.calendarWidget()
+        start_date_calendar_widget.setStyleSheet("""
+            QCalendarWidget QAbstractItemView:enabled {
+                color: black;  /* Date color */
+                background-color: white;
+            }
+        """)
+        self.start_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
+        # set default date to today
         self.start_date.setDate(QDate.currentDate())
+        
         self.start_date.setStyleSheet("""
             QDateEdit {
                 padding: 10px;
                 font-size: 16px;
                 border: 1px solid #bdc3c7;
                 border-radius: 5px;
-                color: #34495e;  /* Text color */
+                color: black;  
             }
             QDateEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
+                border: 1px solid #2980b9;  
             }
         """)
         start_date_layout.addWidget(self.start_date)
@@ -251,17 +169,24 @@ class ReportGeneratorTab(QWidget):
 
         self.end_date = QDateEdit()
         self.end_date.setCalendarPopup(True)
-        self.end_date.setDate(QDate.currentDate().addDays(30))
+        end_date_calendar_widget = self.end_date.calendarWidget()
+        end_date_calendar_widget.setStyleSheet("""
+            QCalendarWidget QAbstractItemView:enabled {
+                color: black;  /* Date color */
+                background-color: white;
+            }
+        """)
+        self.end_date.setDate(QDate.currentDate())
         self.end_date.setStyleSheet("""
             QDateEdit {
                 padding: 10px;
                 font-size: 16px;
                 border: 1px solid #bdc3c7;
                 border-radius: 5px;
-                color: #34495e;  /* Text color */
+                color: #34495e;  
             }
             QDateEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
+                border: 1px solid #2980b9;  
             }
         """)
         end_date_layout.addWidget(self.end_date)
@@ -269,10 +194,10 @@ class ReportGeneratorTab(QWidget):
         date_layout.addLayout(end_date_layout)
         form_layout.addRow(date_layout)
 
-        # Add Submit button inside the form layout
+        # Submit button 
         button_box_layout = QVBoxLayout()
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.setFixedSize(120, 43)  # Set button size (width, height)
+        self.submit_button.setFixedSize(120, 43) 
         self.submit_button.setStyleSheet("""
             QPushButton {
                 background-color: #3498db;
@@ -319,6 +244,7 @@ class ReportGeneratorTab(QWidget):
         section_title.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
         section_title.setStyleSheet("color: #34495e; margin-top: 20px;")
         return section_title
+    
     def create_recent_reports_table(self):
         try:
            # Fetch recent reports
@@ -391,18 +317,31 @@ class ReportGeneratorTab(QWidget):
             table.setItem(row, 3, report_name_item)
 
         return table
+    
+    def browse_files(self):
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Bank Statements",
+            "",
+            "PDF & Excel Files (*.pdf *.xlsx *.xls)"
+        )
+        if files:
+            self.selected_files = files
+            # Display number of files selected
+            files_text = f"{len(files)} file(s) selected"
+            self.file_display.setText(files_text)
 
     def submit_form(self):
         # Get the form data
         case_id = self.case_id.text()
-        bank_statement = self.bank_statement.text()
+        files = self.selected_files  # List of selected file paths
         password = self.password.text()
         start_date = self.start_date.date().toString("dd-MM-yyyy")
         end_date = self.end_date.date().toString("dd-MM-yyyy")
 
         # Print the form data in the terminal
         print(f"Case ID: {case_id}")
-        print(f"Bank Statement: {bank_statement}")
+        print(f"Selected Files: {files}")
         print(f"Password: {password}")
         print(f"Start Date: {start_date}")
         print(f"End Date: {end_date}")
@@ -687,4 +626,3 @@ class SettingsTab(QWidget):
         self.setLayout(layout)
         self.setWindowTitle('License Activation')
         self.setGeometry(100, 100, 400, 250)
-
