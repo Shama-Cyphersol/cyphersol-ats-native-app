@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt,QSize
 from .dashboard import DashboardTab
 from .file_opener import FileOpenerTab
 from .report_generator import ReportGeneratorTab
-from .test import NetworkGraphTabTest
+from .cash_flow import CashFlowNetwork
 from .settings import SettingsTab
 
 class MainWindow(QMainWindow):
@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
                 color: #3498db;
                 border-left: 3px solid #3498db;
             }
+        
         """)
 
         main_widget = QWidget()
@@ -64,7 +65,6 @@ class MainWindow(QMainWindow):
         sidebar.setStyleSheet("""
             QWidget {
                 background-color: white;
-                border-right: 1px solid #e0e0e0;
             }
         """)
         sidebar.setFixedWidth(300)
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 20, 0, 20)
 
-        # Logo
+        # Cyphersol Logo
         logo_label = QLabel()
         logo_pixmap = QPixmap("assets/logo.png")
         scaled_pixmap = logo_pixmap.scaled(200, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
@@ -81,20 +81,20 @@ class MainWindow(QMainWindow):
         logo_label.setContentsMargins(0, 10, 0, 45)
         sidebar_layout.addWidget(logo_label)
 
-        # Navigation buttons with updated styles
+        # Navigation buttons
         self.nav_buttons = []
         button_icons = [
             ("Dashboard", "dashboard.png"),
-            ("File Opener", "file.png"),
-            ("Generate Report", "report.png"),
+            ("File Opener", "file_opener.png"),
+            ("Generate Report", "generate_report.png"),
             ("Settings", "settings.png"),
-            ("Network Graph Test", "test.png"),
+            ("Cash Flow Network", "cash-flow.png"),
         ]
 
         for text, icon in button_icons:
-            btn = QPushButton(text)
-            btn.setIcon(QIcon(f"resources/icons/{icon}"))
-            btn.setIconSize(QSize(24, 24))  # Make icons slightly larger
+            btn = QPushButton(" " * 2 +text)
+            btn.setIcon(QIcon(f"assets/{icon}"))
+            btn.setIconSize(QSize(23, 23))  # Make icons slightly larger
             btn.setCheckable(True)
             btn.setChecked(text == "Dashboard")
             self.nav_buttons.append(btn)
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(FileOpenerTab())
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(SettingsTab())
-        self.content_area.addWidget(NetworkGraphTabTest())
+        self.content_area.addWidget(CashFlowNetwork())
 
         content_layout.addWidget(self.content_area)
         main_layout.addWidget(content_widget)
@@ -129,3 +129,5 @@ class MainWindow(QMainWindow):
         self.content_area.setCurrentIndex(index)
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
+
+ 
