@@ -1,187 +1,249 @@
 import sys
-import json
-import tempfile
-import plotly.graph_objs as go
-from PyQt6.QtCore import QDateTime, Qt, QUrl
-from PyQt6.QtGui import QPainter
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QScrollArea)
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QDateTimeAxis, QValueAxis
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QPalette, QColor, QFont, QIcon
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QLabel, QScrollArea, QTabWidget, QPushButton, QSplitter,
+    QFrame, QStackedWidget, QSizePolicy
+)
+from PyQt6.QtCharts import QChart, QChartView
+from functools import partial
+
+# Import your existing chart classes
+from utils.summary_charts.Summary_income import SummaryIncome
+from utils.summary_charts.Summary_particular import SummaryParticular
+from utils.summary_charts.Summary_otherExpenses import SummaryOtherExpenses
+from utils.summary_charts.Summary_important_expenses import SummaryImportantExpenses
 
 from utils.summary_charts.transactions import BankTransactionDashboard
-from utils.summary_charts.Creditors import TransactionChart
+from utils.summary_charts.Creditors import Creditors
 from utils.summary_charts.EOD_balance import EODBalanceChart
 from utils.summary_charts.Debtors import DebtorsChart
-from utils.summary_charts.Cash_withdrawal import StackedBarChart
+from utils.summary_charts.Cash_withdrawal import CashWithdrawalChart
 from utils.summary_charts.Cash_Deposit import CashDeposit
-from utils.summary_charts.Payment_Voucher import PaymentDashboard
-from utils.summary_charts.Summary_important_expenses import ImportantExpenses
-from utils.summary_charts.Summary_particular import Particular
-from utils.summary_charts.Summary_income import Income
-from utils.summary_charts.Summary_otherExpenses import OtherExpenses
+from utils.summary_charts.Payment_Voucher import PaymentVoucherDashboard
+from utils.summary_charts.Receipt_voucher import Receiptvoucher
+from utils.summary_charts.Summary_important_expenses import SummaryImportantExpenses
+from utils.summary_charts.Summary_otherExpenses import SummaryOtherExpenses
+from utils.summary_charts.Summary_income import SummaryIncome
 from utils.summary_charts.Reversal import Reversal
 from utils.summary_charts.Suspense_debit import SuspenseDebit
-from utils.summary_charts.Receipt_voucher import Receiptvoucher
 from utils.summary_charts.Suspense_Credit import SuspenseCredit
-class IndividualDashboard(QMainWindow):
-    def __init__(self,case_id,name):
-        super().__init__()
-        self.setWindowTitle("Combined Visualization Overview")
-        self.setGeometry(100, 100, 1200, 800)
 
+
+
+class SidebarButton(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.setCheckable(True)
+        self.setFixedHeight(40)
+        self.setStyleSheet("""
+            QPushButton {
+                border: none;
+                text-align: left;
+                padding: 8px 15px;
+                border-radius: 5px;
+                margin: 2px 10px;
+            }
+            QPushButton:checked {
+                background-color: #e0e7ff;
+                color: #4338ca;
+            }
+            QPushButton:hover:!checked {
+                background-color: #f3f4f6;
+            }
+        """)
+
+class IndividualDashboard(QMainWindow):
+    def __init__(self, case_id, name):
+        super().__init__()
         self.case_id = case_id
         self.name = name
+        self.buttons = {}  # Store buttons for management
+        self.section_widgets = {}  # Store section widgets
+        self.current_section_label = None  # Store current section label
+        self.initUI()
         
-        # Create scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.setCentralWidget(scroll_area)
+    def initUI(self):
+        self.setWindowTitle(f"Financial Dashboard - {self.name}")
+        self.showFullScreen()  # Make window fullscreen
         
-        # Main widget and layout
+        # Create main widget and layout
         main_widget = QWidget()
-        scroll_area.setWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
-        title_bank_txn = QLabel("Bank Transaction Analysis")
-        title_bank_txn.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_bank_txn.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title_bank_txn)
-        bank_txn_dashboard = BankTransactionDashboard()
-        bank_txn_dashboard.setFixedHeight(700)
-        layout.addWidget(bank_txn_dashboard)
-
-
-        title_eod = QLabel("EOD Balance Visualization")
-        title_eod.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_eod.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title_eod)
-        eod_view = EODBalanceChart()
-        eod_view.setFixedHeight(700)
-        layout.addWidget(eod_view)
-
+        # Create sidebar
+        sidebar = self.createSidebar()
         
-        title1 = QLabel("Transaction History (Creditors)")
-        title1.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title1.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title1)
-        txn_history_chart = TransactionChart()
-        txn_history_chart.setFixedHeight(700)
-        layout.addWidget(txn_history_chart)
+        # Create content area
+        content_area = self.createContentArea()
         
-
-        title2 = QLabel("Financial Transactions (Debtors)")
-        title2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title2.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title2)
-        fin_txn_chart = DebtorsChart()
-        fin_txn_chart.setFixedHeight(700)
-        layout.addWidget(fin_txn_chart)
-
+        # Add splitter for resizable sidebar
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(sidebar)
+        splitter.addWidget(content_area)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([250, 1150])  # Initial sizes
         
-        title3 = QLabel("Cash Withdrawal Analysis")
-        title3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title3.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title3)
-        cash_withdrawal = StackedBarChart()
-        cash_withdrawal.setFixedHeight(700)
-        layout.addWidget(cash_withdrawal)
+        main_layout.addWidget(splitter)
 
-        title4 = QLabel("Cash Deposit Analysis")
-        title4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title4.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title4)
-        cash_deposit = CashDeposit()
-        cash_deposit.setFixedHeight(700)
-        layout.addWidget(cash_deposit)
+        # Set default section to open
+        self.showSection("Particulars", SummaryParticular)
     
+    
+    def createSidebar(self):
+        sidebar = QWidget()
+        sidebar.setMaximumWidth(300)
+        sidebar.setMinimumWidth(200)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(5)
         
+        # Header
+        header = QWidget()
+        header.setStyleSheet("background-color: #f8fafc;")
+        header_layout = QVBoxLayout(header)
+        
+        title = QLabel("Financial Dashboard")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
+        subtitle = QLabel(f"Case ID: {self.case_id}")
+        subtitle.setStyleSheet("color: #64748b;padding:4px 0;")
+        
+        header_layout.addWidget(title)
+        header_layout.addWidget(subtitle)
+        sidebar_layout.addWidget(header)
+        
+        # Navigation buttons with their corresponding widget classes
+        self.categories = {
+            "Summary": {
+                "Particulars": SummaryParticular,
+                "Income": SummaryIncome,
+                "Important Expenses": SummaryImportantExpenses,
+                "Other Expenses": SummaryOtherExpenses,
+                "Eod Balance":  EODBalanceChart,
+            },
+            "Transactions": {
+                "Transactions Summary": BankTransactionDashboard,
+                "Creditors": Creditors,
+                "Debtors": DebtorsChart,
+                "Cash Withdrawal": CashWithdrawalChart,
+                "Cash Deposit": CashDeposit,
+            },
+            "Vouchers": {
+                "Payment Voucher": PaymentVoucherDashboard,
+                "Receipt Voucher": Receiptvoucher,
+                "Income": SummaryIncome
+            },
+            "Other": {
+                "Suspense Debit": SuspenseDebit,
+                "Suspense Credit": SuspenseCredit,
+                "Reversal": Reversal
+            }
+        }
+        
+        # Create buttons for each category
+        for category, items in self.categories.items():
+            cat_label = QLabel(category)
+            cat_label.setStyleSheet("""
+                font-weight: bold;
+                color: #64748b;
+                padding: 15px 15px 5px 15px;
+            """)
+            sidebar_layout.addWidget(cat_label)
+            
+            # Create buttons for items in this category
+            for item_name, widget_class in items.items():
+                btn = SidebarButton(item_name)
+                btn.clicked.connect(partial(self.showSection, item_name, widget_class))
+                self.buttons[item_name] = btn
+                sidebar_layout.addWidget(btn)
+        
+        sidebar_layout.addStretch()
+        return sidebar
+   
+   
+    def createContentArea(self):
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
+        # Header bar
+        header = QWidget()
+        header.setStyleSheet("background-color: white; border-bottom: 1px solid #e2e8f0;")
+        header_layout = QHBoxLayout(header)
+        
+        self.current_section_label = QLabel("Bank Transactions")
+        self.current_section_label.setStyleSheet("font-size: 24px; font-weight: bold; color:#1e293b;opacity:0.8;padding: 5px 0;")
+        self.current_section_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
 
-        title6 = QLabel("Payment Voucher Analysis")
-        title6.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title6.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title6)
-        payment_voucher = PaymentDashboard()
-        payment_voucher.setFixedHeight(700)
-        layout.addWidget(payment_voucher)
+        header_layout.addWidget(self.current_section_label)
+        
+        content_layout.addWidget(header)
+        
+        # Scrollable content area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background-color: #f1f5f9;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #cbd5e1;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #94a3b8;
+            }
+        """)
+        
+        # Content container
+        self.content_stack = QStackedWidget()
+        scroll.setWidget(self.content_stack)
+        
+        # Wrap scroll area in a layout to maintain padding and spacing
+        scroll_layout = QVBoxLayout()
 
-
-        title7 = QLabel("Important Expenses Analysis")
-        title7.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title7.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title7)
-        important_expenses = ImportantExpenses()
-        important_expenses.setFixedHeight(800)
-        layout.addWidget(important_expenses) 
-
-
-        title8 = QLabel("Particular Analysis")
-        title8.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title8.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title8)
-        particular = Particular()
-        particular.setFixedHeight(700)
-        layout.addWidget(particular)
-
-
-        title9 = QLabel("Income Analysis")
-        title9.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title9.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title9)
-        income = Income()
-        income.setFixedHeight(700)
-        layout.addWidget(income)
-
-        title10 = QLabel("Other Expenses Analysis")
-        title10.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title10.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title10)
-        other_expenses = OtherExpenses()
-        other_expenses.setFixedHeight(700)
-        layout.addWidget(other_expenses)
-
-
-        title11 = QLabel("Reversal Analysis")
-        title11.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title11.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title11)
-        reversal = Reversal()
-        reversal.setFixedHeight(700)
-        layout.addWidget(reversal)
-
-        title12 = QLabel("Suspense Debit Analysis")
-        title12.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title12.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title12)
-        suspense_debit = SuspenseDebit()
-        suspense_debit.setFixedHeight(700)    
-        layout.addWidget(suspense_debit)
-
-        title13 = QLabel("Receipt Voucher Analysis")
-        title13.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title13.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")    
-        layout.addWidget(title13)
-        receipt_voucher = Receiptvoucher()  
-        receipt_voucher.setFixedHeight(700)
-        layout.addWidget(receipt_voucher)
-
-        title14 = QLabel("Suspense Credit Analysis")
-        title14.setAlignment(Qt.AlignmentFlag.AlignCenter)    
-        title14.setStyleSheet("QLabel { font-size: 16pt; font-weight: bold; margin: 10px; }")
-        layout.addWidget(title14)
-        suspense_credit = SuspenseCredit()
-        suspense_credit.setFixedHeight(700)
-        layout.addWidget(suspense_credit)
+        scroll_layout.setContentsMargins(0, 0, 0, 100)
+        scroll_layout.addWidget(scroll)
+        content_layout.addLayout(scroll_layout)
+        
+        return content_widget
+    
+    def showSection(self, section_name, widget_class):
+        # Uncheck all buttons except the clicked one
+        for btn in self.buttons.values():
+            btn.setChecked(False)
+        self.buttons[section_name].setChecked(True)
 
         
-        # Add spacing between charts
-        layout.setSpacing(40)
-
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = CombinedFinancialView()
-    window.show()
-    sys.exit(app.exec())
+        # Update the section label
+        self.current_section_label.setText(section_name)
+        
+        # Create or show the widget
+        if section_name not in self.section_widgets:
+            # Create new widget instance and container
+            widget = widget_class()
+            container = QWidget()
+            layout = QVBoxLayout(container)
+            layout.setContentsMargins(20, 20, 20, 20)
+            
+            # Set minimum height for the widget
+            widget.setMinimumHeight(600)
+            layout.addWidget(widget)
+            
+            # Store the container
+            self.section_widgets[section_name] = container
+            self.content_stack.addWidget(container)
+        
+        # Show the widget
+        self.content_stack.setCurrentWidget(self.section_widgets[section_name])

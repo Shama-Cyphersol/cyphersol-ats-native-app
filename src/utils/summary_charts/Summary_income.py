@@ -5,7 +5,7 @@ import sys
 import json
 from datetime import datetime
 
-class Income(QMainWindow):
+class SummaryIncome(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Income Distribution Dashboard")

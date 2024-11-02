@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import json
 
-class PaymentDashboard(QMainWindow):
+class PaymentVoucherDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Payment Analysis Dashboard")

@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import json
 
-class Particular(QMainWindow):
+class SummaryParticular(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Financial Analytics Dashboard")

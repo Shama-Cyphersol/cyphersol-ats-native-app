@@ -5,7 +5,7 @@ from PyQt6.QtGui import QPainter
 import sys
 from datetime import datetime
 
-class TransactionChart(QMainWindow):
+class Creditors(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Transaction History (Creditors)")

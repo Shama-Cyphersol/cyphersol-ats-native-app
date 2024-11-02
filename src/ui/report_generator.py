@@ -334,6 +334,10 @@ class ReportGeneratorTab(QWidget):
             self.new_window = QDialog(self)
             self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
             self.new_window.setModal(False)  # Set the dialog as non-modal
+            self.new_window.showMaximized()
+            self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
+            self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
+            self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
 
             # Set the minimum size of the dialog
             self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height

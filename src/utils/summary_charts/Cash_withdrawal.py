@@ -3,7 +3,7 @@ import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-class StackedBarChart(QMainWindow):
+class CashWithdrawalChart(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Cash Withdrawal")

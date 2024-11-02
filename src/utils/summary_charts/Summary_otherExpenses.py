@@ -6,7 +6,7 @@ from PyQt6.QtGui import QFont
 import json
 from datetime import datetime
 
-class OtherExpenses(QMainWindow):
+class SummaryOtherExpenses(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Income Distribution Dashboard")
