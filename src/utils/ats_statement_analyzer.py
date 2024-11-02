@@ -45,7 +45,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from utils.common_functions import CommonFunctions
 from utils.model_loader import model
-
+from collections import deque
 
 class ATSFunctions:
     def __init__(
@@ -259,197 +259,64 @@ class ATSFunctions:
         sorted_df = df.sort_values(by=["Name", "Value Date"]).reset_index(drop=True)
         return sorted_df
 
-    # Daily FIFO Analysis Function
-    def daily_fifo_analysis(self, df):
-        # Group by Value Date for daily analysis
-        daily_groups = df.groupby(df["Value Date"].dt.date)
+        # Daily FIFO Analysis Function
+    def fifo_allocation(self, df, timeframe):
+        df['Value Date'] = pd.to_datetime(df['Value Date'])
+        df.sort_values(by=['Value Date'], inplace=True)
+        allocation_records = []
+        df_resampled = df.set_index('Value Date').resample(timeframe).apply(list).reset_index()
 
-        daily_fifo_results = []
+        # Check if the timeframe is sufficiently covered
+        for _, group in df_resampled.iterrows():
+            if timeframe == 'A' and len(group['Name']) < 12:
+                print(f"Skipping yearly analysis as the data covers less than a year: {group['Value Date']}")
+                continue
+            elif timeframe == '2Q' and len(group['Name']) < 6:
+                print(f"Skipping half-yearly analysis as the data covers less than six months: {group['Value Date']}")
+                continue
+            elif timeframe == 'M' and len(group['Name']) < 4:
+                print(f"Skipping monthly analysis as the data covers less than a month: {group['Value Date']}")
+                continue
+            elif timeframe == 'W' and len(group['Name']) < 1:
+                print(f"Skipping weekly analysis as the data covers less than a week: {group['Value Date']}")
+                continue
 
-        # Iterate over each group (i.e., each day)
-        for date, group in daily_groups:
-            # Create a copy to work with
-            group = group.copy()
+            entity_queue = {entity: deque() for entity in set(group['Name'])}
 
-            # Iterate over debit transactions
-            for idx, row in group[group["Debit"] > 0].iterrows():
-                sender = row["Name"]
-                receiver = row["Entity"]
-                amount = row["Debit"]
+            for i in range(len(group['Name'])):
+                entity = group['Name'][i]
+                debit_amount = group['Debit'][i]
+                value_date = group['Value Date']
+                description = group['Description'][i]
+                entity_queue[entity].append((value_date, debit_amount, description))
 
-                # Find matching credit transactions for the receiver
-                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+                # Try to allocate from the queue
+                while debit_amount > 0 and entity_queue[entity]:
+                    alloc_date, alloc_amount, alloc_description = entity_queue[entity].popleft()
+                    used_amount = min(debit_amount, alloc_amount)
+                    debit_amount -= used_amount
+                    remaining_amount = alloc_amount - used_amount
 
-                # If there is a match, record the transaction flow
-                for _, receiver_row in receiver_transactions.iterrows():
-                    daily_fifo_results.append({
-                        "Date": date,
-                        "Sender": sender,
-                        "Receiver": receiver,
-                        "Amount": amount,
-                        "Receiver Transaction Description": receiver_row["Description"]
+                    # Record the allocation
+                    allocation_records.append({
+                        'allocated_date': alloc_date,
+                        'allocated_entity': entity,
+                        'allocated_category': 'Transfer',
+                        'allocated_amount': used_amount,
+                        'allocated_description': alloc_description,
+                        'used_in_date': value_date,
+                        'used_in_entity': entity,
+                        'used_in_category': 'Transfer',
+                        'used_in_description': description,
+                        'remaining_amount': remaining_amount,
+                        'days_in_between_allocation_and_usage': (value_date - alloc_date).days
                     })
 
-        # Convert results to DataFrame
-        daily_fifo_df = pd.DataFrame(daily_fifo_results)
-        return daily_fifo_df
+                    # If there's remaining amount, add it back to the queue
+                    if remaining_amount > 0:
+                        entity_queue[entity].appendleft((alloc_date, remaining_amount, alloc_description))
 
-    # Weekly FIFO Analysis Function
-    # Weekly FIFO Analysis Function
-    def weekly_fifo_analysis(self, df):
-        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
-        if overall_period < 7:
-            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 7 days
-
-        # Group by week for weekly analysis
-        weekly_groups = df.groupby(df["Value Date"].dt.to_period("W"))
-
-        weekly_fifo_results = []
-
-        # Iterate over each group (i.e., each week)
-        for week, group in weekly_groups:
-            # Create a copy to work with
-            group = group.copy()
-
-            # Iterate over debit transactions
-            for idx, row in group[group["Debit"] > 0].iterrows():
-                sender = row["Name"]
-                receiver = row["Entity"]
-                amount = row["Debit"]
-
-                # Find matching credit transactions for the receiver
-                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
-
-                # If there is a match, record the transaction flow
-                for _, receiver_row in receiver_transactions.iterrows():
-                    weekly_fifo_results.append({
-                        "Week": week,
-                        "Sender": sender,
-                        "Receiver": receiver,
-                        "Amount": amount,
-                        "Receiver Transaction Description": receiver_row["Description"]
-                    })
-
-        # Convert results to DataFrame
-        weekly_fifo_df = pd.DataFrame(weekly_fifo_results)
-        return weekly_fifo_df
-
-    # Monthly FIFO Analysis Function
-    def monthly_fifo_analysis(self, df):
-        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
-        if overall_period < 30:
-            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 30 days
-
-        # Group by month for monthly analysis
-        monthly_groups = df.groupby(df["Value Date"].dt.to_period("M"))
-
-        monthly_fifo_results = []
-
-        # Iterate over each group (i.e., each month)
-        for month, group in monthly_groups:
-            # Create a copy to work with
-            group = group.copy()
-
-            # Iterate over debit transactions
-            for idx, row in group[group["Debit"] > 0].iterrows():
-                sender = row["Name"]
-                receiver = row["Entity"]
-                amount = row["Debit"]
-
-                # Find matching credit transactions for the receiver
-                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
-
-                # If there is a match, record the transaction flow
-                for _, receiver_row in receiver_transactions.iterrows():
-                    monthly_fifo_results.append({
-                        "Month": month,
-                        "Sender": sender,
-                        "Receiver": receiver,
-                        "Amount": amount,
-                        "Receiver Transaction Description": receiver_row["Description"]
-                    })
-
-        # Convert results to DataFrame
-        monthly_fifo_df = pd.DataFrame(monthly_fifo_results)
-        return monthly_fifo_df
-
-    # Half-Yearly FIFO Analysis Function
-    def half_yearly_fifo_analysis(self, df):
-        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
-        if overall_period < 180:
-            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 180 days
-
-        # Group by half-year for half-yearly analysis
-        half_yearly_groups = df.groupby(df["Value Date"].dt.to_period("2Q"))
-
-        half_yearly_fifo_results = []
-
-        # Iterate over each group (i.e., each half-year)
-        for half_year, group in half_yearly_groups:
-            # Create a copy to work with
-            group = group.copy()
-
-            # Iterate over debit transactions
-            for idx, row in group[group["Debit"] > 0].iterrows():
-                sender = row["Name"]
-                receiver = row["Entity"]
-                amount = row["Debit"]
-
-                # Find matching credit transactions for the receiver
-                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
-
-                # If there is a match, record the transaction flow
-                for _, receiver_row in receiver_transactions.iterrows():
-                    half_yearly_fifo_results.append({
-                        "Half-Year": half_year,
-                        "Sender": sender,
-                        "Receiver": receiver,
-                        "Amount": amount,
-                        "Receiver Transaction Description": receiver_row["Description"]
-                    })
-
-        # Convert results to DataFrame
-        half_yearly_fifo_df = pd.DataFrame(half_yearly_fifo_results)
-        return half_yearly_fifo_df
-
-    # Yearly FIFO Analysis Function
-    def yearly_fifo_analysis(self, df):
-        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
-        if overall_period < 365:
-            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 365 days
-
-        # Group by year for yearly analysis
-        yearly_groups = df.groupby(df["Value Date"].dt.to_period("Y"))
-
-        yearly_fifo_results = []
-
-        # Iterate over each group (i.e., each year)
-        for year, group in yearly_groups:
-            # Create a copy to work with
-            group = group.copy()
-
-            # Iterate over debit transactions
-            for idx, row in group[group["Debit"] > 0].iterrows():
-                sender = row["Name"]
-                receiver = row["Entity"]
-                amount = row["Debit"]
-
-                # Find matching credit transactions for the receiver
-                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
-
-                # If there is a match, record the transaction flow
-                for _, receiver_row in receiver_transactions.iterrows():
-                    yearly_fifo_results.append({
-                        "Year": year,
-                        "Sender": sender,
-                        "Receiver": receiver,
-                        "Amount": amount,
-                        "Receiver Transaction Description": receiver_row["Description"]
-                    })
-
-        # Convert results to DataFrame
-        yearly_fifo_df = pd.DataFrame(yearly_fifo_results)
-        return yearly_fifo_df
+        return pd.DataFrame(allocation_records)
 
     # Analysis Function
     def analyze_period(self, df, freq):
@@ -676,11 +543,15 @@ class ATSFunctions:
 
 
         #fifo analysis
-        fifo_daily = self.daily_fifo_analysis(process_df)
-        fifo_weekly = self.weekly_fifo_analysis(process_df)
-        fifo_monthly = self.monthly_fifo_analysis(process_df)
-        fifo_half_yearly = self.half_yearly_fifo_analysis(process_df)
-        fifo_yearly = self.yearly_fifo_analysis(process_df)
+        #fifo analysis
+        fifo_daily = self.fifo_allocation(process_df, 'D')
+        fifo_weekly = self.fifo_allocation(process_df, 'W')
+        fifo_monthly = self.fifo_allocation(process_df, 'M')
+        fifo_half_yearly = self.fifo_allocation(process_df, '2Q')
+        fifo_yearly = self.fifo_allocation(process_df, 'A')
+
+        fifo_daily.to_excel(BASE_DIR + f"/del/fifo_daily.xlsx", index=False)
+        fifo_weekly.to_excel(BASE_DIR + f"/del/fifo_weekly.xlsx", index=False)
         fifo_monthly.to_excel(BASE_DIR + f"/del/fifo_monthly.xlsx", index=False)
         fifo_half_yearly.to_excel(BASE_DIR + f"/del/fifo_half_yearly.xlsx", index=False)
         fifo_yearly.to_excel(BASE_DIR + f"/del/fifo_yearly.xlsx", index=False)
