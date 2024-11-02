@@ -246,6 +246,328 @@ class ATSFunctions:
 
         return df
 
+    # Custom Sorting Function Based on Unique 'Name' Order
+    def custom_sort(self, df):
+        # Get the unique 'Name' values and their first appearance index
+        unique_names = df.drop_duplicates(subset="Name", keep="first").set_index("Name")[
+            "Value Date"].sort_values().index
+
+        # Create a categorical type with the unique names in the desired order
+        df["Name"] = pd.Categorical(df["Name"], categories=unique_names, ordered=True)
+
+        # Sort by 'Name' first based on the unique order, then by 'Value Date'
+        sorted_df = df.sort_values(by=["Name", "Value Date"]).reset_index(drop=True)
+        return sorted_df
+
+    # Daily FIFO Analysis Function
+    def daily_fifo_analysis(self, df):
+        # Group by Value Date for daily analysis
+        daily_groups = df.groupby(df["Value Date"].dt.date)
+
+        daily_fifo_results = []
+
+        # Iterate over each group (i.e., each day)
+        for date, group in daily_groups:
+            # Create a copy to work with
+            group = group.copy()
+
+            # Iterate over debit transactions
+            for idx, row in group[group["Debit"] > 0].iterrows():
+                sender = row["Name"]
+                receiver = row["Entity"]
+                amount = row["Debit"]
+
+                # Find matching credit transactions for the receiver
+                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+
+                # If there is a match, record the transaction flow
+                for _, receiver_row in receiver_transactions.iterrows():
+                    daily_fifo_results.append({
+                        "Date": date,
+                        "Sender": sender,
+                        "Receiver": receiver,
+                        "Amount": amount,
+                        "Receiver Transaction Description": receiver_row["Description"]
+                    })
+
+        # Convert results to DataFrame
+        daily_fifo_df = pd.DataFrame(daily_fifo_results)
+        return daily_fifo_df
+
+    # Weekly FIFO Analysis Function
+    # Weekly FIFO Analysis Function
+    def weekly_fifo_analysis(self, df):
+        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
+        if overall_period < 7:
+            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 7 days
+
+        # Group by week for weekly analysis
+        weekly_groups = df.groupby(df["Value Date"].dt.to_period("W"))
+
+        weekly_fifo_results = []
+
+        # Iterate over each group (i.e., each week)
+        for week, group in weekly_groups:
+            # Create a copy to work with
+            group = group.copy()
+
+            # Iterate over debit transactions
+            for idx, row in group[group["Debit"] > 0].iterrows():
+                sender = row["Name"]
+                receiver = row["Entity"]
+                amount = row["Debit"]
+
+                # Find matching credit transactions for the receiver
+                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+
+                # If there is a match, record the transaction flow
+                for _, receiver_row in receiver_transactions.iterrows():
+                    weekly_fifo_results.append({
+                        "Week": week,
+                        "Sender": sender,
+                        "Receiver": receiver,
+                        "Amount": amount,
+                        "Receiver Transaction Description": receiver_row["Description"]
+                    })
+
+        # Convert results to DataFrame
+        weekly_fifo_df = pd.DataFrame(weekly_fifo_results)
+        return weekly_fifo_df
+
+    # Monthly FIFO Analysis Function
+    def monthly_fifo_analysis(self, df):
+        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
+        if overall_period < 30:
+            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 30 days
+
+        # Group by month for monthly analysis
+        monthly_groups = df.groupby(df["Value Date"].dt.to_period("M"))
+
+        monthly_fifo_results = []
+
+        # Iterate over each group (i.e., each month)
+        for month, group in monthly_groups:
+            # Create a copy to work with
+            group = group.copy()
+
+            # Iterate over debit transactions
+            for idx, row in group[group["Debit"] > 0].iterrows():
+                sender = row["Name"]
+                receiver = row["Entity"]
+                amount = row["Debit"]
+
+                # Find matching credit transactions for the receiver
+                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+
+                # If there is a match, record the transaction flow
+                for _, receiver_row in receiver_transactions.iterrows():
+                    monthly_fifo_results.append({
+                        "Month": month,
+                        "Sender": sender,
+                        "Receiver": receiver,
+                        "Amount": amount,
+                        "Receiver Transaction Description": receiver_row["Description"]
+                    })
+
+        # Convert results to DataFrame
+        monthly_fifo_df = pd.DataFrame(monthly_fifo_results)
+        return monthly_fifo_df
+
+    # Half-Yearly FIFO Analysis Function
+    def half_yearly_fifo_analysis(self, df):
+        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
+        if overall_period < 180:
+            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 180 days
+
+        # Group by half-year for half-yearly analysis
+        half_yearly_groups = df.groupby(df["Value Date"].dt.to_period("2Q"))
+
+        half_yearly_fifo_results = []
+
+        # Iterate over each group (i.e., each half-year)
+        for half_year, group in half_yearly_groups:
+            # Create a copy to work with
+            group = group.copy()
+
+            # Iterate over debit transactions
+            for idx, row in group[group["Debit"] > 0].iterrows():
+                sender = row["Name"]
+                receiver = row["Entity"]
+                amount = row["Debit"]
+
+                # Find matching credit transactions for the receiver
+                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+
+                # If there is a match, record the transaction flow
+                for _, receiver_row in receiver_transactions.iterrows():
+                    half_yearly_fifo_results.append({
+                        "Half-Year": half_year,
+                        "Sender": sender,
+                        "Receiver": receiver,
+                        "Amount": amount,
+                        "Receiver Transaction Description": receiver_row["Description"]
+                    })
+
+        # Convert results to DataFrame
+        half_yearly_fifo_df = pd.DataFrame(half_yearly_fifo_results)
+        return half_yearly_fifo_df
+
+    # Yearly FIFO Analysis Function
+    def yearly_fifo_analysis(self, df):
+        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
+        if overall_period < 365:
+            return pd.DataFrame()  # Return an empty DataFrame if overall period is less than 365 days
+
+        # Group by year for yearly analysis
+        yearly_groups = df.groupby(df["Value Date"].dt.to_period("Y"))
+
+        yearly_fifo_results = []
+
+        # Iterate over each group (i.e., each year)
+        for year, group in yearly_groups:
+            # Create a copy to work with
+            group = group.copy()
+
+            # Iterate over debit transactions
+            for idx, row in group[group["Debit"] > 0].iterrows():
+                sender = row["Name"]
+                receiver = row["Entity"]
+                amount = row["Debit"]
+
+                # Find matching credit transactions for the receiver
+                receiver_transactions = group[(group["Name"] == receiver) & (group["Credit"] == amount)]
+
+                # If there is a match, record the transaction flow
+                for _, receiver_row in receiver_transactions.iterrows():
+                    yearly_fifo_results.append({
+                        "Year": year,
+                        "Sender": sender,
+                        "Receiver": receiver,
+                        "Amount": amount,
+                        "Receiver Transaction Description": receiver_row["Description"]
+                    })
+
+        # Convert results to DataFrame
+        yearly_fifo_df = pd.DataFrame(yearly_fifo_results)
+        return yearly_fifo_df
+
+    # Analysis Function
+    def analyze_period(self, df, freq):
+        # Calculate overall period in days
+        overall_period = (df["Value Date"].max() - df["Value Date"].min()).days
+
+        if freq == 'M' and overall_period < 30:
+            return pd.DataFrame()
+        elif freq == 'W' and overall_period < 7:
+            return pd.DataFrame()
+        elif freq == '6M' and overall_period < 180:
+            return pd.DataFrame()
+        elif freq == 'Y' and overall_period < 365:
+            return pd.DataFrame()
+        else:
+            return df.resample(freq, on='Value Date').agg(
+                {'Debit': 'sum', 'Credit': 'sum', 'Balance': 'last'}).reset_index()
+
+    def cummalative_bidirectional_analysis(self, df, period):
+        # Group by the specified period for analysis
+        if period == 'daily':
+            period_groups = df.groupby(df["Value Date"].dt.date)
+        elif period == 'weekly':
+            if (df["Value Date"].max() - df["Value Date"].min()).days < 7:
+                return {}  # Return empty if not enough data for weekly analysis
+            period_groups = df.groupby(df["Value Date"].dt.to_period("W"))
+        elif period == 'monthly':
+            if (df["Value Date"].max() - df["Value Date"].min()).days < 30:
+                return {}  # Return empty if not enough data for monthly analysis
+            period_groups = df.groupby(df["Value Date"].dt.to_period("M"))
+        elif period == 'half_yearly':
+            if (df["Value Date"].max() - df["Value Date"].min()).days < 180:
+                return {}  # Return empty if not enough data for half-yearly analysis
+            period_groups = df.groupby(df["Value Date"].dt.to_period("2Q"))
+        elif period == 'yearly':
+            if (df["Value Date"].max() - df["Value Date"].min()).days < 365:
+                return {}  # Return empty if not enough data for yearly analysis
+            period_groups = df.groupby(df["Value Date"].dt.to_period("Y"))
+        else:
+            raise ValueError(
+                "Invalid period specified. Choose from 'daily', 'weekly', 'monthly', 'half_yearly', 'yearly'.")
+
+        analysis_results = {}
+
+        # Iterate over each group for the specified period
+        for period_key, group in period_groups:
+            # 1. Split Analysis Between Inflows and Outflows
+            outflows = group[group['Debit'] > 0]
+            inflows = group[group['Credit'] > 0]
+
+            # 2. Category-Level Bidirectional Analysis
+            category_summary = group.groupby('Category').agg({
+                'Debit': 'sum',
+                'Credit': 'sum',
+                'Balance': 'last',
+                'Value Date': 'count'
+            }).rename(columns={'Value Date': 'Transaction Count'}).reset_index()
+            category_summary['Net Flow'] = category_summary['Credit'] - category_summary['Debit']
+
+            # 3. Entity-Level Bidirectional Analysis
+            entity_summary = group.groupby('Entity').agg({
+                'Debit': 'sum',
+                'Credit': 'sum',
+                'Balance': 'last',
+                'Value Date': 'count'
+            }).rename(columns={'Value Date': 'Transaction Count'}).reset_index()
+            entity_summary['Net Flow'] = entity_summary['Credit'] - entity_summary['Debit']
+
+            # 4. Net Cash Flow Calculation
+            net_cash_flow = group['Credit'].sum() - group['Debit'].sum()
+
+            # 5. Trend Analysis Over Time
+            group['Value Date'] = pd.to_datetime(group['Value Date'], format='%d-%m-%Y', errors='coerce')
+            group['YearMonth'] = group['Value Date'].dt.to_period('M')
+            monthly_summary = group.groupby('YearMonth').agg({
+                'Debit': 'sum',
+                'Credit': 'sum',
+                'Balance': 'last'
+            }).reset_index()
+            monthly_summary['Net Flow'] = monthly_summary['Credit'] - monthly_summary['Debit']
+
+            # 6. Balance Analysis
+            group['Daily Net Flow'] = group['Credit'].fillna(0) - group['Debit'].fillna(0)
+            group['Cumulative Balance'] = group['Daily Net Flow'].cumsum() + group['Balance'].iloc[0]
+
+            # 7. Extract Useful Insights for Bidirectional Analysis
+            top_expense_categories = category_summary.sort_values(by='Debit', ascending=False).head(5)
+            top_income_sources = entity_summary.sort_values(by='Credit', ascending=False).head(5)
+            high_net_flow_entities = entity_summary.sort_values(by='Net Flow', ascending=False).head(5)
+
+            # Store results for the current period
+            analysis_results[period_key] = {
+                'outflows': outflows,
+                'inflows': inflows,
+                'category_summary': category_summary,
+                'entity_summary': entity_summary,
+                'net_cash_flow': net_cash_flow,
+                'monthly_summary': monthly_summary,
+                'cumulative_balance': group[['Value Date', 'Cumulative Balance']].reset_index(drop=True),
+                'top_expense_categories': top_expense_categories,
+                'top_income_sources': top_income_sources,
+                'high_net_flow_entities': high_net_flow_entities
+            }
+
+        return analysis_results
+
+    def get_unique_name_acc(self, single_person_output):
+        # Create a list of dictionaries with 'Name' and 'Acc Number'
+        name_acc_list = [
+            {"Name": data["name"], "Acc Number": data["acc_number"]}
+            for data in single_person_output.values()
+        ]
+
+        # Convert to DataFrame and drop duplicates
+        name_acc_df = pd.DataFrame(name_acc_list).drop_duplicates(subset=["Name", "Acc Number"])
+
+        return name_acc_df
+
     def single_person_sheets(self, dfs, name_dfs):
         result = {}
 
@@ -311,16 +633,61 @@ class ATSFunctions:
             }
         # Return the resulting dictionary
         return result
-    
 
+    def get_unique_entity_frequency(self, process_df):
+        # Group by 'Entity' and calculate frequency
+        entity_freq_df = process_df['Entity'].value_counts().reset_index()
+
+        # Rename columns
+        entity_freq_df.columns = ['Entity', 'Frequency (total no of times entity occurred in process_df)']
+
+        return entity_freq_df
     def cummalative_person_sheets(self, single_person_output):
         # Extract the 'new_tran_df' from each entry in the output
         # new_tran_dfs = (dataframes[1] for _, _, dataframes in single_person_output.values())
+        cumulative_df = pd.concat(
+            [data["data"]["df"].assign(Name=data["name"]) for data in single_person_output.values()],
+            ignore_index=True
+        )
 
-        new_tran_dfs = (data_dict["data"]["new_tran_df"] for data_dict in single_person_output.values())
+        # Reorder columns to have 'name' at the front
+        cumulative_df = cumulative_df[
+            ["Name", "Value Date", "Description", "Debit", "Credit", "Balance", "Category", "Entity"]]
 
-        # Concatenate all new_tran_df DataFrames into a single DataFrame
-        cumulative_df = pd.concat(new_tran_dfs, ignore_index=True)
+        process_df = self.custom_sort(cumulative_df)
+        process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
+
+
+        #name_table
+        name_acc_df = self.get_unique_name_acc(single_person_output)
+
+        #entity table
+        entity_df = self.get_unique_entity_frequency(process_df)
+
+
+        #fifo analysis
+        fifo_daily = self.daily_fifo_analysis(process_df)
+        fifo_weekly = self.weekly_fifo_analysis(process_df)
+        fifo_monthly = self.monthly_fifo_analysis(process_df)
+        fifo_half_yearly = self.half_yearly_fifo_analysis(process_df)
+        fifo_yearly = self.yearly_fifo_analysis(process_df)
+
+        #fund flow/money trail
+        ff_daily_analysis = self.analyze_period(process_df, 'D')
+        ff_weekly_analysis = self.analyze_period(process_df, 'W')
+        ff_monthly_analysis = self.analyze_period(process_df, 'M')
+        ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
+        ff_yearly_analysis = self.analyze_period(process_df, 'Y')
+
+        #bidirectional_analysis
+        bda_daily_analysis = self.cummalative_bidirectional_analysis(process_df, 'daily')
+        bda_weekly_analysis = self.cummalative_bidirectional_analysis(process_df, 'weekly')
+        bda_monthly_analysis = self.cummalative_bidirectional_analysis(process_df, 'monthly')
+        bda_half_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'half_yearly')
+        bda_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'yearly')
+
+
+        print("********************************************************************************************")
 
         # Return the concatenated DataFrame
         return cumulative_df
