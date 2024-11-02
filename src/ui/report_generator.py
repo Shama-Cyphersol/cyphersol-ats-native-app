@@ -373,6 +373,7 @@ class ReportGeneratorTab(QWidget):
         CA_ID = self.ca_id
         pdf_paths = self.selected_files  # List of selected file paths
         # passwords = self.password.text()
+        
         passwords = []
         # start_date = self.start_date.date().toString("dd-MM-yyyy")
         # end_date = self.end_date.date().toString("dd-MM-yyyy")

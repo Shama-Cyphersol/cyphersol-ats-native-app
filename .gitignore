@@ -166,3 +166,11 @@ cython_debug/
 # Added
 .DS_Storegliner_medium-v2.1/
 gliner_medium-v2.1/
+/src/utils/del
+/src/utils/local_model
+/src/utils/
+/src/data/cummulative_data/*
+/src/data/json/*
+/src/data/results/*
+/src/gliner-medium-v2.1/
+/src/data/*xlsx

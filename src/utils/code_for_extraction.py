@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import io
-from django.utils import timezone
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -23,6 +22,7 @@ import fitz  # PyMuPDF
 from io import BytesIO
 # from old_bank_extractions import CustomStatement
 import re
+import time
 
 class ExtractionOnly:
     def __init__(self, bank_name, pdf_path, pdf_password, CA_ID):
@@ -631,27 +631,27 @@ class ExtractionOnly:
     def model_for_pdf(self, df):
         # Simulate cleaning or processing the dataframe
         # print(f"Modeling dataframe: {df}")
-        print(df.head(50))
+        # print(df.head(50))
         df = self.cut_the_datframe_from_headers(df)
         date_column = [self.extract_date_col_from_df(df)[0]]
 
-        print("Date Column is:", date_column)
+        # print("Date Column is:", date_column)
         # numeric_columns_list = extract_numeric_col_from_df(df)
         # print(numeric_columns_list)
         description_column = self.find_desc_column(df, [f"{date_column}"])
-        print("Description Column is:", description_column)
+        # print("Description Column is:", description_column)
 
         bal_column = self.find_balance_column(df, description_column, date_column)
         bal_column = [bal_column[0]]
         #bal_column = [7]
-        print("Balance Column is:", bal_column)
+        # print("Balance Column is:", bal_column)
 
         deb_column = self.find_debit_column(df, description_column, date_column, bal_column)
         #deb_column = [4]
-        print("Debit Column is:", deb_column)
+        # print("Debit Column is:", deb_column)
         cred_column = self.find_credit_column(df, description_column, date_column, bal_column)
         #cred_column = [6]
-        print("Credit Column is:", cred_column)
+        # print("Credit Column is:", cred_column)
 
         lists = [date_column, description_column, deb_column, cred_column, bal_column]
 
@@ -682,7 +682,7 @@ class ExtractionOnly:
         else:
             final_df = self.cleaning(new_df)
 
-        print(final_df.head(50))
+        # print(final_df.head(50))
         return final_df
 
     def old_bank_extraction(self, page_path):
@@ -1001,7 +1001,8 @@ class ExtractionOnly:
 
     # Main function to run test cases with optimizations
     def extract_with_test_cases(self, bank_name, pdf_path, pdf_password, CA_ID):
-        timestamp = int(timezone.localtime().timestamp())
+        # timestamp = int(timezone.localtime().timestamp())
+        timestamp = int(time.time())
         pdf_in_saved_pdf = self.unlock_and_add_margins_to_pdf(pdf_path, pdf_password, timestamp, CA_ID)
         list_test = self.process_pdf_with_test_cases(pdf_in_saved_pdf)
         text = self.extract_text_from_pdf(pdf_in_saved_pdf)

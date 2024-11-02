@@ -1,7 +1,5 @@
 import os
 from dateutil import parser
-from django.utils import timezone
-from django.conf import settings
 from openpyxl.styles import Font
 from pypdf import PdfReader
 import re
@@ -45,8 +43,8 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-from common_functions import CommonFunctions
-from model_loader import model
+from utils.common_functions import CommonFunctions
+from utils.model_loader import model
 
 
 class ATSFunctions:
@@ -666,15 +664,15 @@ class ATSFunctions:
         name_acc_df = self.get_unique_name_acc(single_person_output)
 
         # save the process_df to excel file in del folder of current directory make sure to include base dir
-        # process_df.to_excel(BASE_DIR + "/del/process_df.xlsx", index=False)
+        process_df.to_excel(BASE_DIR + "/del/process_df.xlsx", index=False)
 
         
-        # name_acc_df.to_excel(BASE_DIR + f"./del/name_acc_df.xlsx", index=False)
+        name_acc_df.to_excel(BASE_DIR + f"/del/name_acc_df.xlsx", index=False)
         
 
         #entity table
         entity_df = self.get_unique_entity_frequency(process_df)
-        # entity_df.to_excel(BASE_DIR + f"./del/entity_df.xlsx", index=False)
+        entity_df.to_excel(BASE_DIR + f"/del/entity_df.xlsx", index=False)
 
 
         #fifo analysis
@@ -683,9 +681,9 @@ class ATSFunctions:
         fifo_monthly = self.monthly_fifo_analysis(process_df)
         fifo_half_yearly = self.half_yearly_fifo_analysis(process_df)
         fifo_yearly = self.yearly_fifo_analysis(process_df)
-        fifo_monthly.to_excel(BASE_DIR + f"./del/fifo_monthly.xlsx", index=False)
-        fifo_half_yearly.to_excel(BASE_DIR + f"./del/fifo_half_yearly.xlsx", index=False)
-        fifo_yearly.to_excel(BASE_DIR + f"./del/fifo_yearly.xlsx", index=False)
+        fifo_monthly.to_excel(BASE_DIR + f"/del/fifo_monthly.xlsx", index=False)
+        fifo_half_yearly.to_excel(BASE_DIR + f"/del/fifo_half_yearly.xlsx", index=False)
+        fifo_yearly.to_excel(BASE_DIR + f"/del/fifo_yearly.xlsx", index=False)
 
 
         #fund flow/money trail
@@ -694,9 +692,9 @@ class ATSFunctions:
         ff_monthly_analysis = self.analyze_period(process_df, 'M')
         ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
         ff_yearly_analysis = self.analyze_period(process_df, 'Y')
-        ff_monthly_analysis.to_excel(BASE_DIR + f"./del/ff_monthly_analysis.xlsx", index=False)
-        ff_half_yearly_analysis.to_excel(BASE_DIR + f"./del/ff_half_yearly_analysis.xlsx", index=False)
-        ff_yearly_analysis.to_excel(BASE_DIR + f"./del/ff_yearly_analysis.xlsx", index=False)
+        ff_monthly_analysis.to_excel(BASE_DIR + f"/del/ff_monthly_analysis.xlsx", index=False)
+        ff_half_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_half_yearly_analysis.xlsx", index=False)
+        ff_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_yearly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
         bda_daily_analysis = self.cummalative_bidirectional_analysis(process_df, 'daily')
@@ -704,7 +702,7 @@ class ATSFunctions:
         bda_monthly_analysis = self.cummalative_bidirectional_analysis(process_df, 'monthly')
         bda_half_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'half_yearly')
         bda_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'yearly')
-        # bda_monthly_analysis.to_excel(BASE_DIR + f"./del/bda_monthly_analysis.xlsx", index=False)
+        # bda_monthly_analysis.to_excel(BASE_DIR + f"/del/bda_monthly_analysis.xlsx", index=False)
 
 
         print("********************************************************************************************")

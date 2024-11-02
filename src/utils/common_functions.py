@@ -1,6 +1,5 @@
 import os
 from dateutil import parser
-from django.utils import timezone
 from django.conf import settings
 from openpyxl.styles import Font
 from pypdf import PdfReader
@@ -45,8 +44,8 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #from old_bank_extractions import CustomStatement
-from code_for_extraction import ExtractionOnly
-from model_loader import model
+from utils.code_for_extraction import ExtractionOnly
+from utils.model_loader import model
 
 
 class CommonFunctions:
@@ -264,7 +263,7 @@ class CommonFunctions:
 
     def extraction_process(self, bank, pdf_path, pdf_password, start_date, end_date):
         bank = re.sub(r"\d+", "", bank)
-        timestamp = int(timezone.localtime().timestamp())
+        # timestamp = int(timezone.localtime().timestamp())
         CA_ID = self.CA_ID
         ext = self.extract_extension(pdf_path)
 

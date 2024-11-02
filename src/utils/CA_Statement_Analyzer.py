@@ -1,4 +1,3 @@
-from django.utils import timezone
 # from findaddy.decorators import timer_decorator
 from django.conf import settings
 import shutil
@@ -17,9 +16,9 @@ pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from common_functions import CommonFunctions
-from ats_statement_analyzer import ATSFunctions
-from model_loader import model
+from utils.common_functions import CommonFunctions
+from utils.ats_statement_analyzer import ATSFunctions
+from utils.model_loader import model
 
 
 class CABankStatement:
@@ -223,7 +222,7 @@ class CABankStatement:
 
         single_df = self.atser.single_person_sheets(dfs, name_dfs)
         cummalative_df = self.atser.cummalative_person_sheets(single_df)
-        print(cummalative_df)
+        # print(cummalative_df)
 
         # TODO: Save the excel file
         # cummalative_df.to_excel("src/data/cummalative_df.xlsx")
@@ -240,18 +239,18 @@ class CABankStatement:
 
 ### --------------------------------------------------------------------------------------------------------- ###
 #
-settings.configure(USE_TZ=True)
-bank_names = ["hdfc"]
-pdf_paths = ["hdfc.xlsx"]
-passwords = [""]
-start_date = ["1/04/2022"]
-end_date = ["31/03/2022"]
-CA_ID = "hdfc"
-progress_data = {
-    'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
-    'current_progress': 10,
-    'total_progress': 100
-}
+# settings.configure(USE_TZ=True)
+# bank_names = ["hdfc"]
+# pdf_paths = ["hdfc.xlsx"]
+# passwords = [""]
+# start_date = ["1/04/2022"]
+# end_date = ["31/03/2022"]
+# CA_ID = "hdfc"
+# progress_data = {
+#     'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
+#     'current_progress': 10,
+#     'total_progress': 100
+# }
 
-converter = CABankStatement(bank_names, pdf_paths, passwords, start_date, end_date, CA_ID, progress_data)
-converter.start_extraction()
+# converter = CABankStatement(bank_names, pdf_paths, passwords, start_date, end_date, CA_ID, progress_data)
+# converter.start_extraction()

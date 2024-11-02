@@ -14,15 +14,12 @@ from utils.summary_charts.Summary_income import SummaryIncome
 from utils.summary_charts.Summary_particular import SummaryParticular
 from utils.summary_charts.Summary_otherExpenses import SummaryOtherExpenses
 from utils.summary_charts.Summary_important_expenses import SummaryImportantExpenses
-
 from utils.summary_charts.transactions import BankTransactionDashboard
 from utils.summary_charts.Creditors import Creditors
 from utils.summary_charts.EOD_balance import EODBalanceChart
 from utils.summary_charts.Debtors import DebtorsChart
 from utils.summary_charts.Cash_withdrawal import CashWithdrawalChart
 from utils.summary_charts.Cash_Deposit import CashDeposit
-from utils.summary_charts.Payment_Voucher import PaymentVoucherDashboard
-from utils.summary_charts.Receipt_voucher import Receiptvoucher
 from utils.summary_charts.Summary_important_expenses import SummaryImportantExpenses
 from utils.summary_charts.Summary_otherExpenses import SummaryOtherExpenses
 from utils.summary_charts.Summary_income import SummaryIncome
@@ -134,19 +131,15 @@ class IndividualDashboard(QMainWindow):
             },
             "Transactions": {
                 # "Transactions Summary": BankTransactionDashboard(data=self.single_df[self.create_id()]["data"]["transaction_sheet_df"]),
-                "Transactions Summary": BankTransactionDashboard,
+                "Transactions Details": BankTransactionDashboard,
                 "Creditors": Creditors,
                 "Debtors": DebtorsChart,
                 "Cash Withdrawal": CashWithdrawalChart,
                 "Cash Deposit": CashDeposit,
             },
-            "Vouchers": {
-                "Payment Voucher": PaymentVoucherDashboard,
-                "Receipt Voucher": Receiptvoucher,
-            },
             "Other": {
-                "Suspense Debit": SuspenseDebit,
-                "Suspense Credit": SuspenseCredit,
+                "Suspense Debit": SuspenseDebit, #Show Suspense Debit Percentage chart also
+                "Suspense Credit": SuspenseCredit, #Show Suspense Credit Percentage chart also
                 "Reversal": Reversal
             }
         }
