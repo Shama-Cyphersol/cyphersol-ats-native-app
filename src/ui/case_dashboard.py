@@ -3,13 +3,17 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout, QFrame,
                              QScrollArea, QDialog,QComboBox,QPushButton)
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
-from .cash_flow import CashFlowNetwork
+from .individual_dashboard import IndividualDashboard
 import pandas as pd
 import os
+from utils.json_logic import *
 
-class DashboardTab(QWidget):
-    def __init__(self):
+class CaseDashboard(QWidget):
+    def __init__(self,case_id):
         super().__init__()
+        self.case_id = case_id
+        self.case = load_case_data(case_id)
+        print("self.case",self.case)
         self.init_ui()
 
     def init_ui(self):
@@ -25,25 +29,10 @@ class DashboardTab(QWidget):
         content_layout.setContentsMargins(20, 20, 20, 20)
 
         # Title
-        title = QLabel("Dashboard Overview")
+        title = QLabel("Case Dashboard Overview")
         title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         title.setStyleSheet("color: #2c3e50;")
         content_layout.addWidget(title)
-
-        # Stats overview
-        stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(20)
-
-        self.report_count_widget = self.create_stat_widget("Total Reports", 10)  # Dummy value
-        stats_layout.addWidget(self.report_count_widget)
-
-        self.monthly_report_widget = self.create_stat_widget("Monthly Reports", 5)  # Dummy value
-        stats_layout.addWidget(self.monthly_report_widget)
-
-        self.active_users_widget = self.create_stat_widget("Active Users", 42)  # Dummy value
-        stats_layout.addWidget(self.active_users_widget)
-
-        content_layout.addLayout(stats_layout)
 
         # Individual Table
         content_layout.addWidget(self.create_section_title("Individual Person Table"))
@@ -57,33 +46,6 @@ class DashboardTab(QWidget):
         scroll_area.setWidget(content_widget)
         main_layout.addWidget(scroll_area)
         self.setLayout(main_layout)
-
-    def create_stat_widget(self, label, value):
-        widget = QFrame()
-        widget.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 20px;
-            }
-        """)
-        layout = QVBoxLayout(widget)
-        
-        value_label = QLabel(str(value))
-        value_label.setFont(QFont("Arial", 36, QFont.Weight.Bold))
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet("color: #3498db;")
-        
-        desc_label = QLabel(label)
-        desc_label.setFont(QFont("Arial", 14))
-        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        desc_label.setStyleSheet("color: #7f8c8d;")
-        
-        layout.addWidget(value_label)
-        layout.addWidget(desc_label)
-        
-        self.add_shadow(widget)
-        return widget
 
     def create_section_title(self, title):
         label = QLabel(title)
@@ -128,23 +90,27 @@ class DashboardTab(QWidget):
 
     def create_dummy_data_table_individual(self):
         # Extended dummy data
-        dummy_data = [
-            {"id": "1", "name": "Entry A", "status": "Active"},
-            {"id": "2", "name": "Entry B", "status": "Inactive"},
-            {"id": "3", "name": "Entry C", "status": "Active"},
-            {"id": "4", "name": "Entry D", "status": "Inactive"},
-            {"id": "5", "name": "Entry E", "status": "Active"},
-            {"id": "6", "name": "Entry F", "status": "Active"},
-            {"id": "7", "name": "Entry G", "status": "Inactive"},
-            {"id": "8", "name": "Entry H", "status": "Active"},
-            {"id": "9", "name": "Entry I", "status": "Inactive"},
-            {"id": "10", "name": "Entry J", "status": "Active"},
-            {"id": "11", "name": "Entry K", "status": "Inactive"},
-            {"id": "12", "name": "Entry L", "status": "Active"},
-        ]
-        
-        headers = ["ID", "Name", "Status"]
-        table_widget = PaginatedTableWidget(headers, dummy_data, rows_per_page=10)
+        # dummy_data = [
+        #     {"id": "1", "name": "Entry A", "status": "Active"},
+        #     {"id": "2", "name": "Entry B", "status": "Inactive"},
+        #     {"id": "3", "name": "Entry C", "status": "Active"},
+        #     {"id": "4", "name": "Entry D", "status": "Inactive"},
+        #     {"id": "5", "name": "Entry E", "status": "Active"},
+        #     {"id": "6", "name": "Entry F", "status": "Active"},
+        #     {"id": "7", "name": "Entry G", "status": "Inactive"},
+        #     {"id": "8", "name": "Entry H", "status": "Active"},
+        #     {"id": "9", "name": "Entry I", "status": "Inactive"},
+        #     {"id": "10", "name": "Entry J", "status": "Active"},
+        #     {"id": "11", "name": "Entry K", "status": "Inactive"},
+        #     {"id": "12", "name": "Entry L", "status": "Active"},
+        # ]
+
+        data = []
+        for i in range(len(self.case["file_names"])):
+            data.append({"ID": i+1, "Name": self.case["file_names"][i], "Start Date": "-", "End Date": "-"})
+
+        headers = ["ID","Name", "Start Date", "End Date"]
+        table_widget = PaginatedTableWidget(headers, data, rows_per_page=10,case_id=self.case_id)
         self.add_shadow(table_widget)
         return table_widget
 
@@ -166,7 +132,7 @@ class DashboardTab(QWidget):
         ]
         
         headers = ["Date", "Entity Name", "Status"]
-        table_widget = PaginatedTableWidget(headers, dummy_data, rows_per_page=10)
+        table_widget = PaginatedTableWidget(headers, dummy_data,case_id=self.case_id, rows_per_page=10)
         self.add_shadow(table_widget)
         return table_widget
 
@@ -190,12 +156,13 @@ class DashboardTab(QWidget):
         widget.setGraphicsEffect(shadow)
 
 class PaginatedTableWidget(QWidget):
-    def __init__(self, headers, data, rows_per_page=10):
+    def __init__(self, headers, data, case_id,rows_per_page=10):
         super().__init__()
         self.headers = headers
         self.all_data = data
         self.rows_per_page = rows_per_page
         self.current_page = 0
+        self.case_id = case_id
         self.init_ui()
 
     def init_ui(self):
@@ -366,16 +333,24 @@ class PaginatedTableWidget(QWidget):
     def on_cell_click(self, row, column):
         start_idx = self.current_page * self.rows_per_page
         actual_row = start_idx + row
+        
         if actual_row < len(self.all_data):
-            dialog = QDialog()
-            dialog.setWindowTitle("Cash Flow Network Graph")
-            dialog_layout = QVBoxLayout(dialog)
-            # TODO - go into the src/data/cummalative_excels and get the latest saved excel and convert that to df and send that to CashFlowNetwork as data
-            # latest_df  = self.get_latest_excel_as_df()
-            # dialog_layout.addWidget(CashFlowNetwork(data=latest_df))
-            # dialog.setLayout(dialog_layout)
-            # dialog.exec()
-            # entry_label = QLabel(f"Details for Entry {self.all_data[actual_row]['id']}")
-            # entry_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-            # dialog_layout.addWidget(entry_label)
-            # dialog.exec()
+            if column == 1:
+                name = self.all_data[actual_row]["Name"]
+                print(f"Clicked on name: {name}")
+
+                cash_flow_network = IndividualDashboard(case_id=self.case_id,name=name)
+                # Create a new dialog and set the CashFlowNetwork widget as its central widget
+                self.new_window = QDialog(self)
+                self.new_window.setModal(False)  # Set the dialog as non-modal
+
+                # Set the minimum size of the dialog
+                self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
+
+                # Create a layout for the dialog and add the CashFlowNetwork widget
+                layout = QVBoxLayout()
+                layout.addWidget(cash_flow_network)
+                self.new_window.setLayout(layout)
+
+                # Show the new window
+                self.new_window.show()

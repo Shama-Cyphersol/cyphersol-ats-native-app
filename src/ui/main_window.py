@@ -7,7 +7,20 @@ from .file_opener import FileOpenerTab
 from .report_generator import ReportGeneratorTab
 from .cash_flow import CashFlowNetwork
 from .settings import SettingsTab
+import pandas as pd
 
+dummy_data_for_network_graph = pd.DataFrame([
+        {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'Opening Balance'},
+        {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'Rent Paid'},
+        {'Value Date': '01-04-2022', 'Description': 'upi/saisuvidhasho/209125626472/paymentfromph', 'Debit': 140.00, 'Credit': 0.00, 'Balance': 257.13, 'Category': 'UPI-Dr'},
+        {'Value Date': '01-04-2022', 'Description': 'mbsenttogane62491633408impsref209121360374', 'Debit': 200.00, 'Credit': 0.00, 'Balance': 57.13, 'Category': 'Creditor'},
+        {'Value Date': '01-04-2022', 'Description': 'rev:imps62491633408ref209121360374', 'Debit': 0.00, 'Credit': 200.00, 'Balance': 257.13, 'Category': 'Refund/Reversal'},
+        {'Value Date': '03-04-2022', 'Description': 'recd:imps/209310634191/mrsmeena/kkbk/x8247/ineti', 'Debit': 0.00, 'Credit': 3000.00, 'Balance': 3057.13, 'Category': 'Debtor'},
+        {'Value Date': '03-04-2022', 'Description': 'upi/kfcsapphirefo/209376260786/ye', 'Debit': 250.00, 'Credit': 0.00, 'Balance': 807.13, 'Category': 'Food Expense/Hotel'},
+        {'Value Date': '04-04-2022', 'Description': 'ib:receivedfromruteshslodaya06580010004867', 'Debit': 0.00, 'Credit': 18269.00, 'Balance': 18516.13, 'Category': 'Suspense'},
+        {'Value Date': '05-04-2022', 'Description': 'mbloanref209507057778', 'Debit': 6000.00, 'Credit': 0.00, 'Balance': 7316.13, 'Category': 'Loan given'},
+        {'Value Date': '07-04-2022', 'Description': 'upi/irctcwebupi/209730050986/oid100003321095', 'Debit': 2568.60, 'Credit': 0.00, 'Balance': 3387.03, 'Category': 'Travelling Expense'},
+    ])
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -85,7 +98,6 @@ class MainWindow(QMainWindow):
         self.nav_buttons = []
         button_icons = [
             ("Dashboard", "dashboard.png"),
-            ("File Opener", "file_opener.png"),
             ("Generate Report", "generate_report.png"),
             ("Settings", "settings.png"),
             ("Cash Flow Network", "cash-flow.png"),
@@ -113,10 +125,9 @@ class MainWindow(QMainWindow):
 
         self.content_area = QStackedWidget()
         self.content_area.addWidget(DashboardTab())
-        self.content_area.addWidget(FileOpenerTab())
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(SettingsTab())
-        self.content_area.addWidget(CashFlowNetwork())
+        self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
         content_layout.addWidget(self.content_area)
         main_layout.addWidget(content_widget)

@@ -1,0 +1,54 @@
+import json
+import pickle
+
+import json
+
+def save_case_data(case_id, file_names, start_date, end_date):
+    case_data = {
+        "case_id": case_id,
+        "file_names": file_names,
+        "start_date": start_date,
+        "end_date": end_date,
+        "report_name": "Report_"+case_id
+    }
+
+    if len(file_names) == 1:
+        case_data["start_date"] = start_date[0]
+        case_data["end_date"] = end_date[0]
+    else:
+        case_data["start_date"] = "-"
+        case_data["end_date"] = "-"
+
+    # Read existing data or initialize an empty list
+    try:
+        with open("src/data/json/cases.json", "r") as f:
+            existing_data = json.load(f)
+    except:
+        existing_data = []
+
+    # Append the new case data to the list
+    existing_data.append(case_data)
+
+    # Write the updated data back to the file
+    with open("src/data/json/cases.json", "w") as f:
+        json.dump(existing_data, f, indent=4)
+
+def load_all_case_data():
+    with open("src/data/json/cases.json", "r") as f:
+        return json.load(f)
+    
+def load_case_data(case_id):
+    with open("src/data/json/cases.json", "r") as f:
+        data = json.load(f)
+        for case in data:
+            if case["case_id"] == case_id:
+                return case
+        return None
+
+def save_result(CA_ID,result):
+    with open("src/data/results/"+CA_ID+".pkl", 'wb') as f:
+        pickle.dump(result, f)
+
+def load_result(CA_ID):
+    with open("src/data/results/"+CA_ID+".pkl", 'rb') as f:
+        return pickle.load(f)

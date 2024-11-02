@@ -44,7 +44,8 @@ class CustomNavigationToolbar(NavigationToolbar):
         # Set size policy for the toolbar
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-data = pd.DataFrame([
+
+dummy_data_for_network_graph = pd.DataFrame([
         {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'Opening Balance'},
         {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'Rent Paid'},
         {'Value Date': '01-04-2022', 'Description': 'upi/saisuvidhasho/209125626472/paymentfromph', 'Debit': 140.00, 'Credit': 0.00, 'Balance': 257.13, 'Category': 'UPI-Dr'},
@@ -56,7 +57,6 @@ data = pd.DataFrame([
         {'Value Date': '05-04-2022', 'Description': 'mbloanref209507057778', 'Debit': 6000.00, 'Credit': 0.00, 'Balance': 7316.13, 'Category': 'Loan given'},
         {'Value Date': '07-04-2022', 'Description': 'upi/irctcwebupi/209730050986/oid100003321095', 'Debit': 2568.60, 'Credit': 0.00, 'Balance': 3387.03, 'Category': 'Travelling Expense'},
     ])
-
 # data = pd.DataFrame([
 #         {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'A'},
 #         {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'B'},
@@ -71,9 +71,10 @@ data = pd.DataFrame([
 #     ])
 
 class CashFlowNetwork(QMainWindow):
-    def __init__(self):
+    def __init__(self,data=dummy_data_for_network_graph,CA_id=None):
         super().__init__()
         self.setGeometry(100, 100, 1200, 900)
+        self.data = data
         
         # Enhanced stylesheet
         self.setStyleSheet("""
@@ -224,7 +225,7 @@ class CashFlowNetwork(QMainWindow):
         # Add nodes and edges
         node_sizes = {}
         edge_weights = {}
-        for index, row in data.iterrows():
+        for index, row in self.data.iterrows():
             if row['Debit'] > 0:
                 G.add_edge('Opening Balance', row['Category'], amount = -1*row['Debit'] , weight = row['Debit'])
                 edge_weights[('Opening Balance', row['Category'])] = row['Debit']
