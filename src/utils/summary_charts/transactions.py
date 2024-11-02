@@ -11,6 +11,8 @@ class BankTransactionDashboard(QMainWindow):
         super().__init__()
         self.setWindowTitle("Bank Transactions Analysis")
         self.setGeometry(100, 100, 1200, 800)
+        # self.data=data
+        # print("Data",self.data)
         
         # Data
         self.dates = ['15-04-2023', '08-05-2023', '24-05-2023', '03-06-2023', 
@@ -18,7 +20,11 @@ class BankTransactionDashboard(QMainWindow):
         self.debits = [6.72, 15.92, 5.47, 45.42, 8.14, 33.62, 47.20, 33.62]
         self.balances = [274994.78, 893695.44, 452747.97, 279686.88, 
                         243845.26, 711017.32, 5192.90, 87382.28]
-        
+
+        # self.dates = self.data["Value Date"]
+        # self.debits = self.data["Debit"]
+        # self.balances = self.data["Balance"]
+
         # Create central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -41,7 +47,9 @@ class BankTransactionDashboard(QMainWindow):
         series.hovered.connect(self.handle_line_hover)
         
         # Convert dates to QDateTime and add points
+        
         for i, date_str in enumerate(self.dates):
+            # date_str = date_str.strftime("%d-%m-%Y") 
             date = QDateTime.fromString(date_str, "dd-MM-yyyy")
             series.append(date.toMSecsSinceEpoch(), self.balances[i])
         

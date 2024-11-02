@@ -681,7 +681,9 @@ class ATSFunctions:
         fifo_monthly = self.monthly_fifo_analysis(process_df)
         fifo_half_yearly = self.half_yearly_fifo_analysis(process_df)
         fifo_yearly = self.yearly_fifo_analysis(process_df)
-        # fifo_monthly.to_excel(BASE_DIR + f"./del/fifo_monthly.xlsx", index=False)
+        fifo_monthly.to_excel(BASE_DIR + f"./del/fifo_monthly.xlsx", index=False)
+        fifo_half_yearly.to_excel(BASE_DIR + f"./del/fifo_half_yearly.xlsx", index=False)
+        fifo_yearly.to_excel(BASE_DIR + f"./del/fifo_yearly.xlsx", index=False)
 
 
         #fund flow/money trail
@@ -690,7 +692,9 @@ class ATSFunctions:
         ff_monthly_analysis = self.analyze_period(process_df, 'M')
         ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
         ff_yearly_analysis = self.analyze_period(process_df, 'Y')
-        # ff_monthly_analysis.to_excel(BASE_DIR + f"./del/ff_monthly_analysis.xlsx", index=False)
+        ff_monthly_analysis.to_excel(BASE_DIR + f"./del/ff_monthly_analysis.xlsx", index=False)
+        ff_half_yearly_analysis.to_excel(BASE_DIR + f"./del/ff_half_yearly_analysis.xlsx", index=False)
+        ff_yearly_analysis.to_excel(BASE_DIR + f"./del/ff_yearly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
         bda_daily_analysis = self.cummalative_bidirectional_analysis(process_df, 'daily')

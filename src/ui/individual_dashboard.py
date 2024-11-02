@@ -29,8 +29,7 @@ from utils.summary_charts.Summary_income import SummaryIncome
 from utils.summary_charts.Reversal import Reversal
 from utils.summary_charts.Suspense_debit import SuspenseDebit
 from utils.summary_charts.Suspense_Credit import SuspenseCredit
-
-
+from utils.json_logic import load_result
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -55,13 +54,16 @@ class SidebarButton(QPushButton):
         """)
 
 class IndividualDashboard(QMainWindow):
-    def __init__(self, case_id, name):
+    def __init__(self, case_id, name,row_id):
         super().__init__()
         self.case_id = case_id
         self.name = name
+        result = load_result(case_id)
+        self.single_df = result["single_df"]
         self.buttons = {}  # Store buttons for management
         self.section_widgets = {}  # Store section widgets
         self.current_section_label = None  # Store current section label
+        self.row_id = row_id
         self.initUI()
         
     def initUI(self):
@@ -93,6 +95,11 @@ class IndividualDashboard(QMainWindow):
         # Set default section to open
         self.showSection("Particulars", SummaryParticular)
     
+    def create_id(self):
+        id = chr(ord('A') + self.row_id)
+        id+=str(self.row_id)
+        print("ID - ",id)
+        return id
     
     def createSidebar(self):
         sidebar = QWidget()
@@ -126,6 +133,7 @@ class IndividualDashboard(QMainWindow):
                 "Eod Balance":  EODBalanceChart,
             },
             "Transactions": {
+                # "Transactions Summary": BankTransactionDashboard(data=self.single_df[self.create_id()]["data"]["transaction_sheet_df"]),
                 "Transactions Summary": BankTransactionDashboard,
                 "Creditors": Creditors,
                 "Debtors": DebtorsChart,

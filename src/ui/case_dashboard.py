@@ -89,27 +89,10 @@ class CaseDashboard(QWidget):
         return table
 
     def create_dummy_data_table_individual(self):
-        # Extended dummy data
-        # dummy_data = [
-        #     {"id": "1", "name": "Entry A", "status": "Active"},
-        #     {"id": "2", "name": "Entry B", "status": "Inactive"},
-        #     {"id": "3", "name": "Entry C", "status": "Active"},
-        #     {"id": "4", "name": "Entry D", "status": "Inactive"},
-        #     {"id": "5", "name": "Entry E", "status": "Active"},
-        #     {"id": "6", "name": "Entry F", "status": "Active"},
-        #     {"id": "7", "name": "Entry G", "status": "Inactive"},
-        #     {"id": "8", "name": "Entry H", "status": "Active"},
-        #     {"id": "9", "name": "Entry I", "status": "Inactive"},
-        #     {"id": "10", "name": "Entry J", "status": "Active"},
-        #     {"id": "11", "name": "Entry K", "status": "Inactive"},
-        #     {"id": "12", "name": "Entry L", "status": "Active"},
-        # ]
-
         data = []
-        for i in range(len(self.case["file_names"])):
-            data.append({"ID": i+1, "Name": self.case["file_names"][i], "Start Date": "-", "End Date": "-"})
-
-        headers = ["ID","Name", "Start Date", "End Date"]
+        for i in range(len(self.case["individual_names"]["Name"])):
+            data.append({"ID": i+1, "Name": self.case["individual_names"]["Name"][i], "Account Number": self.case["individual_names"]["Acc Number"][i], "Pdf Path": self.case["file_names"][i]})
+        headers = ["ID","Name","Account Number","Pdf Path"]
         table_widget = PaginatedTableWidget(headers, data, rows_per_page=10,case_id=self.case_id)
         self.add_shadow(table_widget)
         return table_widget
@@ -269,7 +252,13 @@ class PaginatedTableWidget(QWidget):
         
         for row, data in enumerate(self.all_data[start_idx:end_idx]):
             for col, key in enumerate(data.keys()):
-                self.table.setItem(row, col, QTableWidgetItem(str(data[key])))
+                item = QTableWidgetItem(str(data[key]))
+                
+                # Center align the ID column
+                if key == "ID":
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    
+                self.table.setItem(row, col, item)
         
         total_pages = (len(self.all_data) + self.rows_per_page - 1) // self.rows_per_page
         self.page_label.setText(f"Page {self.current_page + 1} of {total_pages}")
@@ -330,8 +319,8 @@ class PaginatedTableWidget(QWidget):
             if column == 1:
                 name = self.all_data[actual_row]["Name"]
                 print(f"Clicked on name: {name}")
-
-                cash_flow_network = IndividualDashboard(case_id=self.case_id,name=name)
+                print("row",row)
+                cash_flow_network = IndividualDashboard(case_id=self.case_id,name=name,row_id=row)
                 # Create a new dialog and set the CashFlowNetwork widget as its central widget
                 self.new_window = QDialog(self)
                 self.new_window.setModal(False)  # Set the dialog as non-modal

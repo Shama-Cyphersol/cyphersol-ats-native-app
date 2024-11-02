@@ -395,6 +395,7 @@ class ReportGeneratorTab(QWidget):
         print ("end_date",end_date)
         print ("bank_names",bank_names)
 
+
         progress_data = {
             'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
             'current_progress': 10,
@@ -416,8 +417,9 @@ class ReportGeneratorTab(QWidget):
         #     except:
         #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
         #         pass
+        individual_names = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        save_case_data(CA_ID, pdf_paths, start_date, end_date)
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
         save_result(CA_ID,result)
 
         print("Successfully saved case data and result")
