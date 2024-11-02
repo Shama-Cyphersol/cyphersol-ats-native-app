@@ -45,7 +45,9 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-from utils.common_functions import CommonFunctions
+from common_functions import CommonFunctions
+from model_loader import model
+
 
 class ATSFunctions:
     def __init__(
@@ -65,7 +67,7 @@ class ATSFunctions:
         )
 
     def single_name_entity_addition(self, df):
-        df['Entity'] = df['Category']
+        df['Entity'] = df['Entity']
         return df
 
     def single_analyze_entities(self, df):
