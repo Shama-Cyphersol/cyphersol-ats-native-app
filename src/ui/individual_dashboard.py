@@ -135,7 +135,6 @@ class IndividualDashboard(QMainWindow):
             "Vouchers": {
                 "Payment Voucher": PaymentVoucherDashboard,
                 "Receipt Voucher": Receiptvoucher,
-                "Income": SummaryIncome
             },
             "Other": {
                 "Suspense Debit": SuspenseDebit,

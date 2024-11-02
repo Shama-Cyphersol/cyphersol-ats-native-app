@@ -112,7 +112,7 @@ class SummaryParticular(QMainWindow):
         </html>
         """
         web_view.setHtml(html_content)
-        tab_widget.addTab(transactions_widget, "Transaction Analysis")
+        tab_widget.addTab(transactions_widget, "")
 
 def main():
     app = QApplication(sys.argv)

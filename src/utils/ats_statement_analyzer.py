@@ -642,6 +642,8 @@ class ATSFunctions:
         entity_freq_df.columns = ['Entity', 'Frequency (total no of times entity occurred in process_df)']
 
         return entity_freq_df
+    
+
     def cummalative_person_sheets(self, single_person_output):
         # Extract the 'new_tran_df' from each entry in the output
         # new_tran_dfs = (dataframes[1] for _, _, dataframes in single_person_output.values())
@@ -661,8 +663,16 @@ class ATSFunctions:
         #name_table
         name_acc_df = self.get_unique_name_acc(single_person_output)
 
+        # save the process_df to excel file in del folder of current directory make sure to include base dir
+        # process_df.to_excel(BASE_DIR + "/del/process_df.xlsx", index=False)
+
+        
+        # name_acc_df.to_excel(BASE_DIR + f"./del/name_acc_df.xlsx", index=False)
+        
+
         #entity table
         entity_df = self.get_unique_entity_frequency(process_df)
+        # entity_df.to_excel(BASE_DIR + f"./del/entity_df.xlsx", index=False)
 
 
         #fifo analysis
@@ -671,6 +681,8 @@ class ATSFunctions:
         fifo_monthly = self.monthly_fifo_analysis(process_df)
         fifo_half_yearly = self.half_yearly_fifo_analysis(process_df)
         fifo_yearly = self.yearly_fifo_analysis(process_df)
+        # fifo_monthly.to_excel(BASE_DIR + f"./del/fifo_monthly.xlsx", index=False)
+
 
         #fund flow/money trail
         ff_daily_analysis = self.analyze_period(process_df, 'D')
@@ -678,6 +690,7 @@ class ATSFunctions:
         ff_monthly_analysis = self.analyze_period(process_df, 'M')
         ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
         ff_yearly_analysis = self.analyze_period(process_df, 'Y')
+        # ff_monthly_analysis.to_excel(BASE_DIR + f"./del/ff_monthly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
         bda_daily_analysis = self.cummalative_bidirectional_analysis(process_df, 'daily')
@@ -685,9 +698,35 @@ class ATSFunctions:
         bda_monthly_analysis = self.cummalative_bidirectional_analysis(process_df, 'monthly')
         bda_half_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'half_yearly')
         bda_yearly_analysis = self.cummalative_bidirectional_analysis(process_df, 'yearly')
+        # bda_monthly_analysis.to_excel(BASE_DIR + f"./del/bda_monthly_analysis.xlsx", index=False)
 
 
         print("********************************************************************************************")
 
         # Return the concatenated DataFrame
-        return cumulative_df
+        return {
+            "process_df":process_df,
+            "name_acc_df":name_acc_df,
+            "entity_df":entity_df,
+            "fifo":{
+                "fifo_daily":fifo_daily,
+                "fifo_weekly":fifo_weekly,
+                "fifo_monthly":fifo_monthly,
+                "fifo_half_yearly":fifo_half_yearly,
+                "fifo_yearly":fifo_yearly,
+            },
+            "funf_flow":{
+                "ff_daily_analysis":ff_daily_analysis,
+                "ff_weekly_analysis":ff_weekly_analysis,
+                "ff_monthly_analysis":ff_monthly_analysis,
+                "ff_half_yearly_analysis":ff_half_yearly_analysis,
+                "ff_yearly_analysis":ff_yearly_analysis,
+            },
+            "bidirectional_analysis":{
+                "bda_daily_analysis":bda_daily_analysis,
+                "bda_weekly_analysis":bda_weekly_analysis,
+                "bda_monthly_analysis":bda_monthly_analysis,
+                "bda_half_yearly_analysis":bda_half_yearly_analysis,
+                "bda_yearly_analysis":bda_yearly_analysis
+            }
+        }

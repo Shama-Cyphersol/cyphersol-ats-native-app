@@ -223,7 +223,7 @@ class CABankStatement:
         cummalative_df = self.atser.cummalative_person_sheets(single_df)
 
         # TODO: Save the excel file
-        cummalative_df.to_excel("src/data/cummalative_df.xlsx")
+        # cummalative_df.to_excel("src/data/cummalative_df.xlsx")
 
         folder_path = "saved_pdf"
         try:
