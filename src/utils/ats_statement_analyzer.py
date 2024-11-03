@@ -459,6 +459,11 @@ class ATSFunctions:
 
             new_tran_df = self.commoner.another_method(transaction_sheet_df)
             eod_sheet_df = self.commoner.eod(df)
+            opening_bal, closing_bal = self.commoner.opening_and_closing_bal(eod_sheet_df, df)
+
+            #summary_df_list is a list of dataframes [df1: Paticulars, df2: Income/Receipts, df3: Important Expenses/Payments, df4: Other Expenses/Payments]
+            summary_df_list = self.commoner.summary_sheet(df, opening_bal, closing_bal, new_tran_df)
+            
             investment_df = self.commoner.total_investment(new_tran_df)
             creditor_df = self.commoner.creditor_list(transaction_sheet_df)
             debtor_df = self.commoner.debtor_list(transaction_sheet_df)
@@ -480,6 +485,7 @@ class ATSFunctions:
                 "data":{
                     "df":df,
                     "new_tran_df":new_tran_df,
+                    'summary_df_list': summary_df_list,
                     "fifo":fifo,
                     "money_trail":money_trail,
                     "entity_analysis":entity_analysis,
