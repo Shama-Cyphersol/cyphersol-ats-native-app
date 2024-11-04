@@ -733,13 +733,13 @@ class ExtractionOnly:
                             break
 
                     # If no row with both date and balance keywords found, check for balance keywords first
-                    if crop_y is None and balance_coords:
-                        crop_y = min(balance_coords, key=lambda x: x[0])[0]
-                        selected_page_num = page_num
+                    # if crop_y is None and balance_coords:
+                    #     crop_y = min(balance_coords, key=lambda x: x[0])[0]
+                    #     selected_page_num = page_num
 
-                    # If a suitable crop_y is found, stop checking further pages
-                    if crop_y is not None:
-                        break
+                    # # If a suitable crop_y is found, stop checking further pages
+                    # if crop_y is not None:
+                    #     break
 
                 # If no keywords were found, use the full height of the first page
                 if crop_y is None:
