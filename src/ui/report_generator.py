@@ -10,6 +10,7 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
+from utils.pdf_processor import PDFProcessor
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -293,7 +294,7 @@ class ReportGeneratorTab(QWidget):
                     padding: 5px;
                 }
             """)
-            self.table.cellClicked.connect(self.case_id_clicked)
+            self.table.cellClicked.connect(self.on_table_click)
 
         recent_reports = load_all_case_data()
         self.table.setRowCount(len(recent_reports))
@@ -327,31 +328,14 @@ class ReportGeneratorTab(QWidget):
 
         return self.table
     
-    
-    def case_id_clicked(self, row, column):
-        if column == 0:
-            case_id = self.table.item(row, column).text()
-            print("Case ID clicked: ", case_id)
-            cash_flow_network = CaseDashboard(case_id=case_id)
-             # Create a new dialog and set the CashFlowNetwork widget as its central widget
-            self.new_window = QDialog(self)
-            self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
-            self.new_window.setModal(False)  # Set the dialog as non-modal
-            self.new_window.showMaximized()
-            self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
-            self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
-            self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
-
-            # Set the minimum size of the dialog
-            self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
-
-            # Create a layout for the dialog and add the CashFlowNetwork widget
-            layout = QVBoxLayout()
-            layout.addWidget(cash_flow_network)
-            self.new_window.setLayout(layout)
-
-            # Show the new window
-            self.new_window.show()
+    def on_table_click(self, row, col):
+        # Get the case ID from the first column
+        case_id = self.table.item(row, 0).text()
+        print("Case ID clicked: ", case_id)
+        
+        # Create and show the case dashboard
+        self.case_dashboard = CaseDashboard(case_id)
+        self.case_dashboard.show()
 
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
@@ -374,85 +358,77 @@ class ReportGeneratorTab(QWidget):
     def submit_form(self):
         # Get the form data
         CA_ID = self.ca_id
-        pdf_paths = self.selected_files  # List of selected file paths
+        pdf_paths = self.selected_files
         password = self.password.text()
-        print("password",password)
-
-        password_provided = False
-        start_date_provided = False
-        end_date_provided = False
-
-        if password == "": 
-            password = [""]
-        else:
-            password_provided = True
-            password = [password]
-
-        start_date = self.start_date.date().toString("dd-MM-yyyy")
-        end_date = self.end_date.date().toString("dd-MM-yyyy")
-
-        # check if start_date is same as today
-        if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            start_date = [""]
-        else:
-            start_date_provided = True
-            start_date = [start_date]
-
-        if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            end_date = [""]
-        else:
-            end_date_provided = True
-            end_date = [end_date]
         
+        # Get dates from the form
+        start_date = [self.start_date.date().toString("dd-MM-yyyy")] if self.start_date.date() else ["-"]
+        end_date = [self.end_date.date().toString("dd-MM-yyyy")] if self.end_date.date() else ["-"]
 
-        bank_names = []
-        # for each path in pdf_paths, assign a unique name as A,B,C etc
-        for i in range(len(pdf_paths)):
-            bank_names.append(chr(65 + i))
-            if password_provided == False:
-                password.append("")
-            if start_date_provided == False:
-                start_date.append("")
-            if end_date_provided == False:
-                end_date.append("")
+        print("\n=== Starting PDF Processing ===")
+        print(f"Processing files: {pdf_paths}")
 
-        print ("CA_ID",CA_ID)
-        print ("pdf_paths",pdf_paths)
-        print ("passwords",password)
-        print ("start_date",start_date)
-        print ("end_date",end_date)
-        print ("bank_names",bank_names)
+        try:
+            # Initialize the PDF processor
+            print("\n1. Initializing PDF Processor...")
+            processor = PDFProcessor(model_path="src/models/output_ner_model")
+            
+            processed_results = []
+            entities_data = {"Name": [], "Acc Number": []}
+            
+            # Process each PDF file
+            for pdf_path in pdf_paths:
+                print(f"\n2. Processing file: {pdf_path}")
+                result = processor.process_single_pdf(pdf_path)
+                processed_results.append(result)
+                print(f"3. Processing result: {result}")
+                
+                if not result.error:
+                    print("4. Extracted entities:")
+                    for entity in result.entities:
+                        print(f"   - {entity.label}: {entity.text}")
+                        # Changed PER to PERSON for consistency
+                        if entity.label == "PER":  # or entity.label == "PERSON":
+                            if entity.text not in entities_data["Name"]:
+                                entities_data["Name"].append(entity.text)
+                                print(f"     Added person: {entity.text}")
+                        elif entity.label == "ACC NO":  # or entity.label == "ACCOUNT_NUMBER":
+                            if entity.text not in entities_data["Acc Number"]:
+                                entities_data["Acc Number"].append(entity.text)
+                                print(f"     Added account: {entity.text}")
+                else:
+                    print(f"   Error processing file: {result.error}")
 
+            # If no entities found, add default values
+            if not entities_data["Name"]:
+                entities_data["Name"] = ["Unknown"]
+            if not entities_data["Acc Number"]:
+                entities_data["Acc Number"] = ["Not Found"]
 
-        progress_data = {
-            'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
-            'current_progress': 10,
-            'total_progress': 100
-        }
+            print("\n5. Final extracted entities:")
+            print(f"   Names: {entities_data['Name']}")
+            print(f"   Accounts: {entities_data['Acc Number']}")
 
-        print("progress_data",progress_data)
+            # Save results
+            print("\n6. Saving results...")
+            save_ner_results(CA_ID, processed_results)
+            save_case_data(
+                case_id=CA_ID,
+                file_names=pdf_paths,
+                start_date=start_date,
+                end_date=end_date,
+                individual_names=entities_data
+            )
+            print("7. Results saved successfully")
 
+        except Exception as e:
+            print(f"\nERROR in submit_form: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return
 
-        converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
-        result = converter.start_extraction()
-        # single_df = result["single_df"]
-        # cummalative_df = result["cummalative_df"]
-
-        # # Saving all df as Excel
-        # for key,value in single_df["A0"]["data"].items():
-        #     try:
-        #         value.to_excel("src/data/"+key+".xlsx")
-        #     except:
-        #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
-        #         pass
-        individual_names = result["cummalative_df"]["name_acc_df"].to_dict("list")
-
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
-        save_result(CA_ID,result)
-
-
-        print("Successfully saved case data and result")
-        self.create_recent_reports_table()
+        print("\n=== PDF Processing Complete ===\n")
 
 
     def create_label(self, text):

@@ -1,0 +1,168 @@
+{
+    "case_id": "CA_ID_LV1KMC59MZ1SAFQP",
+    "timestamp": "2024-11-04T18:51:51.829805",
+    "documents": [
+        {
+            "filename": "HDFC (3).pdf",
+            "entities": [
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 0,
+                    "end_char": 31
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 505,
+                    "end_char": 519
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 3280,
+                    "end_char": 3311
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 3785,
+                    "end_char": 3799
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 6451,
+                    "end_char": 6482
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 6956,
+                    "end_char": 6970
+                },
+                {
+                    "text": "008027595010",
+                    "label": "ACC NO",
+                    "start_char": 7485,
+                    "end_char": 7497
+                },
+                {
+                    "text": "SHREE SAMARTH ENGINEERING",
+                    "label": "PER",
+                    "start_char": 9045,
+                    "end_char": 9070
+                },
+                {
+                    "text": "SHREE SAMARTH ENGINEERING",
+                    "label": "PER",
+                    "start_char": 9218,
+                    "end_char": 9243
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 9940,
+                    "end_char": 9971
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 10445,
+                    "end_char": 10459
+                },
+                {
+                    "text": "SHREE SAMARTH ENGINEERING",
+                    "label": "PER",
+                    "start_char": 10870,
+                    "end_char": 10895
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 13123,
+                    "end_char": 13154
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 13628,
+                    "end_char": 13642
+                },
+                {
+                    "text": "00001",
+                    "label": "ACC NO",
+                    "start_char": 14253,
+                    "end_char": 14258
+                },
+                {
+                    "text": "SHREE",
+                    "label": "ACC NO",
+                    "start_char": 14494,
+                    "end_char": 14499
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 16391,
+                    "end_char": 16422
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 16896,
+                    "end_char": 16910
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 19637,
+                    "end_char": 19668
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 20142,
+                    "end_char": 20156
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 22828,
+                    "end_char": 22859
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 23333,
+                    "end_char": 23347
+                },
+                {
+                    "text": "M/s.  Shree Samarth Engineering",
+                    "label": "PER",
+                    "start_char": 25916,
+                    "end_char": 25947
+                },
+                {
+                    "text": "99999921655560",
+                    "label": "ACC NO",
+                    "start_char": 26421,
+                    "end_char": 26435
+                },
+                {
+                    "text": "SHREE SAMARTH ENGINEERIN",
+                    "label": "PER",
+                    "start_char": 26848,
+                    "end_char": 26872
+                },
+                {
+                    "text": "SHREE SAMARTH ENGINEERIN",
+                    "label": "PER",
+                    "start_char": 27029,
+                    "end_char": 27053
+                }
+            ],
+            "error": null
+        }
+    ]
+}

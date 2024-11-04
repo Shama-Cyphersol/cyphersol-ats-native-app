@@ -44,7 +44,7 @@ pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from utils.common_functions import CommonFunctions
-from utils.model_loader import model
+# from utils.model_loader import model
 from collections import deque
 
 class ATSFunctions:

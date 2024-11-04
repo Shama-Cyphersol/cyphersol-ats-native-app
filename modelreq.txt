@@ -1,0 +1,11 @@
+﻿# PDF Processing
+PyMuPDF>=1.23.7  # for fitz module
+
+# NLP Processing
+spacy>=3.7.2
+
+# Data Processing & Utilities
+python-dateutil>=2.8.2
+pathlib>=1.0.1
+typing>=3.7.4.3
+dataclasses>=0.6  # for Python versions < 3.7

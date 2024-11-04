@@ -1,24 +1,33 @@
-datefinder==0.7.3
-Django==5.1
-fitz==0.0.1.dev2
-gliner==0.2.13
-huggingface_hub==0.26.2
-matplotlib==3.9.2
-networkx==3.4.2
-numpy==1.24.3
-openpyxl==3.1.2
-pandas==2.0.3
-pdfplumber==0.11.4
-Pillow==11.0.0
-plotly==5.24.1
-pypdf==5.1.0
-PyPDF2==3.0.1
-PyQt6==6.7.1
-PyQt6_sip==13.8.0
-python_dateutil==2.9.0
-regex==2024.9.11
-reportlab==3.6.13
-torch==2.5.0
-torchvision==0.20.0
-tqdm==4.66.6
-transformers==4.46.0
+# Qt Dependencies
+PyQt6>=6.7.0
+PyQt6-Charts>=6.7.0
+PyQt6-WebEngine>=6.7.0
+PyQt6-Qt6>=6.7.0
+
+# Core Dependencies
+pandas>=2.2.3
+numpy>=2.0.0
+openpyxl>=3.1.2
+requests>=2.32.3
+python-dateutil>=2.9.0
+spacy>=3.8.2
+PyMuPDF>=1.24.13
+
+# Security and Packaging
+pycryptodome>=3.19.0
+pyinstaller>=6.3.0
+pyarmor>=8.0.1
+
+# Spacy Dependencies
+spacy-legacy>=3.0.11
+spacy-loggers>=1.0.0
+thinc>=8.3.0
+wasabi>=0.9.1
+srsly>=2.4.3
+catalogue>=2.0.6
+typer>=0.3.0
+weasel>=0.4.1
+
+# Development Dependencies
+setuptools>=57.4.0
+wheel>=0.38.0

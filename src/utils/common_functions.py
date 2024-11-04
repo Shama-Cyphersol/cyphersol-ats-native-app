@@ -45,7 +45,7 @@ pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #from old_bank_extractions import CustomStatement
 from utils.code_for_extraction import ExtractionOnly
-from utils.model_loader import model
+# from utils.model_loader import model
 
 
 class CommonFunctions:
@@ -988,28 +988,28 @@ class CommonFunctions:
         confidence_threshold = 0.2  # Adjust as needed
 
         # Function to extract entities and update the DataFrame
-        def extract_entities(row):
-            text = row['Description_processed']
-            if text == '':
-                return pd.Series({'Entity': '', 'Category': row['Category']})
+        # def extract_entities(row):
+        #     text = row['Description_processed']
+        #     if text == '':
+        #         return pd.Series({'Entity': '', 'Category': row['Category']})
 
-            # Predict entities using the model
-            entities = model.predict_entities(text, labels)
+        #     # Predict entities using the model
+        #     # entities = model.predict_entities(text, labels)
 
-            # Filter entities based on confidence threshold
-            filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]
+        #     # Filter entities based on confidence threshold
+        #     # filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]
 
-            # Update 'Entity' and 'Category' if entities are found
-            if filtered_entities:
-                highest_score_entity = max(filtered_entities, key=lambda x: x['score'])
-                entity_text = highest_score_entity['text']
-                category_label = highest_score_entity['label']
-                return pd.Series({'Entity': entity_text, 'Category': category_label})
-            else:
-                return pd.Series({'Entity': '', 'Category': row['Category']})
+        #     # Update 'Entity' and 'Category' if entities are found
+        #     if filtered_entities:
+        #         highest_score_entity = max(filtered_entities, key=lambda x: x['score'])
+        #         entity_text = highest_score_entity['text']
+        #         category_label = highest_score_entity['label']
+        #         return pd.Series({'Entity': entity_text, 'Category': category_label})
+        #     else:
+        #         return pd.Series({'Entity': '', 'Category': row['Category']})
 
-        # Apply the entity extraction function to each row
-        df[['Entity', 'Category']] = df.apply(extract_entities, axis=1)
+        # # Apply the entity extraction function to each row
+        # df[['Entity', 'Category']] = df.apply(extract_entities, axis=1)
 
         # Drop the 'Description_processed' column if no longer needed
         df.drop(columns=['Description_processed'], inplace=True)

@@ -1,5 +1,149 @@
 [
     {
+        "case_id": "CA_ID_FD0OO7QJYSE6JJHC",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "03-01-2024",
+        "end_date": "09-01-2024",
+        "report_name": "Report_CA_ID_FD0OO7QJYSE6JJHC",
+        "individual_names": {
+            "Name": [
+                "M/s.  Shree Samarth Engineering",
+                "SHREE SAMARTH ENGINEERING",
+                "SHREE SAMARTH ENGINEERIN"
+            ],
+            "Acc Number": [
+                "99999921655560",
+                "008027595010",
+                "00001",
+                "SHREE"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_LV1KMC59MZ1SAFQP",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "02-01-2024",
+        "end_date": "10-01-2024",
+        "report_name": "Report_CA_ID_LV1KMC59MZ1SAFQP",
+        "individual_names": {
+            "Name": [
+                "M/s.  Shree Samarth Engineering",
+                "SHREE SAMARTH ENGINEERING",
+                "SHREE SAMARTH ENGINEERIN"
+            ],
+            "Acc Number": [
+                "99999921655560",
+                "008027595010",
+                "00001",
+                "SHREE"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_8KYDENIQ84UOFCMW",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "02-01-2024",
+        "end_date": "10-01-2024",
+        "report_name": "Report_CA_ID_8KYDENIQ84UOFCMW",
+        "individual_names": {
+            "Name": [
+                "M/s.  Shree Samarth Engineering",
+                "SHREE SAMARTH ENGINEERING",
+                "SHREE SAMARTH ENGINEERIN"
+            ],
+            "Acc Number": [
+                "99999921655560",
+                "008027595010",
+                "00001",
+                "SHREE"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_7Q0MGZJA02DSXAJD",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "04-01-2024",
+        "end_date": "10-01-2024",
+        "report_name": "Report_CA_ID_7Q0MGZJA02DSXAJD",
+        "individual_names": {
+            "Name": [
+                "M/s.  Shree Samarth Engineering",
+                "SHREE SAMARTH ENGINEERING",
+                "SHREE SAMARTH ENGINEERIN"
+            ],
+            "Acc Number": [
+                "99999921655560",
+                "008027595010",
+                "00001",
+                "SHREE"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_7Q0MGZJA02DSXAJD",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "04-01-2024",
+        "end_date": "12-01-2024",
+        "report_name": "Report_CA_ID_7Q0MGZJA02DSXAJD",
+        "individual_names": {
+            "Name": [
+                "M/s.  Shree Samarth Engineering",
+                "SHREE SAMARTH ENGINEERING",
+                "SHREE SAMARTH ENGINEERIN"
+            ],
+            "Acc Number": [
+                "99999921655560",
+                "008027595010",
+                "00001",
+                "SHREE"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_QLA3ACIL8EO1J5ZT",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "01-01-2024",
+        "end_date": "12-01-2024",
+        "report_name": "Report_CA_ID_QLA3ACIL8EO1J5ZT",
+        "individual_names": {
+            "Name": [
+                "Unknown"
+            ],
+            "Acc Number": [
+                "Not Found"
+            ]
+        }
+    },
+    {
+        "case_id": "CA_ID_HH84WTCR8EE8ETOM",
+        "file_names": [
+            "C:/Users/Abcom/Downloads/HDFC (3).pdf"
+        ],
+        "start_date": "04-01-2024",
+        "end_date": "12-01-2024",
+        "report_name": "Report_CA_ID_HH84WTCR8EE8ETOM",
+        "individual_names": {
+            "Name": [
+                "Unknown"
+            ],
+            "Acc Number": [
+                "Not Found"
+            ]
+        }
+    },
+    {
         "case_id": "CA_ID_TVD68V0B97I2VC6Y",
         "file_names": [
             "C:/Users/qures/Downloads/poojan_5010x5700_.xlsx",

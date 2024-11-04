@@ -7,13 +7,13 @@ from .individual_dashboard import IndividualDashboard
 import pandas as pd
 import os
 from utils.json_logic import *
+import json
 
 class CaseDashboard(QWidget):
     def __init__(self,case_id):
         super().__init__()
         self.case_id = case_id
-        self.case = load_case_data(case_id)
-        print("self.case",self.case)
+        self.case_data = load_case_data(case_id)
         self.init_ui()
 
     def init_ui(self):
@@ -36,7 +36,7 @@ class CaseDashboard(QWidget):
 
         # Individual Table
         content_layout.addWidget(self.create_section_title("Individual Person Table"))
-        content_layout.addWidget(self.create_dummy_data_table_individual())
+        content_layout.addWidget(self.create_individual_person_table())
 
         # Entity Table
         content_layout.addWidget(self.create_section_title("Entity Table"))
@@ -47,9 +47,9 @@ class CaseDashboard(QWidget):
         main_layout.addWidget(scroll_area)
         self.setLayout(main_layout)
 
-    def create_section_title(self, title):
-        label = QLabel(title)
-        label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+    def create_section_title(self, text):
+        label = QLabel(text)
+        label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         label.setStyleSheet("color: #2c3e50; margin-top: 20px;")
         return label
 
@@ -88,14 +88,92 @@ class CaseDashboard(QWidget):
         self.add_shadow(table)
         return table
 
-    def create_dummy_data_table_individual(self):
-        data = []
-        for i in range(len(self.case["individual_names"]["Name"])):
-            data.append({"ID": i+1, "Name": self.case["individual_names"]["Name"][i], "Account Number": self.case["individual_names"]["Acc Number"][i], "Pdf Path": self.case["file_names"][i]})
-        headers = ["ID","Name","Account Number","Pdf Path"]
-        table_widget = PaginatedTableWidget(headers, data, rows_per_page=10,case_id=self.case_id)
-        self.add_shadow(table_widget)
-        return table_widget
+    def create_individual_person_table(self):
+        print("\n=== Creating Individual Person Table ===")
+        
+        # Create table widget
+        table = QTableWidget()
+        table.setColumnCount(2)
+        table.setHorizontalHeaderLabels(["Name", "Account Number"])
+        
+        # Get the data
+        names = self.case_data['individual_names']['Name']
+        acc_numbers = self.case_data['individual_names']['Acc Number']
+        
+        # Set number of rows
+        num_rows = max(len(names), len(acc_numbers))
+        table.setRowCount(num_rows)
+        
+        print(f"\nTable Configuration:")
+        print(f"Number of rows: {num_rows}")
+        print(f"Number of columns: {table.columnCount()}")
+        
+        print("\nData to be inserted:")
+        print(f"Names ({len(names)}): {names}")
+        print(f"Account Numbers ({len(acc_numbers)}): {acc_numbers}")
+        
+        # Populate table
+        for row in range(num_rows):
+            print(f"\nPopulating row {row}:")
+            
+            # Add name
+            if row < len(names):
+                print(f"  Adding name: {names[row]}")
+                name_item = QTableWidgetItem(names[row])
+                table.setItem(row, 0, name_item)
+                # Verify item was set
+                if table.item(row, 0) is not None:
+                    print(f"  ✓ Name added successfully: {table.item(row, 0).text()}")
+                else:
+                    print(f"  ✗ Failed to add name")
+            
+            # Add account number
+            if row < len(acc_numbers):
+                print(f"  Adding account: {acc_numbers[row]}")
+                acc_item = QTableWidgetItem(acc_numbers[row])
+                table.setItem(row, 1, acc_item)
+                # Verify item was set
+                if table.item(row, 1) is not None:
+                    print(f"  ✓ Account added successfully: {table.item(row, 1).text()}")
+                else:
+                    print(f"  ✗ Failed to add account")
+        
+        print("\nVerifying final table contents:")
+        for row in range(table.rowCount()):
+            name = table.item(row, 0).text() if table.item(row, 0) else "None"
+            acc = table.item(row, 1).text() if table.item(row, 1) else "None"
+            print(f"Row {row}: Name = {name}, Account = {acc}")
+        
+        # Style the table
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                border-radius: 10px;
+                padding: 5px;
+            }
+            QHeaderView::section {
+                background-color: #3498db;
+                color: white;
+                font-weight: bold;
+                border: none;
+                padding: 8px;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #ecf0f1;
+            }
+        """)
+        
+        # Adjust column widths
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        
+        # Make cells read-only
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
+        print("\n=== Table Creation Complete ===")
+        return table
 
     def create_dummy_data_table_entity(self):
         # Extended dummy data
