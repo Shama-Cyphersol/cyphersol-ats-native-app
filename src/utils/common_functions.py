@@ -459,10 +459,7 @@ class CommonFunctions:
                 last_non_zero_row = non_zero_rows.iloc[-1]
                 closing_bal[column] = last_non_zero_row[column]
 
-        try:
-            opening_bal_value_1 = df["Balance"][0]
-        except Exception as e:
-            opening_bal_value_1 = 0
+        opening_bal_value_1 = df.iloc[0]["Balance"]
         keys_list = list(closing_bal.keys())
         values_list = list(closing_bal.values())
         values_list.insert(0, opening_bal_value_1)
