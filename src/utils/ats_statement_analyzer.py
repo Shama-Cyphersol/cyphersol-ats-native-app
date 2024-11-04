@@ -532,7 +532,6 @@ class ATSFunctions:
         process_df = self.custom_sort(cumulative_df)
         process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
 
-
         #name_table
         name_acc_df = self.get_unique_name_acc(single_person_output)
 
@@ -547,8 +546,10 @@ class ATSFunctions:
         entity_df = self.get_unique_entity_frequency(process_df)
         entity_df.to_excel(BASE_DIR + f"/del/entity_df.xlsx", index=False)
 
+        # link analysis data
+        link_analysis_df = process_df.groupby(['Name', 'Entity']).agg(Total_Credit=('Credit', 'sum'), Total_Debit=('Debit', 'sum')).reset_index()
+        link_analysis_df = link_analysis_df[['Name', 'Total_Credit', 'Total_Debit', 'Entity']]
 
-        #fifo analysis
         #fifo analysis
         fifo_daily = self.fifo_allocation(process_df, 'D')
         fifo_weekly = self.fifo_allocation(process_df, 'W')
@@ -589,6 +590,7 @@ class ATSFunctions:
             "process_df":process_df,
             "name_acc_df":name_acc_df,
             "entity_df":entity_df,
+            "link_analysis_df": link_analysis_df,
             "fifo":{
                 "fifo_daily":fifo_daily,
                 "fifo_weekly":fifo_weekly,
