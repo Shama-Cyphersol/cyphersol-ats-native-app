@@ -6,10 +6,11 @@ import json
 from datetime import datetime
 
 class SummaryImportantExpenses(QMainWindow):
-    def __init__(self):
+    def __init__(self,data):
         super().__init__()
         self.setWindowTitle("Income Distribution Dashboard")
         self.setGeometry(100, 100, 1200, 900)
+
 
         # Create central widget and layout
         central_widget = QWidget()
@@ -37,6 +38,7 @@ class SummaryImportantExpenses(QMainWindow):
 
         # Create the web view
         self.web = QWebEngineView()
+        self.web.setFixedHeight(1000)
         layout.addWidget(self.web)
         
         # Initialize the dashboard with the first month

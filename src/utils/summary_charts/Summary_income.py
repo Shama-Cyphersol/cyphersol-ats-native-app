@@ -1,102 +1,32 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QComboBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl
 import sys
 import json
-from datetime import datetime
 
-class SummaryIncome(QMainWindow):
-    def __init__(self):
+class IncomeSummaryDashboard(QMainWindow):
+    def __init__(self, data):
         super().__init__()
-        self.setWindowTitle("Income Distribution Dashboard")
+        self.setWindowTitle("Income Summary Dashboard")
         self.setGeometry(100, 100, 1200, 900)
-
-        # Create central widget and layout
+        
+        # Set the provided income data
+        self.data = data
+        self.months = list(self.data.keys())
+        
+        # Create the main widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
         
-        self.months = ['Apr-2023', 'May-2023', 'Jun-2023', 'Jul-2023', 'Aug-2023', 
-                      'Sep-2023', 'Oct-2023', 'Nov-2023', 'Dec-2023', 'Jan-2024', 
-                      'Feb-2024', 'Mar-2024']
-        
-        self.data = {
-            'Apr-2023': {
-                'Salary Received': 0.00,
-                'Debtors Amount': 331727.00,
-                'UPI-Cr': 36349.00,
-                'Suspense - Cr': 455000.00
-            },
-            'May-2023': {
-                'Salary Received': 0.00,
-                'Debtors Amount': 0.00,
-                'UPI-Cr': 411743.73,
-                'Loans Received': 10.00,
-                'Suspense - Cr': 410000.00,
-            },
-            'Jun-2023': {
-                'Salary Received': 0.00,
-                'Debtors Amount': 0.00,
-                'Cash Deposits': 250000.00,
-                'UPI-Cr': 194500.00
-            },
-            'Jul-2023': {
-                'Debtors Amount': 1088851.68,
-                'UPI-Cr': 236800.00,
-                'Suspense - Cr': 200000.00
-            },
-            'Aug-2023': {
-                'Debtors Amount': 485000.00,
-                'Cash Deposits': 22000.00,
-                'UPI-Cr': 198502.00,
-                'Suspense - Cr': 685192.90
-            },
-            'Sep-2023': {
-                'Cash Deposits': 240000.00,
-                'UPI-Cr': 51130.00
-            },
-            'Oct-2023': {
-                'Debtors Amount': 115000.00,
-                'UPI-Cr': 165600.00
-            },
-            'Nov-2023': {
-                'Debtors Amount': 575000.00,
-                'UPI-Cr': 276821.00,
-                'Suspense - Cr': 545000.00
-            },
-            'Dec-2023': {
-                'Salary Received': 20000.00,
-                'Debtors Amount': 41002.00,
-                'UPI-Cr': 705500.00,
-                'Suspense - Cr': 175000.00
-            },
-            'Jan-2024': {
-                'Debtors Amount': 40000.00,
-                'UPI-Cr': 1083001.00,
-                'Refund/Reversal': 62.00,
-                'Suspense - Cr': 225000.00
-            },
-            'Feb-2024': {
-                'Debtors Amount': 60001.00,
-                'UPI-Cr': 78038.00
-            },
-            'Mar-2024': {
-                'Debtors Amount': 347873.00,
-                'UPI-Cr': 336066.00,
-                'Bounce Transaction': 250118.00,
-                'Refund/Reversal': 199.00,
-                'Suspense - Cr': 770000.00
-            }
-        }
-
-        # Create the web view
+        # Web view to render HTML content
         self.web = QWebEngineView()
         layout.addWidget(self.web)
         
         # Initialize the dashboard with the first month
         self.update_dashboard(self.months[0])
-    
+
     def get_highest_category(self, selected_month):
+        """Return the category with the highest income for the selected month."""
         try:
             if not self.data[selected_month]:
                 return "No data", 0
@@ -106,22 +36,22 @@ class SummaryIncome(QMainWindow):
         except Exception as e:
             print(f"Error getting highest category: {e}")
             return "Error", 0
-    
+
     def update_dashboard(self, selected_month):
+        """Generate and display the HTML content for the selected month."""
         try:
-            # Filter out zero values
-            filtered_data = {k: v for k, v in self.data[selected_month].items() if v > 0}
+            selected_data = self.data[selected_month]
             
             # Calculate metrics
-            total_income = sum(filtered_data.values())
+            total_income = sum(selected_data.values())
             top_category, top_amount = self.get_highest_category(selected_month)
             
-            # Create HTML content with modern dashboard design
+            # HTML content with modern dashboard styling
             html_content = f'''
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Income Distribution Dashboard</title>
+                <title>Income Summary Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -130,51 +60,45 @@ class SummaryIncome(QMainWindow):
                         box-sizing: border-box;
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                     }}
-                    
                     body {{
-                        background-color: #f0f2f5;
+                        background-color: #f5f5f5;
                         padding: 20px;
                     }}
-                    
                     .dashboard {{
                         max-width: 1200px;
-                        margin: 0 auto;
+                        margin: auto;
                     }}
-                    
                     .header {{
-                        background: white;
+                        background-color: #fff;
                         padding: 20px;
                         border-radius: 10px;
                         margin-bottom: 20px;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        text-align: center;
                     }}
-                    
                     .metrics-grid {{
                         display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        grid-template-columns: repeat(2, 1fr);
                         gap: 20px;
                         margin-bottom: 20px;
                     }}
-                    
                     .metric-card {{
-                        background: white;
+                        background: #fff;
                         padding: 20px;
                         border-radius: 10px;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        text-align: center;
                     }}
-                    
                     .metric-title {{
                         color: #666;
                         font-size: 0.9em;
                         margin-bottom: 8px;
                     }}
-                    
                     .metric-value {{
                         font-size: 1.5em;
                         font-weight: bold;
                         color: #333;
                     }}
-                    
                     .chart-container {{
                         background: white;
                         padding: 20px;
@@ -182,50 +106,25 @@ class SummaryIncome(QMainWindow):
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                         height: 500px;
                     }}
-                    
                     .radio-group {{
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                        gap: 10px;
-                        background: white;
-                        padding: 15px;
-                        border-radius: 10px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        display: flex;
+                        justify-content: center;
                         margin-bottom: 20px;
                     }}
-                    
                     .radio-group label {{
-                        display: flex;
-                        align-items: center;
-                        padding: 8px;
-                        border-radius: 5px;
+                        margin: 0 10px;
                         cursor: pointer;
-                        transition: background-color 0.2s;
-                    }}
-                    
-                    .radio-group label:hover {{
-                        background-color: #f0f2f5;
-                    }}
-                    
-                    .radio-group input[type="radio"] {{
-                        margin-right: 8px;
-                        cursor: pointer;
-                    }}
-                    
-                    .radio-group input[type="radio"]:checked + span {{
-                        color: #3B82F6;
-                        font-weight: 600;
                     }}
                 </style>
             </head>
             <body>
                 <div class="dashboard">
                     <div class="radio-group">
-                        {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
+                        {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}> {month}</label>' for month in self.months])}
                     </div>
                     
                     <div class="header">
-                        <h1>Income Distribution for <span id="selectedMonth">{selected_month}</span></h1>
+                        <h1>Income Summary for <span id="selectedMonth">{selected_month}</span></h1>
                     </div>
                     
                     <div class="metrics-grid">
@@ -247,29 +146,27 @@ class SummaryIncome(QMainWindow):
                 </div>
                 
                 <script>
-                    const monthsData = {json.dumps(self.data)};
+                    const incomeData = {json.dumps(self.data)};
                     const colors = {{
-                        'Salary Received': '#FF5733',
-                        'Debtors Amount': '#33FF57',
-                        'UPI-Cr': '#3357FF',
-                        'Suspense - Cr': '#FF33A5',
-                        'Loans Received': '#FF8F33',
-                        'Cash Deposits': '#33FFF5',
-                        'Refund/Reversal': '#8C33FF',
-                        'Bounce Transaction': '#FF3333',
+                        'Salary Received': '#10B981',
+                        'Debtors Amount': '#6366F1',
+                        'Bank Interest Received': '#F59E0B',
+                        'Rent Received': '#D946EF',
+                        'Other Income': '#0EA5E9',
+                        'Total Income': '#34D399'
                     }};
                     
-                    let myChart = null;  // Global chart instance
+                    let myChart = null;
                     
                     function updateDashboard(selectedMonth) {{
-                        const selectedData = monthsData[selectedMonth];
+                        const selectedData = incomeData[selectedMonth];
                         
                         // Update header
                         document.getElementById('selectedMonth').textContent = selectedMonth;
                         
                         // Update metrics
                         const totalIncome = Object.values(selectedData).reduce((a, b) => a + b, 0);
-                        document.getElementById('totalIncome').textContent = `₹${{totalIncome.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`
+                        document.getElementById('totalIncome').textContent = `₹${{totalIncome.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`;
                         
                         const topCategory = Object.entries(selectedData).reduce((a, b) => a[1] > b[1] ? a : b);
                         document.getElementById('topCategory').textContent = topCategory[0];
@@ -353,6 +250,11 @@ class SummaryIncome(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = Income()
+    data = {
+        'Jan-2023': {'Salary Received': 50000, 'Debtors Amount': 20000},
+        'Feb-2023': {'Salary Received': 52000, 'Debtors Amount': 18000, 'Other Income': 4000},
+        # Add more monthly data as needed
+    }
+    window = IncomeSummaryDashboard(data)
     window.show()
     sys.exit(app.exec())

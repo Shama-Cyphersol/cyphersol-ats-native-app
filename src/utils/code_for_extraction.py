@@ -453,7 +453,7 @@ class ExtractionOnly:
         return objects
 
     def detect_table_columns(self, image):
-        structure_model = TableTransformerForObjectDetection.from_pretrained("./local_model")
+        structure_model = TableTransformerForObjectDetection.from_pretrained(os.path.dirname(os.path.abspath(__file__))+"./local_model")
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         structure_model.to(device)

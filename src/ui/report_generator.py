@@ -188,6 +188,7 @@ class ReportGeneratorTab(QWidget):
                 background-color: white;
             }
         """)
+        self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
         self.end_date.setDate(QDate.currentDate())
         self.end_date.setStyleSheet("""
             QDateEdit {
@@ -262,36 +263,40 @@ class ReportGeneratorTab(QWidget):
     def create_recent_reports_table(self):
             
         # Create the table widget with 3 columns
-        table = QTableWidget()
-        table.setColumnCount(4)
-        
-        table.setHorizontalHeaderLabels(["Case ID", "Report Name","Start Date","End Date"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border-radius: 10px;
-            }
-            QHeaderView::section {
-                background-color: #3498db;
-                color: white;
-                font-weight: bold;
-                border: none;
-                padding: 8px;
-            }
-            QCheckBox {
-                margin-left: 5px;
-            }
-            QTableWidget::setItem {
-                text-align: center;  /* Center text in cells */
-            }
-            QTableWidget::item {
-                color: black;
-                padding: 5px;
-            }
-        """)
+        if not hasattr(self, 'table'):
+
+            self.table = QTableWidget()
+            self.table.setColumnCount(4)
+            
+            self.table.setHorizontalHeaderLabels(["Case ID", "Report Name","Start Date","End Date"])
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            self.table.setStyleSheet("""
+                QTableWidget {
+                    background-color: white;
+                    border-radius: 10px;
+                }
+                QHeaderView::section {
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    border: none;
+                    padding: 8px;
+                }
+                QCheckBox {
+                    margin-left: 5px;
+                }
+                QTableWidget::setItem {
+                    text-align: center;  /* Center text in cells */
+                }
+                QTableWidget::item {
+                    color: black;
+                    padding: 5px;
+                }
+            """)
+            self.table.cellClicked.connect(self.case_id_clicked)
+
         recent_reports = load_all_case_data()
-        table.setRowCount(len(recent_reports))
+        self.table.setRowCount(len(recent_reports))
         # Populate the table with data
         for row, report in enumerate(recent_reports):
         
@@ -301,33 +306,31 @@ class ReportGeneratorTab(QWidget):
             # font.setUnderline(True)
             # case_id_item.setFont(font)
             case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            table.setItem(row, 0, case_id_item)
+            self.table.setItem(row, 0, case_id_item)
 
             report_name_item = QTableWidgetItem(report['report_name'])
             report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             # make it read only
             report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            table.setItem(row, 1, report_name_item)
+            self.table.setItem(row, 1, report_name_item)
 
             start_date_item = QTableWidgetItem(report['start_date'])
             start_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             start_date_item.setFlags(start_date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            table.setItem(row, 2, start_date_item)
+            self.table.setItem(row, 2, start_date_item)
 
             end_date_item = QTableWidgetItem(report['end_date'])
             end_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             end_date_item.setFlags(end_date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            table.setItem(row, 3, end_date_item)
+            self.table.setItem(row, 3, end_date_item)
 
-        self.recent_reports_table = table
-        table.cellClicked.connect(self.case_id_clicked)
 
-        return table
+        return self.table
     
     
     def case_id_clicked(self, row, column):
         if column == 0:
-            case_id = self.recent_reports_table.item(row, column).text()
+            case_id = self.table.item(row, column).text()
             print("Case ID clicked: ", case_id)
             cash_flow_network = CaseDashboard(case_id=case_id)
              # Create a new dialog and set the CashFlowNetwork widget as its central widget
@@ -372,26 +375,50 @@ class ReportGeneratorTab(QWidget):
         # Get the form data
         CA_ID = self.ca_id
         pdf_paths = self.selected_files  # List of selected file paths
-        # passwords = self.password.text()
+        password = self.password.text()
+        print("password",password)
+
+        password_provided = False
+        start_date_provided = False
+        end_date_provided = False
+
+        if password == "": 
+            password = [""]
+        else:
+            password_provided = True
+            password = [password]
+
+        start_date = self.start_date.date().toString("dd-MM-yyyy")
+        end_date = self.end_date.date().toString("dd-MM-yyyy")
+
+        # check if start_date is same as today
+        if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            start_date = [""]
+        else:
+            start_date_provided = True
+            start_date = [start_date]
+
+        if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            end_date = [""]
+        else:
+            end_date_provided = True
+            end_date = [end_date]
         
-        passwords = []
-        # start_date = self.start_date.date().toString("dd-MM-yyyy")
-        # end_date = self.end_date.date().toString("dd-MM-yyyy")
-        start_date = [""]
-        end_date = [""]
 
         bank_names = []
         # for each path in pdf_paths, assign a unique name as A,B,C etc
         for i in range(len(pdf_paths)):
             bank_names.append(chr(65 + i))
-            passwords.append("")
-            start_date.append(start_date[0])
-            end_date.append(end_date[0])
-
+            if password_provided == False:
+                password.append("")
+            if start_date_provided == False:
+                start_date.append("")
+            if end_date_provided == False:
+                end_date.append("")
 
         print ("CA_ID",CA_ID)
         print ("pdf_paths",pdf_paths)
-        print ("passwords",passwords)
+        print ("passwords",password)
         print ("start_date",start_date)
         print ("end_date",end_date)
         print ("bank_names",bank_names)
@@ -406,7 +433,7 @@ class ReportGeneratorTab(QWidget):
         print("progress_data",progress_data)
 
 
-        converter = CABankStatement(bank_names, pdf_paths, passwords, start_date, end_date, CA_ID, progress_data)
+        converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
         result = converter.start_extraction()
         # single_df = result["single_df"]
         # cummalative_df = result["cummalative_df"]
@@ -423,7 +450,10 @@ class ReportGeneratorTab(QWidget):
         save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
         save_result(CA_ID,result)
 
+
         print("Successfully saved case data and result")
+        self.create_recent_reports_table()
+
 
     def create_label(self, text):
         label = QLabel(text)

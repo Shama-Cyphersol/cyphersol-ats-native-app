@@ -273,6 +273,7 @@ class CommonFunctions:
                 name_n_num = self.extract_account_details(text)
 
             except Exception as e:
+                print(e)
                 raise ValueError("Error extracting data from the PDF.")
 
         elif ext == ".csv":
@@ -458,7 +459,10 @@ class CommonFunctions:
                 last_non_zero_row = non_zero_rows.iloc[-1]
                 closing_bal[column] = last_non_zero_row[column]
 
-        opening_bal_value_1 = df["Balance"][0]
+        try:
+            opening_bal_value_1 = df["Balance"][0]
+        except Exception as e:
+            opening_bal_value_1 = 0
         keys_list = list(closing_bal.keys())
         values_list = list(closing_bal.values())
         values_list.insert(0, opening_bal_value_1)

@@ -5,24 +5,30 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QFile, QTextStream
 
 class DebtorsChart(QMainWindow):
-    def __init__(self):
+    def __init__(self,data):
         super().__init__()
-        self.setWindowTitle("Financial Transactions Overview")
         self.setGeometry(100, 100, 1200, 600)
 
         # Create a QWebEngineView
         self.browser = QWebEngineView()
+        data = data.sort_values(by="Value Date")
         
-        # Prepare data
-        dates = ["04-03-2024", "15-07-2023", "19-03-2024", "26-02-2024", "19-04-2023"]
-        credits = [79873.00, 100000.00, 18000.00, 50000.00, 5000.00]
-        balances = [1079401.47, 720361.94, -716597.43, 1039334.47, 249575.78]
+        # # Prepare data
+        # dates = ["04-03-2024", "15-07-2023", "19-03-2024", "26-02-2024", "19-04-2023"]
+        # credits = [79873.00, 100000.00, 18000.00, 50000.00, 5000.00]
+        # balances = [1079401.47, 720361.94, -716597.43, 1039334.47, 249575.78]
+        # Extract data from the DataFrame
+        dates = data["Value Date"].dt.strftime("%d-%m-%Y").tolist()
+        credits = data["Credit"].tolist() if "Credit" in data.columns else []
+        balances = data["Balance"].tolist()
 
         # Create the HTML and JavaScript for the chart
         html_content = self.create_html(dates, credits, balances)
         
         # Load the HTML content into the QWebEngineView
         self.browser.setHtml(html_content)
+        self.browser.setFixedHeight(600)
+
 
         layout = QVBoxLayout()
         layout.addWidget(self.browser)
@@ -65,7 +71,11 @@ class DebtorsChart(QMainWindow):
                 var data = [trace1, trace2];
                 
                 var layout = {{
-                    title: 'Financial Transactions: Credit Amounts and Balance Over Time',
+                    xaxis: {{
+                        title: 'Date',
+                        tickformat: "%d-%m-%Y",
+                         tickangle: -45,  // Rotate x-axis labels for better readability
+                    }},
                     yaxis: {{
                         title: 'Credit Amount',
                     }},
@@ -74,7 +84,17 @@ class DebtorsChart(QMainWindow):
                         overlaying: 'y',
                         side: 'right',
                     }},
-                    barmode: 'group'
+                    barmode: 'group',
+                    legend: {{
+                        orientation: 'h',
+                        x: 0.5,
+                        y: 1.15,
+                        xanchor: 'center',
+                        yanchor: 'bottom'
+                    }},
+                    margin: {{
+                        b: 100  // Increase bottom margin for space below the x-axis
+                    }}
                 }};
                 
                 Plotly.newPlot('chart', data, layout);

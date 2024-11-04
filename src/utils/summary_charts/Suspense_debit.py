@@ -1,110 +1,50 @@
-
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QDateTime, Qt
+# suspense_Credit.py
 import sys
 import pandas as pd
-from datetime import datetime
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import plotly.express as px
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import QUrl
+import tempfile
 
-class SuspenseDebit(QMainWindow):
-    def __init__(self):
+class SuspenseDebit(QWidget):
+    def __init__(self,data,total_transactions):
         super().__init__()
-        self.setWindowTitle("Transaction Analysis Dashboard")
-        self.setGeometry(100, 100, 1200, 800)
-        
-        # Create the main widget and layout
-        main_widget = QWidget()
-        self.setCentralWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
-        
-        # Create QWebEngineView
-        web_view = QWebEngineView()
-        layout.addWidget(web_view)
-        
-        # Process data
-        data = {
-            'Date': ['03-04-2023', '06-04-2023', '06-04-2023', '11-04-2023', 
-                    '12-04-2023', '17-04-2023', '20-04-2023'],
-            'Description': ['clg/universaldentalsystem/iob', 'clg/ruchikanirmaljain/boi',
-                          'clg/rohanpradipraut/hdf5', 'clg/nayanadandwate/bob',
-                          'clg/doshimarketingcorporat/kmb', 'clg/ruchikanirmaljain/boi',
-                          'clg/msnayanaashokdandwate/idfc'],
-            'Amount': [4125.00, 1980.00, 54000.00, 6300.00, 11000.00, 10170.00, 3465.00]
-        }
-        df = pd.DataFrame(data)
-        df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
-        
-        # Create subplots
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=('Transaction Timeline', 'Transaction Amounts', 'Distribution of Expenses'),
-            specs=[[{"type": "scatter"}, {"type": "bar"}],
-                  [{"type": "pie", "colspan": 2}, None]],
-            vertical_spacing=0.15,
-            horizontal_spacing=0.1
-        )
-        
-        # Add line chart
-        fig.add_trace(
-            go.Scatter(
-                x=df['Date'],
-                y=df['Amount'],
-                mode='lines+markers',
-                name='Transaction Amount',
-                line=dict(color='#2E86C1', width=2),
-                marker=dict(size=8)
-            ),
-            row=1, col=1
-        )
-        
-        # Add bar chart
-        fig.add_trace(
-            go.Bar(
-                x=df['Date'],
-                y=df['Amount'],
-                name='Transaction Amount',
-                marker_color='#3498DB'
-            ),
-            row=1, col=2
-        )
-        
-        # Add pie chart
-        fig.add_trace(
-            go.Pie(
-                labels=df['Description'].apply(lambda x: x.split('/')[1]),  # Use only the main part of description
-                values=df['Amount'],
-                hole=0.3,
-                marker=dict(colors=['#2E86C1', '#3498DB', '#1ABC9C', '#16A085', 
-                                  '#27AE60', '#2ECC71', '#F1C40F'])
-            ),
-            row=2, col=1
-        )
-        
-        # Update layout
-        fig.update_layout(
-            title_text="Transaction Analysis Dashboard",
-            showlegend=False,
-            height=750,
-            template='plotly_white',
-            annotations=[
-                dict(text="Transaction Timeline", x=0.225, y=1.1, showarrow=False, font_size=16),
-                dict(text="Transaction Amounts", x=0.775, y=1.1, showarrow=False, font_size=16),
-                dict(text="Distribution of Expenses", x=0.5, y=0.48, showarrow=False, font_size=16)
-            ]
-        )
-        
-        # Style specific updates
-        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
-        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
-        
-        # Convert the figure to HTML and display it in the QWebEngineView
-        html = fig.to_html(include_plotlyjs='cdn')
-        web_view.setHtml(html)
+        print("suspense debit",data.head(), data.shape)
+        print("total_transactions", total_transactions)
+        # Set up layout
+        layout = QVBoxLayout(self)
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = SuspenseDebit()
-    window.show()
-    sys.exit(app.exec())
+        # Create the Plotly chart and convert to HTML
+        # data = {
+        #     "Value Date": ["12-04-2023", "25-04-2023", "25-04-2023", "27-04-2023", "20-05-2023", "14-07-2023", "07-08-2023", 
+        #                    "11-08-2023", "19-08-2023", "18-11-2023", "21-11-2023", "15-12-2023", "15-12-2023", "18-12-2023", 
+        #                    "17-01-2024", "13-03-2024", "14-03-2024", "14-03-2024", "18-03-2024", "25-03-2024"],
+        #     "Description": ["clg/chandrakantlaxman", "clg/pradeepssharma", "clg/naishadhjdalal", "clg/antketdeelip", "clg/rgsynthetics",
+        #                     "clg/mohiniikapoor", "acxfrfromgl05051to05066", "clg/rgsynthetics", "clg/babunidoni", "clg/neerajmishra",
+        #                     "clg/pranitaparagraut", "clg/savitameshr", "clg/vijayvitthalrao", "trfrfrom:sunilmarutishelke", 
+        #                     "clg/vijaykarkhile", "clg/shivdastrbak", "clg/jitendrabubhai", "clg/apexakumarinatvarlal", 
+        #                     "clg/kbgeneral", "clg/madhusudan"],
+        #     "Debit": [25000, 325000, 55000, 50000, 410000, 200000, 5192.90, 180000, 500000, 450000, 95000, 100000, 50000, 25000, 
+        #                225000, 300000, 100000, 100000, 20000, 250000]
+        # }
+
+        
+        df = pd.DataFrame(data)
+        # Swap x and y to display 'Debit' on x-axis and 'Description' on y-axis
+        fig = px.bar(df, x='Debit', y='Description', color='Debit',
+                     color_continuous_scale='Viridis', title='Debit Transactions')
+        
+        fig.update_layout(xaxis_title="Debit Amount (₹)", yaxis_title="Description", 
+                          yaxis_tickangle=0, template="plotly_white")
+        
+        # Save the chart as an HTML file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
+        fig.write_html(temp_file.name)
+
+        # Set up QWebEngineView to display the HTML chart
+        self.web_view = QWebEngineView()
+        self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
+        self.web_view.setFixedHeight(700)
+
+        layout.addWidget(self.web_view)

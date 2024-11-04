@@ -54,9 +54,3 @@ def load_result(CA_ID):
     with open("src/data/results/"+CA_ID+".pkl", 'rb') as f:
         return pickle.load(f)
     
-
-test = load_result("CA_ID_0P35LS6N8C3EPYAL")
-test2 = test["single_df"]["A0"]["data"]["new_tran_df"]
-hey = test["cummalative_df"]["name_acc_df"].to_dict("list")
-print(hey)
-# test2.to_excel("test.xlsx")
