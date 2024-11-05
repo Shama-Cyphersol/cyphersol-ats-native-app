@@ -7,6 +7,7 @@ from .individual_dashboard import IndividualDashboard
 import pandas as pd
 import os
 from utils.json_logic import *
+from .cash_flow import CashFlowNetwork
 
 class CaseDashboard(QWidget):
     def __init__(self,case_id):
@@ -33,6 +34,9 @@ class CaseDashboard(QWidget):
         title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         title.setStyleSheet("color: #2c3e50;")
         content_layout.addWidget(title)
+
+        content_layout.addWidget(self.create_section_title("Fund Flow Chart"))
+        content_layout.addWidget(self.create_network_graph())
 
         # Individual Table
         content_layout.addWidget(self.create_section_title("Individual Person Table"))
@@ -138,6 +142,43 @@ class CaseDashboard(QWidget):
         shadow.setOffset(0, 0)
         widget.setGraphicsEffect(shadow)
 
+    def filter_transactions_by_frequency(self,result):
+        # Get the process_df and entity frequency dataframe
+        process_df = result["cummalative_df"]["process_df"]
+        entity_freq_df = result["cummalative_df"]["entity_df"]
+        
+        # Convert entity frequency data to a dictionary for easier lookup
+        # Assuming the first column is 'Entity' and second is 'Frequency'
+        entity_freq_dict = dict(zip(entity_freq_df.iloc[:, 0], entity_freq_df.iloc[:, 1]))
+        
+        # Get base filtered dataframe with required columns and non-null entities
+        filtered_df = process_df[['Name', 'Value Date', 'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
+        
+        # Filter based on entity frequency
+        min_frequency = 4
+        filtered_df = filtered_df[filtered_df['Entity'].map(lambda x: entity_freq_dict.get(x, 0) > min_frequency)]
+        
+        return CashFlowNetwork(data=filtered_df)
+    
+    def create_network_graph(self):
+        result = load_result(self.case_id)
+        try:
+            # df = result["cummalative_df"]["process_df"]
+            # filtered_df = df[['Name', "Value Date",'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
+            # threshold = 10000
+            # filtered_df = df[(df['Debit'] >= threshold) | (df['Credit'] >= threshold)]
+            # return CashFlowNetwork(data=filtered_df)
+            return self.filter_transactions_by_frequency(result)
+        
+        except Exception as e:
+            print("Error",e)
+            # import a excel
+            df  = pd.read_excel("src/data/network_process_df.xlsx")
+            filtered_df = df[['Name', "Value Date",'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
+            threshold = 10000
+            filtered_df = df[(df['Debit'] >= threshold) | (df['Credit'] >= threshold)]
+            return CashFlowNetwork(data=filtered_df)
+
 class PaginatedTableWidget(QWidget):
     def __init__(self, headers, data, case_id,rows_per_page=10):
         super().__init__()
@@ -165,6 +206,7 @@ class PaginatedTableWidget(QWidget):
         header_height = self.table.horizontalHeader().height()+20
         row_height = 35  # Set a fixed height for each row
         total_height = header_height + (row_height * self.rows_per_page)
+        self.table.verticalHeader().setVisible(False)
         
         # Set row heights
         for i in range(self.rows_per_page):
@@ -186,6 +228,9 @@ class PaginatedTableWidget(QWidget):
                 font-weight: bold;
                 border: none;
                 padding: 8px;
+            }
+            QTableWidget::setItem {
+                text-align: center;  /* Center text in cells */
             }
             QTableWidget::item {
                 color: black;
@@ -342,3 +387,4 @@ class PaginatedTableWidget(QWidget):
 
                 # Show the new window
                 self.new_window.show()
+    

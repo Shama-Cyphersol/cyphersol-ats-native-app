@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton,QToolButton, QStackedWidget, QLabel, QComboBox, QSlider,QDoubleSpinBox,QSizePolicy
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton,QToolButton, QStackedWidget, QLabel, QComboBox, QSlider,QDoubleSpinBox,QSizePolicy, QApplication
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -8,6 +8,8 @@ import networkx as nx
 import pandas as pd
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import numpy as np
+import sys
+from matplotlib.patches import ArrowStyle
 
 class CustomNavigationToolbar(NavigationToolbar):
     def __init__(self, canvas, parent):
@@ -45,18 +47,18 @@ class CustomNavigationToolbar(NavigationToolbar):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
-dummy_data_for_network_graph = pd.DataFrame([
-        {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'Opening Balance'},
-        {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'Rent Paid'},
-        {'Value Date': '01-04-2022', 'Description': 'upi/saisuvidhasho/209125626472/paymentfromph', 'Debit': 140.00, 'Credit': 0.00, 'Balance': 257.13, 'Category': 'UPI-Dr'},
-        {'Value Date': '01-04-2022', 'Description': 'mbsenttogane62491633408impsref209121360374', 'Debit': 200.00, 'Credit': 0.00, 'Balance': 57.13, 'Category': 'Creditor'},
-        {'Value Date': '01-04-2022', 'Description': 'rev:imps62491633408ref209121360374', 'Debit': 0.00, 'Credit': 200.00, 'Balance': 257.13, 'Category': 'Refund/Reversal'},
-        {'Value Date': '03-04-2022', 'Description': 'recd:imps/209310634191/mrsmeena/kkbk/x8247/ineti', 'Debit': 0.00, 'Credit': 3000.00, 'Balance': 3057.13, 'Category': 'Debtor'},
-        {'Value Date': '03-04-2022', 'Description': 'upi/kfcsapphirefo/209376260786/ye', 'Debit': 250.00, 'Credit': 0.00, 'Balance': 807.13, 'Category': 'Food Expense/Hotel'},
-        {'Value Date': '04-04-2022', 'Description': 'ib:receivedfromruteshslodaya06580010004867', 'Debit': 0.00, 'Credit': 18269.00, 'Balance': 18516.13, 'Category': 'Suspense'},
-        {'Value Date': '05-04-2022', 'Description': 'mbloanref209507057778', 'Debit': 6000.00, 'Credit': 0.00, 'Balance': 7316.13, 'Category': 'Loan given'},
-        {'Value Date': '07-04-2022', 'Description': 'upi/irctcwebupi/209730050986/oid100003321095', 'Debit': 2568.60, 'Credit': 0.00, 'Balance': 3387.03, 'Category': 'Travelling Expense'},
-    ])
+# dummy_data_for_network_graph = pd.DataFrame([
+#         {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'Opening Balance'},
+#         {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'Rent Paid'},
+#         {'Value Date': '01-04-2022', 'Description': 'upi/saisuvidhasho/209125626472/paymentfromph', 'Debit': 140.00, 'Credit': 0.00, 'Balance': 257.13, 'Category': 'UPI-Dr'},
+#         {'Value Date': '01-04-2022', 'Description': 'mbsenttogane62491633408impsref209121360374', 'Debit': 200.00, 'Credit': 0.00, 'Balance': 57.13, 'Category': 'Creditor'},
+#         {'Value Date': '01-04-2022', 'Description': 'rev:imps62491633408ref209121360374', 'Debit': 0.00, 'Credit': 200.00, 'Balance': 257.13, 'Category': 'Refund/Reversal'},
+#         {'Value Date': '03-04-2022', 'Description': 'recd:imps/209310634191/mrsmeena/kkbk/x8247/ineti', 'Debit': 0.00, 'Credit': 3000.00, 'Balance': 3057.13, 'Category': 'Debtor'},
+#         {'Value Date': '03-04-2022', 'Description': 'upi/kfcsapphirefo/209376260786/ye', 'Debit': 250.00, 'Credit': 0.00, 'Balance': 807.13, 'Category': 'Food Expense/Hotel'},
+#         {'Value Date': '04-04-2022', 'Description': 'ib:receivedfromruteshslodaya06580010004867', 'Debit': 0.00, 'Credit': 18269.00, 'Balance': 18516.13, 'Category': 'Suspense'},
+#         {'Value Date': '05-04-2022', 'Description': 'mbloanref209507057778', 'Debit': 6000.00, 'Credit': 0.00, 'Balance': 7316.13, 'Category': 'Loan given'},
+#         {'Value Date': '07-04-2022', 'Description': 'upi/irctcwebupi/209730050986/oid100003321095', 'Debit': 2568.60, 'Credit': 0.00, 'Balance': 3387.03, 'Category': 'Travelling Expense'},
+#     ])
 # data = pd.DataFrame([
 #         {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'A'},
 #         {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'B'},
@@ -71,7 +73,7 @@ dummy_data_for_network_graph = pd.DataFrame([
 #     ])
 
 class CashFlowNetwork(QMainWindow):
-    def __init__(self,data=dummy_data_for_network_graph,CA_id=None):
+    def __init__(self,data,CA_id=None):
         super().__init__()
         self.setGeometry(100, 100, 1200, 900)
         self.data = data
@@ -189,15 +191,17 @@ class CashFlowNetwork(QMainWindow):
         
         # Professional color palette
         self.color_palette = {
-            'Rent Paid': '#E74C3C',
-            'UPI-Dr': '#3498DB',
-            'Creditor': '#9B59B6',
-            'Refund/Reversal': '#27AE60',
-            'Debtor': '#F1C40F',
-            'Food Expense/Hotel': '#E67E22',
-            'Suspense': '#95A5A6',
-            'Loan given': '#D35400',
-            'Travelling Expense': '#16A085'
+            # 'Rent Paid': '#E74C3C',
+            # 'UPI-Dr': '#3498DB',
+            # 'Creditor': '#9B59B6',
+            # 'Refund/Reversal': '#27AE60',
+            # 'Debtor': '#F1C40F',
+            # 'Food Expense/Hotel': '#E67E22',
+            # 'Suspense': '#95A5A6',
+            # 'Loan given': '#D35400',
+            # 'Travelling Expense': '#16A085'
+            'Person': '#F1C40F',  # Red for person
+            'Entity': '#3498DB'   # Blue for entities
         }
         
         self.k_value = QDoubleSpinBox()
@@ -214,86 +218,153 @@ class CashFlowNetwork(QMainWindow):
 
     def create_graph(self):
         self.figure.clear()
-        
-        # Create the subplot with adjusted margins
         ax = self.figure.add_subplot(111)
         self.figure.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
-        # Create a directed graph
         G = nx.DiGraph()
 
-        # Add nodes and edges
         node_sizes = {}
         edge_weights = {}
-        for index, row in self.data.iterrows():
-            if row['Debit'] > 0:
-                G.add_edge('Opening Balance', row['Category'], amount = -1*row['Debit'] , weight = row['Debit'])
-                edge_weights[('Opening Balance', row['Category'])] = row['Debit']
-            if row['Credit'] > 0:
-                G.add_edge(row['Category'], 'Opening Balance', amount = row['Credit'], weight = row['Credit'])
-                edge_weights[('Opening Balance', row['Category'])] = row['Credit']
-            node_sizes[row['Category']] = node_sizes.get(row['Category'], 0) + abs(row['Debit'] - row['Credit'])
+
+        # Get unique names and their sizes/colors
+        unique_names = self.data['Name'].unique()
+        name_sizes = {name: self.node_size_slider.value() * 1.5 for name in unique_names}
+        name_colors = {name: self.color_palette['Person'] for name in unique_names}
+
+        # Process each transaction
+        for _, row in self.data.iterrows():
+            name = row['Name']
+            entity = row['Entity']
+
+            # Add nodes if they don't exist
+            if name not in G:
+                G.add_node(name, type='Person', size=name_sizes.get(name, self.node_size_slider.value()), color=name_colors.get(name, self.color_palette['Person']))
+            if entity not in G:
+                G.add_node(entity, type='Entity', size=self.node_size_slider.value(), color=self.color_palette['Entity'])
+
+            # Add edges based on debit/credit
+            if not pd.isna(row['Debit']):
+                G.add_edge(name, entity, amount=-row['Debit'], weight=row['Debit'], transaction_type='debit')
+                edge_weights[(name, entity)] = row['Debit']
+                node_sizes[name] = node_sizes.get(name, 0) + row['Debit']
+                node_sizes[entity] = node_sizes.get(entity, 0) + row['Debit']
+            if not pd.isna(row['Credit']):
+                G.add_edge(entity, name, amount=row['Credit'], weight=row['Credit'], transaction_type='credit')
+                edge_weights[(entity, name)] = row['Credit']
+                node_sizes[name] = node_sizes.get(name, 0) + row['Credit']
+                node_sizes[entity] = node_sizes.get(entity, 0) + row['Credit']
 
         base_size = self.node_size_slider.value()
-        
+
         if node_sizes:
             max_size = max(node_sizes.values())
             node_sizes = {k: (base_size/2) + (v / max_size) * base_size for k, v in node_sizes.items()}
-            node_sizes['Opening Balance'] = base_size * 1.5
 
         pos = nx.spring_layout(G, k=self.k_value.value())
         
-        # Draw node
+        # Calculate node radii for arrow adjustments
+        node_radii = {}
+        for node in G.nodes():
+            node_type = G.nodes[node]['type']
+            size = G.nodes[node]['size'] if node_type == 'Person' else node_sizes.get(node, base_size)
+            # Convert node size to radius in points
+            radius = (size / plt.rcParams['figure.dpi']) ** 0.5 * 20
+            node_radii[node] = radius
+        
+        # Draw nodes
         for node, (x, y) in pos.items():
-            color = self.color_palette.get(node, 'skyblue')
-            size = node_sizes.get(node, base_size)
-            node_collection = nx.draw_networkx_nodes(G, pos, nodelist=[node], 
-                                                   node_color=[color], 
-                                                   node_size=size, 
-                                                   alpha=0.85,
-                                                   ax=ax)
-            node_collection.set_zorder(1)
+            node_type = G.nodes[node]['type']
+            color = G.nodes[node]['color'] if node_type == 'Person' else self.color_palette[node_type]
+            size = G.nodes[node]['size'] if node_type == 'Person' else node_sizes.get(node, base_size)
+            node_collection = nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color=[color], node_size=size, alpha=0.85, ax=ax)
+            node_collection.set_zorder(10 if node_type == 'Person' else 1)
+        
+         # Custom arrow style with a smaller head
+        arrow_style = ArrowStyle("->", head_length=10, head_width=8)
 
-        # Draw edges
-        # Draw edges with appropriate arrow colors
+        # # Draw edges with different colors based on transaction type
+        # for (u, v, d) in G.edges(data=True):
+        #     edge_color = 'red' if d.get('transaction_type') == 'debit' else 'green'
+        #     alpha = 0.6
+        #     edge = nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], edge_color=edge_color, alpha=alpha, ax=ax, connectionstyle="arc3,rad=0.1", arrowsize=20)
+        #     if isinstance(edge, list):
+        #         for e in edge:
+        #             e.set_zorder(3)
+        #     else:
+        #         edge.set_zorder(3)
+# Draw edges with adjusted connection points
+
         for (u, v, d) in G.edges(data=True):
-            # edge_width = 1 + (edge_weights.get((u, v), 0) / max(edge_weights.values())) * 5
-            edge_color = 'green' if d['amount'] > 0 else 'red'
+            edge_color = 'red' if d.get('transaction_type') == 'debit' else 'green'
             
-            edge = nx.draw_networkx_edges(G, pos, edgelist=[(u, v)],
-                                         edge_color=edge_color,
-                                        #  width=edge_width,
-                                         alpha=0.5,
-                                         ax=ax,
-                                         connectionstyle="arc3,rad=0.1",
-                                         arrowsize=20)
+            # Get start and end positions
+            start_pos = pos[u]
+            end_pos = pos[v]
             
-            if isinstance(edge, list):
-                for e in edge:
-                    e.set_zorder(3)
-            else:
-                edge.set_zorder(3)
-
+            # Calculate the direction vector
+            dx = end_pos[0] - start_pos[0]
+            dy = end_pos[1] - start_pos[1]
+            dist = (dx**2 + dy**2)**0.5
+            
+            # Normalize the direction vector
+            dx, dy = dx/dist, dy/dist
+            
+            # Adjust start and end points by node radii
+            start_radius = node_radii[u] / 1000  # Convert to graph coordinates
+            end_radius = node_radii[v] / 1000    # Convert to graph coordinates
+            
+            # Move start and end points to node borders
+            new_start = (start_pos[0] + dx * start_radius, 
+                        start_pos[1] + dy * start_radius)
+            new_end = (end_pos[0] - dx * end_radius,
+                      end_pos[1] - dy * end_radius)
+            
+            # Draw the edge with adjusted positions
+            ax.annotate("", xy=new_end, xytext=new_start,
+                       arrowprops=dict(arrowstyle=arrow_style, color=edge_color, 
+                                     alpha=0.6, connectionstyle="arc3,rad=0.1"))
+        
         # Add labels
-        labels = nx.draw_networkx_labels(G, pos, 
-                                       font_size=10, 
-                                       font_weight='bold',
-                                       font_family='sans-serif',
-                                       alpha=0.75,
-                                       ax=ax)
+        labels = nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', font_family='sans-serif', alpha=0.75, ax=ax)
         for label in labels.values():
             label.set_zorder(3)
 
-        # Add edge labels
-        edge_labels = nx.get_edge_attributes(G, 'weight')
-        nx.draw_networkx_edge_labels(G, pos, 
-                                   edge_labels=edge_labels,
-                                   ax=ax,
-                                   font_size=8,
-                                   font_family='sans-serif')
+        # Add edge labels with amounts
+        edge_labels = nx.get_edge_attributes(G, 'amount')
+        edge_labels = {k: f'₹{abs(v):,.2f}' for k, v in edge_labels.items()}
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax, font_size=8, font_family='sans-serif')
 
         ax.axis('off')
         self.canvas.draw()
 
     def update_graph(self):
         self.create_graph()
+
+
+# if __name__ == "__main__":
+#     dummy_data_for_network_graph = pd.DataFrame([
+#         {'Value Date': '01-04-2022', 'Description': 'openingbalance', 'Debit': 0.00, 'Credit': 3397.13, 'Balance': 3397.13, 'Category': 'Opening Balance'},
+#         {'Value Date': '01-04-2022', 'Description': 'mbrentref209108561454', 'Debit': 3000.00, 'Credit': 0.00, 'Balance': 397.13, 'Category': 'Rent Paid'},
+#         {'Value Date': '01-04-2022', 'Description': 'upi/saisuvidhasho/209125626472/paymentfromph', 'Debit': 140.00, 'Credit': 0.00, 'Balance': 257.13, 'Category': 'UPI-Dr'},
+#         {'Value Date': '01-04-2022', 'Description': 'mbsenttogane62491633408impsref209121360374', 'Debit': 200.00, 'Credit': 0.00, 'Balance': 57.13, 'Category': 'Creditor'},
+#         {'Value Date': '01-04-2022', 'Description': 'rev:imps62491633408ref209121360374', 'Debit': 0.00, 'Credit': 200.00, 'Balance': 257.13, 'Category': 'Refund/Reversal'},
+#         {'Value Date': '03-04-2022', 'Description': 'recd:imps/209310634191/mrsmeena/kkbk/x8247/ineti', 'Debit': 0.00, 'Credit': 3000.00, 'Balance': 3057.13, 'Category': 'Debtor'},
+#         {'Value Date': '03-04-2022', 'Description': 'upi/kfcsapphirefo/209376260786/ye', 'Debit': 250.00, 'Credit': 0.00, 'Balance': 807.13, 'Category': 'Food Expense/Hotel'},
+#         {'Value Date': '04-04-2022', 'Description': 'ib:receivedfromruteshslodaya06580010004867', 'Debit': 0.00, 'Credit': 18269.00, 'Balance': 18516.13, 'Category': 'Suspense'},
+#         {'Value Date': '05-04-2022', 'Description': 'mbloanref209507057778', 'Debit': 6000.00, 'Credit': 0.00, 'Balance': 7316.13, 'Category': 'Loan given'},
+#         {'Value Date': '07-04-2022', 'Description': 'upi/irctcwebupi/209730050986/oid100003321095', 'Debit': 2568.60, 'Credit': 0.00, 'Balance': 3387.03, 'Category': 'Travelling Expense'},
+#     ])
+
+#     dummy_data = pd.DataFrame([
+#     {'Name': 'Poojan Vig', 'Debit': float('nan'), 'Credit': 426.0, 'Entity': 'barb0chembu'},
+#     {'Name': 'Poojan Vig', 'Debit': 144.0, 'Credit': float('nan'), 'Entity': 'hdfc0000001'},
+#     {'Name': 'Poojan Vig', 'Debit': 3000.0, 'Credit': float('nan'), 'Entity': 'vigpoojanmanish'},
+#     {'Name': 'Poojan Vig', 'Debit': float('nan'), 'Credit': 150.0, 'Entity': 'jsbl0000018'},
+#     {'Name': 'Poojan Vig', 'Debit': 15.0, 'Credit': float('nan'), 'Entity': 'sampathvamanshetti'}])
+#     df  = pd.read_excel("src/data/network_process_df.xlsx")
+#     filtered_df = df[['Name', "Value Date",'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
+#     print(filtered_df.head())
+#     app = QApplication(sys.argv)
+#     main_window = CashFlowNetwork(data=filtered_df)
+#     main_window.show()
+#     sys.exit(app.exec())

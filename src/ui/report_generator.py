@@ -267,8 +267,9 @@ class ReportGeneratorTab(QWidget):
 
             self.table = QTableWidget()
             self.table.setColumnCount(4)
-            
-            self.table.setHorizontalHeaderLabels(["Case ID", "Report Name","Start Date","End Date"])
+            self.table.verticalHeader().setVisible(False)
+
+            self.table.setHorizontalHeaderLabels(["Sr no.","Date","Case ID", "Report Name"])
             self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             self.table.setStyleSheet("""
                 QTableWidget {
@@ -299,37 +300,37 @@ class ReportGeneratorTab(QWidget):
         self.table.setRowCount(len(recent_reports))
         # Populate the table with data
         for row, report in enumerate(recent_reports):
-        
+
+            # Serial Number column
+            serial_number_item = QTableWidgetItem(str(row + 1))
+            serial_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            serial_number_item.setFlags(serial_number_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 0, serial_number_item)
+
+            # Date column
+            date_item = QTableWidgetItem(report['date'])
+            date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            date_item.setFlags(date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 1, date_item)
+
+            # Case ID column
             case_id_item = QTableWidgetItem(str(report['case_id']))
             case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            # font = QFont("Arial", 10)
-            # font.setUnderline(True)
-            # case_id_item.setFont(font)
             case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 0, case_id_item)
+            self.table.setItem(row, 2, case_id_item)
 
+            # Report Name column
             report_name_item = QTableWidgetItem(report['report_name'])
             report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            # make it read only
             report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 1, report_name_item)
-
-            start_date_item = QTableWidgetItem(report['start_date'])
-            start_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            start_date_item.setFlags(start_date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 2, start_date_item)
-
-            end_date_item = QTableWidgetItem(report['end_date'])
-            end_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            end_date_item.setFlags(end_date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 3, end_date_item)
+            self.table.setItem(row, 3, report_name_item)
 
 
         return self.table
     
     
     def case_id_clicked(self, row, column):
-        if column == 0:
+        if column == 2:
             case_id = self.table.item(row, column).text()
             print("Case ID clicked: ", case_id)
             cash_flow_network = CaseDashboard(case_id=case_id)
