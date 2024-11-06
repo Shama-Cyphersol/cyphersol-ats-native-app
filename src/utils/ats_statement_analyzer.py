@@ -582,5 +582,4 @@ class ATSFunctions:
                 "ff_yearly_analysis":ff_yearly_analysis,
             },
             "bidirectional_analysis": bda_all_analysis
-            }
         }
