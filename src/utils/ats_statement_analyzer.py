@@ -260,63 +260,55 @@ class ATSFunctions:
         return sorted_df
 
         # Daily FIFO Analysis Function
-    def fifo_allocation(self, df, timeframe):
+    def fifo_allocation(self, df):
+        # Sort the DataFrame by Value Date to ensure chronological order
         df['Value Date'] = pd.to_datetime(df['Value Date'])
-        df.sort_values(by=['Value Date'], inplace=True)
-        allocation_records = []
-        df_resampled = df.set_index('Value Date').resample(timeframe).apply(list).reset_index()
-
-        # Check if the timeframe is sufficiently covered
-        for _, group in df_resampled.iterrows():
-            if timeframe == 'A' and len(group['Name']) < 12:
-                print(f"Skipping yearly analysis as the data covers less than a year: {group['Value Date']}")
-                continue
-            elif timeframe == '2Q' and len(group['Name']) < 6:
-                print(f"Skipping half-yearly analysis as the data covers less than six months: {group['Value Date']}")
-                continue
-            elif timeframe == 'M' and len(group['Name']) < 4:
-                print(f"Skipping monthly analysis as the data covers less than a month: {group['Value Date']}")
-                continue
-            elif timeframe == 'W' and len(group['Name']) < 1:
-                print(f"Skipping weekly analysis as the data covers less than a week: {group['Value Date']}")
-                continue
-
-            entity_queue = {entity: deque() for entity in set(group['Name'])}
-
-            for i in range(len(group['Name'])):
-                entity = group['Name'][i]
-                debit_amount = group['Debit'][i]
-                value_date = group['Value Date']
-                description = group['Description'][i]
-                entity_queue[entity].append((value_date, debit_amount, description))
-
-                # Try to allocate from the queue
-                while debit_amount > 0 and entity_queue[entity]:
-                    alloc_date, alloc_amount, alloc_description = entity_queue[entity].popleft()
-                    used_amount = min(debit_amount, alloc_amount)
-                    debit_amount -= used_amount
-                    remaining_amount = alloc_amount - used_amount
-
-                    # Record the allocation
-                    allocation_records.append({
-                        'allocated_date': alloc_date,
-                        'allocated_entity': entity,
-                        'allocated_category': 'Transfer',
-                        'allocated_amount': used_amount,
-                        'allocated_description': alloc_description,
-                        'used_in_date': value_date,
-                        'used_in_entity': entity,
-                        'used_in_category': 'Transfer',
-                        'used_in_description': description,
-                        'remaining_amount': remaining_amount,
-                        'days_in_between_allocation_and_usage': (value_date - alloc_date).days
-                    })
-
-                    # If there's remaining amount, add it back to the queue
-                    if remaining_amount > 0:
-                        entity_queue[entity].appendleft((alloc_date, remaining_amount, alloc_description))
-
-        return pd.DataFrame(allocation_records)
+        df = df.sort_values(by='Value Date').reset_index(drop=True)
+    
+        # Define the people involved
+        people = df['Name'].unique()
+    
+        # Initialize a dictionary to store results
+        utilization_dict = {}
+    
+        # Iterate through each person and find their relevant transactions
+        for person in people:
+            # Filter out the credit transactions where the person is receiving money from either Alpha, Beta, Gamma, Delta, or Epsilon
+            person_df = df[(df['Name'] == person) & (df['Credit'] > 0) & (df['Entity'].isin(people))]
+    
+            # Iterate through each credit transaction for the person
+            for idx, credit_row in person_df.iterrows():
+                credit_date = credit_row['Value Date']
+                credit_amount = credit_row['Credit']
+                credit_entity = credit_row['Entity']
+    
+                # Filter transactions within a week of the credit transaction date for the same person
+                subsequent_transactions = df[(df['Name'] == person) &
+                                             (df['Value Date'] > credit_date) &
+                                             (df['Value Date'] <= credit_date + pd.Timedelta(weeks=1))]
+    
+                # Add utilized and remaining credit columns to the DataFrame
+                utilization_df = pd.concat([credit_row.to_frame().T, subsequent_transactions])
+                utilization_df['Utilized Credit'] = 0
+                utilization_df['Remaining Credit'] = credit_amount
+    
+                # Iterate through subsequent transactions and update utilized and remaining credit accordingly
+                for i, row in utilization_df.iterrows():
+                    if row['Debit'] > 0:
+                        utilization_df.at[i, 'Utilized Credit'] = utilization_df.at[i - 1, 'Utilized Credit'] + row['Debit']
+                        utilization_df.at[i, 'Remaining Credit'] = credit_amount - utilization_df.at[i, 'Utilized Credit']
+                    elif row['Credit'] > 0 and i != credit_row.name:
+                        # If there is another credit transaction, reset the remaining credit
+                        credit_amount += row['Credit']
+                        utilization_df.at[i, 'Remaining Credit'] = credit_amount
+    
+                # Create the key for the dictionary
+                key = f"Utilization of Credit ({credit_amount}) received by {person} from {credit_entity} on {credit_date.date()}:"
+    
+                # Add the DataFrame to the dictionary
+                utilization_dict[key] = utilization_df[['Value Date', 'Name', 'Description', 'Debit', 'Credit', 'Entity', 'Utilized Credit', 'Remaining Credit']]
+    
+        return utilization_dict
 
     # Analysis Function
     def analyze_period(self, df, freq):
@@ -551,17 +543,13 @@ class ATSFunctions:
         link_analysis_df = link_analysis_df[['Name', 'Total_Credit', 'Total_Debit', 'Entity']]
 
         #fifo analysis
-        fifo_daily = self.fifo_allocation(process_df, 'D')
-        fifo_weekly = self.fifo_allocation(process_df, 'W')
-        fifo_monthly = self.fifo_allocation(process_df, 'M')
-        fifo_half_yearly = self.fifo_allocation(process_df, '2Q')
-        fifo_yearly = self.fifo_allocation(process_df, 'A')
+        fifo_dictionary = self.fifo_allocation(process_df)
 
-        fifo_daily.to_excel(BASE_DIR + f"/del/fifo_daily.xlsx", index=False)
-        fifo_weekly.to_excel(BASE_DIR + f"/del/fifo_weekly.xlsx", index=False)
-        fifo_monthly.to_excel(BASE_DIR + f"/del/fifo_monthly.xlsx", index=False)
-        fifo_half_yearly.to_excel(BASE_DIR + f"/del/fifo_half_yearly.xlsx", index=False)
-        fifo_yearly.to_excel(BASE_DIR + f"/del/fifo_yearly.xlsx", index=False)
+        # fifo_daily.to_excel(BASE_DIR + f"/del/fifo_daily.xlsx", index=False)
+        # fifo_weekly.to_excel(BASE_DIR + f"/del/fifo_weekly.xlsx", index=False)
+        # fifo_monthly.to_excel(BASE_DIR + f"/del/fifo_monthly.xlsx", index=False)
+        # fifo_half_yearly.to_excel(BASE_DIR + f"/del/fifo_half_yearly.xlsx", index=False)
+        # fifo_yearly.to_excel(BASE_DIR + f"/del/fifo_yearly.xlsx", index=False)
 
 
         #fund flow/money trail
@@ -575,7 +563,7 @@ class ATSFunctions:
         ff_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_yearly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
-        bda_all_analysis = self.cumulative_bidirectional_analysis(df):
+        bda_all_analysis = self.cumulative_bidirectional_analysis(process_df):
 
         print("********************************************************************************************")
 
@@ -585,14 +573,8 @@ class ATSFunctions:
             "name_acc_df":name_acc_df,
             "entity_df":entity_df,
             "link_analysis_df": link_analysis_df,
-            "fifo":{
-                "fifo_daily":fifo_daily,
-                "fifo_weekly":fifo_weekly,
-                "fifo_monthly":fifo_monthly,
-                "fifo_half_yearly":fifo_half_yearly,
-                "fifo_yearly":fifo_yearly,
-            },
-            "funf_flow":{
+            "fifo": fifo_dictionary,
+            "fund_flow":{
                 "ff_daily_analysis":ff_daily_analysis,
                 "ff_weekly_analysis":ff_weekly_analysis,
                 "ff_monthly_analysis":ff_monthly_analysis,
