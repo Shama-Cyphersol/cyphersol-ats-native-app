@@ -615,12 +615,12 @@ class ExtractionOnly:
                 break
 
         # If no row with both date and balance keywords found, check for balance keywords first
-        if crop_index is None:
-            for index, row in df.iterrows():
-                text = str(row).strip()
-                if balance_pattern.search(text):
-                    crop_index = index
-                    break
+        # if crop_index is None:
+        #     for index, row in df.iterrows():
+        #         text = str(row).strip()
+        #         if balance_pattern.search(text):
+        #             crop_index = index
+        #             break
 
         # If a suitable crop_index is found, remove rows above it
         if crop_index is not None:
