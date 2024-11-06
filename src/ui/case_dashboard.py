@@ -20,6 +20,8 @@ class CaseDashboard(QWidget):
         self.case_id = case_id
         self.case = load_case_data(case_id)
         print("self.case",self.case)
+        self.case_result = load_result(self.case_id)
+
         self.init_ui()
 
     def init_ui(self):
@@ -46,11 +48,45 @@ class CaseDashboard(QWidget):
         
         # Entity Distribution Chart
         # content_layout.addWidget(self.create_section_title("Entity Distribution"))
-        content_layout.addWidget(self.create_entity_distribution_chart())
+        content_layout.addWidget(self.create_entity_distribution_chart(self.case_result))
 
         # Individual Table
         content_layout.addWidget(self.create_section_title("Individual Person Table"))
         content_layout.addWidget(self.create_dummy_data_table_individual())
+
+        # Link analysis
+        link_analysis_table = DynamicDataTable(
+            df=self.case_result["cummalative_df"]["link_analysis_df"],
+            title="Link Analysis Data Table",  # Optional
+            rows_per_page=10  # Optional
+        )
+
+        # Add it to your layout
+        link_analysis_table.create_table(content_layout)
+
+        # Bidirectional analysis
+
+        test_daily = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_daily_analysis"]
+        print("test daily",test_daily)
+        print("test daily",test_daily.outflows.head())
+
+        test_weekly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
+        print("test weekly",test_weekly.outflows.head())
+
+        test_monthly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_monthly_analysis"]
+        print("test monthly",test_monthly.outflows.head())
+
+        test_half_yearly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_half_yearly_analysis"]
+        print("test half yearly",test_half_yearly.outflows.head())
+
+        bidirectional_analysis_table = DynamicDataTable(
+            df=self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"],
+            title="Bidirectional Analysis Data Table",  # Optional
+            rows_per_page=10  # Optional
+        )
+
+        # Add it to your layout
+        bidirectional_analysis_table.create_table(content_layout)
 
         # # Entity Table
         # content_layout.addWidget(self.create_section_title("Entity Table"))
@@ -181,20 +217,19 @@ class CaseDashboard(QWidget):
         filtered_df = process_df[['Name', 'Value Date', 'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
         
         # Filter based on entity frequency
-        min_frequency = 20
+        min_frequency = 50
         filtered_df = filtered_df[filtered_df['Entity'].map(lambda x: entity_freq_dict.get(x, 0) > min_frequency)]
         
         return CashFlowNetwork(data=filtered_df)
     
     def create_network_graph(self):
-        result = load_result(self.case_id)
         try:
             # df = result["cummalative_df"]["process_df"]
             # filtered_df = df[['Name', "Value Date",'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
             # threshold = 10000
             # filtered_df = df[(df['Debit'] >= threshold) | (df['Credit'] >= threshold)]
             # return CashFlowNetwork(data=filtered_df)
-            return self.filter_transactions_by_frequency(result)
+            return self.filter_transactions_by_frequency(self.case_result)
         
         except Exception as e:
             print("Error",e)
@@ -205,8 +240,7 @@ class CaseDashboard(QWidget):
             filtered_df = df[(df['Debit'] >= threshold) | (df['Credit'] >= threshold)]
             return CashFlowNetwork(data=filtered_df)
         
-    def create_entity_distribution_chart(self):
-        result = load_result(self.case_id)
+    def create_entity_distribution_chart(self,result):
         try:
             entity_df = result["cummalative_df"]["entity_df"]
             # Remove rows where Entity is empty
@@ -944,4 +978,439 @@ class IndividualTableWidget(QWidget):
         # Load the HTML content
         self.web.setHtml(html_content)
 
-       
+
+def create_data_table_reversal(self, layout):
+    web_view = QWebEngineView()
+    
+    # Prepare table data
+    table_data = []
+    for _, row in self.df.iterrows():
+        table_data.append({
+            'date': str(row["Value Date"]),
+            'description': row["Description"][:50] + "...",
+            'debit': f"{float(row['Debit']) if pd.notna(row['Debit']) else 0:.2f}",
+            'credit': f"{float(row['Credit']) if pd.notna(row['Credit']) else 0:.2f}",
+            'balance': f"{float(row['Balance']):,.2f}",
+            'category': row["Category"]
+        })
+
+    html_content = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Reversal Data</title>
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }}
+        .table-container {{
+                margin: 20px;
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                overflow: hidden;
+            }}
+        .table-header {{
+                text-align: center;
+                padding: 10px;
+                color: #2c3e50;
+                font-size: 1.2rem;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }}
+            
+            th, td {{
+                padding: 12px;
+                text-align: center;
+                border-bottom: 1px solid #e2e8f0;
+            }}
+            
+            th {{
+                background-color: #3498db;
+                color: white;
+                font-weight: bold;
+                position: sticky;
+                top: 0;
+                padding: 6px;
+            }}
+            tr:hover {{
+                background-color: #f5f5f5;
+            }}
+            .description-column {{
+                text-align: left;
+            }}
+        .pagination {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 20px;
+                gap: 10px;
+            }}
+        .pagination button {{
+                padding: 8px 16px;
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+        .pagination button:disabled {{
+                background-color: #bdc3c7;
+                cursor: not-allowed;
+            }}
+        .pagination span {{
+                font-weight: bold;
+                color: #333333;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="table-container">
+            <div class="table-header">Reversal Data Table</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Value Date</th>
+                        <th class="description-column">Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                        <th>Balance</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            <div class="pagination">
+                <button id="prevBtn" onclick="previousPage()">Previous</button>
+                <span id="pageInfo"></span>
+                <button id="nextBtn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+        
+        <script>
+            const rowsPerPage = 10;
+            let currentPage = 1;
+            const data = {json.dumps(table_data)};
+            const totalPages = Math.ceil(data.length / rowsPerPage);
+            
+
+            function updateTable() {{
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                const pageData = data.slice(start, end);
+                
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = '';
+                
+                pageData.forEach(row => {{
+                    const tr = `
+                        <tr>
+                            <td>${{row.date}}</td>
+                            <td class="description-column">${{row.description}}</td>
+                            <td>${{row.debit}}</td>
+                            <td>${{row.credit}}</td>
+                            <td>${{row.balance}}</td>
+                            <td>${{row.category}}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += tr;
+                }});
+                
+                document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                document.getElementById('prevBtn').disabled = currentPage === 1;
+                document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            }}
+
+            function nextPage() {{
+                if (currentPage < totalPages) {{
+                    currentPage++;
+                    updateTable();
+                }}
+            }}
+
+            function previousPage() {{
+                if (currentPage > 1) {{
+                    currentPage--;
+                    updateTable();
+                }}
+            }}
+
+            // Initial table load
+            updateTable();
+        </script>
+    </body>
+    </html>
+    '''
+    
+    web_view.setHtml(html_content)
+    web_view.setFixedHeight(800)  # Set minimum height for the table
+    layout.addWidget(web_view)
+
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+import pandas as pd
+import json
+
+class DynamicDataTable:
+    def __init__(self, df, title="Data Table", rows_per_page=10):
+        """
+        Initialize the dynamic table with a DataFrame.
+        
+        Args:
+            df (pandas.DataFrame): The DataFrame to display
+            title (str): Title of the table
+            rows_per_page (int): Number of rows to display per page
+        """
+        self.df = df
+        self.title = title
+        self.rows_per_page = rows_per_page
+
+    def create_table(self, layout):
+        """Create and add the table to the given layout."""
+        web_view = QWebEngineView()
+        
+        # Convert DataFrame to table data
+        table_data = []
+        for _, row in self.df.iterrows():
+            row_dict = {}
+            for column in self.df.columns:
+                value = row[column]
+                
+                # Handle different data types
+                if pd.isna(value):
+                    row_dict[column] = ""
+                elif isinstance(value, (int, float)):
+                    if column.lower() in ['debit', 'credit', 'balance', 'amount']:
+                        row_dict[column] = f"{float(value):,.2f}"
+                    else:
+                        row_dict[column] = str(value)
+                elif isinstance(value, pd.Timestamp):
+                    row_dict[column] = value.strftime('%Y-%m-%d')
+                else:
+                    # Truncate long text
+                    if isinstance(value, str) and len(value) > 50:
+                        row_dict[column] = value[:50] + "..."
+                    else:
+                        row_dict[column] = str(value)
+            
+            table_data.append(row_dict)
+
+        # Generate column headers with proper formatting
+        columns = self.df.columns
+        column_headers = []
+        for col in columns:
+            # Convert column names to proper format
+            header = col.replace('_', ' ').title()
+            column_headers.append({
+                'id': col,
+                'name': header,
+                'align': 'left' if isinstance(self.df[col].iloc[0], str) else 'center'
+            })
+
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{self.title}</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 15px;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    border-bottom: 2px solid #eef2f7;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }}
+                th, td {{
+                    padding: 12px;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    position: sticky;
+                    top: 0;
+                    padding: 12px;
+                }}
+                tr:hover {{
+                    background-color: #f8fafc;
+                    transition: background-color 0.2s ease;
+                }}
+                .text-left {{
+                    text-align: left;
+                }}
+                .text-center {{
+                    text-align: center;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 20px;
+                    padding: 10px 0;
+                    border-top: 1px solid #e2e8f0;
+                }}
+                .pagination-controls {{
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: background-color 0.2s ease;
+                }}
+                .pagination button:hover {{
+                    background-color: #2980b9;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination-info {{
+                    font-weight: bold;
+                    color: #333333;
+                }}
+                .empty-table {{
+                    text-align: center;
+                    padding: 40px;
+                    color: #666;
+                    font-style: italic;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <div class="table-header">{self.title}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            {
+                                ''.join([
+                                    f'<th class="{"text-left" if col["align"] == "left" else "text-center"}">{col["name"]}</th>'
+                                    for col in column_headers
+                                ])
+                            }
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <div class="pagination-info">
+                        <span id="totalRecords"></span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevBtn" onclick="previousPage()">Previous</button>
+                        <span id="pageInfo"></span>
+                        <button id="nextBtn" onclick="nextPage()">Next</button>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                const rowsPerPage = {self.rows_per_page};
+                let currentPage = 1;
+                const data = {json.dumps(table_data)};
+                const columns = {json.dumps([col['id'] for col in column_headers])};
+                const columnAlignments = {json.dumps({col['id']: col['align'] for col in column_headers})};
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+                
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    if (data.length === 0) {{
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="${{columns.length}}" class="empty-table">
+                                    No data available
+                                </td>
+                            </tr>
+                        `;
+                    }} else {{
+                        pageData.forEach(row => {{
+                            const tr = document.createElement('tr');
+                            
+                            columns.forEach(column => {{
+                                const td = document.createElement('td');
+                                td.className = columnAlignments[column] === 'left' ? 'text-left' : 'text-center';
+                                td.textContent = row[column] || '';
+                                tr.appendChild(td);
+                            }});
+                            
+                            tableBody.appendChild(tr);
+                        }});
+                    }}
+                    
+                    document.getElementById('pageInfo').textContent = 
+                        `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('totalRecords').textContent = 
+                        `Total Records: ${{data.length}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
+
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                // Initial table load
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        web_view.setHtml(html_content)
+        web_view.setMinimumHeight(800)
+        layout.addWidget(web_view)

@@ -615,12 +615,12 @@ class ExtractionOnly:
                 break
 
         # If no row with both date and balance keywords found, check for balance keywords first
-        if crop_index is None:
-            for index, row in df.iterrows():
-                text = str(row).strip()
-                if balance_pattern.search(text):
-                    crop_index = index
-                    break
+        # if crop_index is None:
+        #     for index, row in df.iterrows():
+        #         text = str(row).strip()
+        #         if balance_pattern.search(text):
+        #             crop_index = index
+        #             break
 
         # If a suitable crop_index is found, remove rows above it
         if crop_index is not None:
@@ -634,7 +634,7 @@ class ExtractionOnly:
         # print(df.head(50))
         df = self.cut_the_datframe_from_headers(df)
         date_column = [self.extract_date_col_from_df(df)[0]]
-
+        print(df.head(50))
         # print("Date Column is:", date_column)
         # numeric_columns_list = extract_numeric_col_from_df(df)
         # print(numeric_columns_list)
@@ -682,7 +682,7 @@ class ExtractionOnly:
         else:
             final_df = self.cleaning(new_df)
 
-        # print(final_df.head(50))
+        print(final_df.head(50))
         return final_df
 
     def old_bank_extraction(self, page_path):

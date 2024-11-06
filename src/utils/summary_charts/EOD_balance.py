@@ -3,6 +3,7 @@ import pandas as pd
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl
+import json
 
 class EODBalanceChart(QMainWindow):
     def __init__(self, data):
@@ -28,33 +29,26 @@ class EODBalanceChart(QMainWindow):
         html_content = self.create_html_content(months_data)
         
         # Set HTML content in the QWebEngineView
-        self.web_view.setFixedHeight(650)
-
+        self.web_view.setFixedHeight(1300)
         self.web_view.setHtml(html_content)
     
     def process_data(self):
         # Create a copy of the data to avoid modifying the original
         processed_data = self.data.copy()
         
-        # Function to safely convert values
         def safe_convert(val):
             if pd.isna(val):
                 return 0.0
             if isinstance(val, (int, float)):
                 return float(val)
             if isinstance(val, str):
-                # Remove commas and convert to float
                 return float(val.replace(',', ''))
             return 0.0
         
-        # Create a dictionary to store the data for each month
         months_data = {}
         
-        # Process each month column
         for column in processed_data.columns:
             if column not in ['Month', 'Day', 'Total', 'Average']:
-                # Get the values for all days (excluding Total and Average rows)
-                # Filter out rows where Day is not numeric
                 valid_rows = processed_data[processed_data['Day'].apply(lambda x: isinstance(x, (int, float)) or (isinstance(x, str) and x.replace('.', '').isdigit()))]
                 values = [safe_convert(val) for val in valid_rows[column]]
                 months_data[column] = values
@@ -68,8 +62,14 @@ class EODBalanceChart(QMainWindow):
             checked = 'checked' if month == list(months_data.keys())[0] else ''
             radio_buttons += f'<label><input type="radio" name="month" value="{month}" {checked}> {month}</label>\n'
 
-        # Convert months_data to JavaScript
+        # Prepare table data
+        table_data = {}
+        for month, values in months_data.items():
+            table_data[month] = [{"day": i + 1, "value": value} for i, value in enumerate(values)]
+
+        # Convert months_data and table_data to JavaScript
         months_data_js = "const monthsData = " + str(months_data).replace("'", '"')
+        table_data_js = "const tableData = " + json.dumps(table_data)
 
         return f"""
         <!DOCTYPE html>
@@ -87,12 +87,12 @@ class EODBalanceChart(QMainWindow):
                     padding: 20px; 
                     font-family: Arial, sans-serif;
                     background-color: #f8fafc;
-                    height:100%;
+                    height: full;
+
                 }}
                 .chart-container {{ 
                     width: 80%;
                     height: auto;
-                    overflow: visible;
                     background-color: white;
                     padding: 10px;
                     border-radius: 10px;
@@ -106,7 +106,6 @@ class EODBalanceChart(QMainWindow):
                     border-radius: 10px;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     margin-top: 20px;
-                    overflow-x: auto;
                 }}
                 .title {{
                     text-align: center;
@@ -127,28 +126,54 @@ class EODBalanceChart(QMainWindow):
                     width: 100%;
                     border-collapse: collapse;
                     margin-top: 10px;
+                    height: auto;
                 }}
                 th, td {{
-                    border: 1px solid #e2e8f0;
+
+                    # border: 1px solid #e2e8f0;
                     padding: 8px;
-                    text-align: right;
-                }}
-                th {{
-                    background-color: #f1f5f9;
-                    font-weight: 600;
                     text-align: center;
                 }}
-                tr:nth-child(even) {{
-                    background-color: #f8fafc;
+                .table-container td {{
+                    padding: 10px;
+                    background-color: white;
+                    color: black;
+                    
+                    text-align: center;
+                    border-bottom: 1px solid #ddd;
+                }}
+                
+                .table-container th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
                 }}
                 tr:hover {{
                     background-color: #e2e8f0;
                 }}
-                .table-title {{
-                    font-size: 18px;
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
                     font-weight: bold;
-                    margin-bottom: 10px;
-                    text-align: center;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #2c3e50;
                 }}
             </style>
         </head>
@@ -162,11 +187,29 @@ class EODBalanceChart(QMainWindow):
                 <canvas id="financialChart"></canvas>
             </div>
             
+            <div class="table-container">
+                <div class="title">Monthly Data</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
             
             <script>
                 {months_data_js};
+                {table_data_js};
                 
-                // Define colors for each month
                 const colors = [
                     '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6', 
                     '#ec4899', '#10b981', '#f97316', '#3b82f6', '#d97706', 
@@ -177,15 +220,12 @@ class EODBalanceChart(QMainWindow):
                 Object.keys(monthsData).forEach((month, index) => {{
                     monthColors[month] = colors[index % colors.length];
                 }});
-                
-                // Default chart data
+
                 let selectedMonth = Object.keys(monthsData)[0];
                 
-                // Function to generate labels based on data length
                 function generateLabels(dataLength) {{
                     return Array.from({{length: dataLength}}, (_, i) => (i + 1).toString());
                 }}
-                
                 
                 const config = {{
                     type: 'line',
@@ -236,8 +276,47 @@ class EODBalanceChart(QMainWindow):
                 const ctx = document.getElementById('financialChart').getContext('2d');
                 let financialChart = new Chart(ctx, config);
                 
-                // Initial table update
-                updateTable(selectedMonth);
+                // Table pagination setup
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                
+                function updateTable() {{
+                    const currentData = tableData[selectedMonth];
+                    const totalPages = Math.ceil(currentData.length / rowsPerPage);
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = Math.min(start + rowsPerPage, currentData.length);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    for (let i = start; i < end; i++) {{
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${{currentData[i].day}}</td>
+                            <td>${{currentData[i].value.toFixed(2)}}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    }}
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
+                
+                function nextPage() {{
+                    const totalPages = Math.ceil(tableData[selectedMonth].length / rowsPerPage);
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+                
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
                 
                 // Update chart and table when radio button changes
                 document.querySelectorAll('input[name="month"]').forEach(radio => {{
@@ -255,10 +334,16 @@ class EODBalanceChart(QMainWindow):
                             return index % Math.ceil(monthsData[selectedMonth].length / 15) === 0 ? value : '';
                         }};
                         
-                        financialChart.update();
+                        financialChart.update('active');
                         
+                        // Reset pagination and update table
+                        currentPage = 1;
+                        updateTable();
                     }});
                 }});
+                
+                // Initialize table
+                updateTable();
             </script>
         </body>
         </html>

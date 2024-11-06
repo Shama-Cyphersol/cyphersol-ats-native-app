@@ -149,29 +149,29 @@ class DashboardTab(QWidget):
     
         
     def case_id_clicked(self, row, column):
-        if column == 2:
-            case_id = self.table.item(row, column).text()
-            print("Case ID clicked: ", case_id)
-            cash_flow_network = CaseDashboard(case_id=case_id)
-             # Create a new dialog and set the CashFlowNetwork widget as its central widget
-            self.new_window = QDialog(self)
-            self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
-            self.new_window.setModal(False)  # Set the dialog as non-modal
-            self.new_window.showMaximized()
-            self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
-            self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
-            self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
+        # if column == 2:
+        case_id = self.table.item(row, 2).text() # getting 2nd col as it contains the case_id
+        print("Case ID clicked: ", case_id)
+        cash_flow_network = CaseDashboard(case_id=case_id)
+            # Create a new dialog and set the CashFlowNetwork widget as its central widget
+        self.new_window = QDialog(self)
+        self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
+        self.new_window.setModal(False)  # Set the dialog as non-modal
+        self.new_window.showMaximized()
+        self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
+        self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
+        self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
 
-            # Set the minimum size of the dialog
-            self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
+        # Set the minimum size of the dialog
+        self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
 
-            # Create a layout for the dialog and add the CashFlowNetwork widget
-            layout = QVBoxLayout()
-            layout.addWidget(cash_flow_network)
-            self.new_window.setLayout(layout)
+        # Create a layout for the dialog and add the CashFlowNetwork widget
+        layout = QVBoxLayout()
+        layout.addWidget(cash_flow_network)
+        self.new_window.setLayout(layout)
 
-            # Show the new window
-            self.new_window.show()
+        # Show the new window
+        self.new_window.show()
 
     def create_placeholder_chart(self):
         chart = QLabel("Monthly Trend Chart Placeholder")
