@@ -4,6 +4,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCharts import *
 import sys
+import json
 
 class BankTransactionDashboard(QMainWindow):
     def __init__(self, data):
@@ -34,11 +35,9 @@ class BankTransactionDashboard(QMainWindow):
         self.create_transaction_bar_chart(chart_layout)
         self.create_pie_chart(chart_layout)
         self.add_styled_info(chart_layout)
-
-        # add title for the data table
-
-        # Add paginated table
-        self.create_data_table(layout)
+        
+        # Add HTML table
+        self.create_html_table(layout)
 
     def create_balance_line_chart(self, layout):
         chart = QChart()
@@ -69,7 +68,7 @@ class BankTransactionDashboard(QMainWindow):
 
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        chart_view.setFixedHeight(500)  # Set the desired height for the chart
+        chart_view.setFixedHeight(500)
 
         layout.addWidget(chart_view)
 
@@ -104,14 +103,14 @@ class BankTransactionDashboard(QMainWindow):
 
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        chart_view.setFixedHeight(500)  # Set the desired height for the chart
+        chart_view.setFixedHeight(500)
 
         layout.addWidget(chart_view)
 
     def create_pie_chart(self, layout):
         chart = QChart()
         series = QPieSeries()
-        threshold = 5000  # Adjust this threshold based on your data
+        threshold = 5000
 
         amount_groups = {}
         other_count = 0
@@ -124,14 +123,12 @@ class BankTransactionDashboard(QMainWindow):
                 else:
                     amount_groups[rounded] = amount_groups.get(rounded, 0) + 1
 
-        # Add individual slices for significant values
         for amount, count in amount_groups.items():
             slice = QPieSlice(f"₹{amount} ({count} times)", count)
             slice.setColor(QColor("#3498db").lighter(100 + count * 10))
             slice.hovered.connect(self.handle_pie_hover)
             series.append(slice)
 
-        # Add "Others" slice for small values
         if other_count > 0:
             others_slice = QPieSlice(f"Others (<₹{threshold})", other_count)
             others_slice.setColor(QColor("#95a5a6"))
@@ -143,11 +140,10 @@ class BankTransactionDashboard(QMainWindow):
 
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        chart_view.setFixedHeight(500)  # Make chart view larger
-        chart.setTitleFont(QFont("Arial", 16))  # Increase title font size
+        chart_view.setFixedHeight(500)
+        chart.setTitleFont(QFont("Arial", 16))
 
         layout.addWidget(chart_view)
-
 
     def handle_pie_hover(self, state):
         slice = self.sender()
@@ -160,12 +156,12 @@ class BankTransactionDashboard(QMainWindow):
             slice.setExploded(True)
         else:
             slice.setExploded(False)
-    
+
     def handle_line_hover(self, point, state):
         if state:
             date = QDateTime.fromMSecsSinceEpoch(int(point.x()))
             QToolTip.showText(QCursor.pos(), f"Date: {date.toString('dd-MM-yyyy')}\nBalance: ₹{point.y():,.2f}")
-    
+
     def add_styled_info(self, layout):
         web_view = QWebEngineView()
         total_debits = sum(self.debits)
@@ -211,54 +207,175 @@ class BankTransactionDashboard(QMainWindow):
         web_view.setHtml(html_content)
         layout.addWidget(web_view)
 
-    def create_data_table(self, layout):
-        title_label = QLabel("Transaction Data Table")
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 18px;
-                font-weight: bold;
-                color: #333333;
-                margin-bottom: 10px;
-            }
-        """)
-
-        # Add the title label to the layout
-        layout.addWidget(title_label)
+    def create_html_table(self, layout):
+        web_view = QWebEngineView()
         
-        table = QTableWidget()
-        table.setRowCount(len(self.data))
-        table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(["Value Date", "Description", "Debit", "Credit", "Balance"])
-        table.setSortingEnabled(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table.setAlternatingRowColors(True)
-      
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: #ffffff;
-                alternate-background-color: #f9f9f9;
-                color: #333333;  /* Set text color to dark gray for visibility */
-                font-size: 14px;
-            }
-            QHeaderView::section {
-                background-color: #e0e0e0;
-                font-weight: bold;
-                color:black;
-                padding: 6px;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-        """)
+        # Prepare table data
+        table_data = []
+        for _, row in self.data.iterrows():
+            table_data.append({
+                'date': row["Value Date"].strftime("%d-%m-%Y"),
+                'description': row["Description"],
+                'debit': f"₹{row['Debit']:.2f}",
+                'credit': f"₹{row['Credit']:.2f}",
+                'balance': f"₹{row['Balance']:.2f}"
+            })
 
-        # Adjust table height based on row count
-        table.setFixedHeight(table.rowHeight(0) * 10 + table.horizontalHeader().height())
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Transaction Details</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    padding: 20px;
+                    overflow: hidden;
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }}
+                
+                th, td {{
+                    padding: 12px;
+                    text-align: center;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    position: sticky;
+                    top: 0;
+                }}
+                tr:hover {{
+                    background-color: #f8fafc;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #2c3e50;
+                }}
+                .description-column {{
+                    text-align: left;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <div class="table-header">Transaction Details</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th class="description-column">Description</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+            
+            <script>
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const data = {json.dumps(table_data)};
+                const totalPages = Math.ceil(data.length / rowsPerPage);
 
-        for i, row in self.data.iterrows():
-            table.setItem(i, 0, QTableWidgetItem(str(row["Value Date"].strftime("%d-%m-%Y"))))
-            table.setItem(i, 1, QTableWidgetItem(row["Description"]))
-            table.setItem(i, 2, QTableWidgetItem(f"₹{row['Debit']:.2f}"))
-            table.setItem(i, 3, QTableWidgetItem(f"₹{row['Credit']:.2f}"))
-            table.setItem(i, 4, QTableWidgetItem(f"₹{row['Balance']:.2f}"))
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(row => {{
+                        const tr = `
+                            <tr>
+                                <td>${{row.date}}</td>
+                                <td class="description-column">${{row.description}}</td>
+                                <td>${{row.debit}}</td>
+                                <td>${{row.credit}}</td>
+                                <td>${{row.balance}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += tr;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
 
-        layout.addWidget(table)
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                // Initial table load
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        web_view.setHtml(html_content)
+        web_view.setMinimumHeight(900)  # Set minimum height for the table
+        layout.addWidget(web_view)

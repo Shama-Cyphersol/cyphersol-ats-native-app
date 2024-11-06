@@ -36,8 +36,8 @@ class Creditors(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+        self.create_data_table_creditor(layout)
 
-        # self.create_data_table_creditor(layout,title="Creditor Data Table", headers=["Value Date","Description","Debit","Credit","Balance","Category"],data=self.data)
 
     def create_html(self, dates, debits, balances):
         # Create the HTML content with Plotly.js
@@ -106,63 +106,180 @@ class Creditors(QMainWindow):
         """
         return html
     
-    def create_data_table_creditor(self, layout, title, headers, data):
-        # Set up the title label with styling
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 18px;
-                font-weight: bold;
-                color: #333333;
-                margin-bottom: 10px;
-            }
-        """)
-        layout.addWidget(title_label)  # Add title to the layout
+    def create_data_table_creditor(self, layout):
+        web_view = QWebEngineView()
+        
+        # Prepare table data
+        table_data = []
+        for _, row in self.data.iterrows():
+            table_data.append({
+                'date': row["Value Date"].strftime("%d-%m-%Y"),
+                'description': row["Description"],
+                'debit': f"₹{float(row['Debit']):,.2f}",
+                'credit': f"₹{float(row['Credit']):,.2f}",
+                'balance': f"₹{float(row['Balance']):,.2f}",
+                'category': row["Category"]
+            })
 
-        # Initialize the table with row and column counts
-        table = QTableWidget()
-        table.setRowCount(len(data))  # Set row count based on data length
-        table.setColumnCount(len(headers))  # Set column count based on headers
-        table.setHorizontalHeaderLabels(headers)
-        table.setSortingEnabled(True)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table.setAlternatingRowColors(True)
-
-        # Table style settings
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: #ffffff;
-                alternate-background-color: #f9f9f9;
-                color: #333333;  /* Set text color */
-                font-size: 14px;
-            }
-            QHeaderView::section {
-                background-color: #e0e0e0;
-                font-weight: bold;
-                color: black;
-                padding: 6px;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-        """)
-
-        # Adjust table height based on row count
-        table.setFixedHeight(table.rowHeight(0) * min(10, len(data)) + table.horizontalHeader().height())
-
-        # Populate the table with data
-        for i, row in data.iterrows():
-            table.setItem(i, 0, QTableWidgetItem(row["Value Date"]))
-            table.setItem(i, 1, QTableWidgetItem(row["Description"]))
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Creditors Data</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    overflow: hidden;
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    # font-size: 14px;
+                }}
+                
+                th, td {{
+                    padding: 12px;
+                    text-align: center;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    position: sticky;
+                    top: 0;
+                    padding: 6px;
+                }}
+                tr:hover {{
+                    background-color: #f5f5f5;
+                }}
+                .description-column {{
+                    text-align: center;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #333333;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <div class="table-header">Creditors Data Table</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Value Date </span></th>
+                            <th class="description-column">Description </span></th>
+                            <th>Debit </span></th>
+                            <th>Credit </span></th>
+                            <th>Balance </span></th>
+                            <th>Category </span></th>
+                         </tr>
+                     </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
             
-            # Format Debit and Credit columns with currency and commas
-            table.setItem(i, 2, QTableWidgetItem(f"₹{float(row['Debit']):,.2f}" if pd.notnull(row['Debit']) else "N/A"))
-            table.setItem(i, 3, QTableWidgetItem(f"₹{float(row['Credit']):,.2f}" if pd.notnull(row['Credit']) else "N/A"))
-            
-            # Format Balance with currency and commas
-            table.setItem(i, 4, QTableWidgetItem(f"₹{float(row['Balance']):,.2f}" if pd.notnull(row['Balance']) else "N/A"))
+            <script>
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const data = {json.dumps(table_data)};
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+                
 
-            # Display the Category as is
-            table.setItem(i, 5, QTableWidgetItem(row["Category"]))
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(row => {{
+                        const tr = `
+                            <tr>
+                                <td>${{row.date}}</td>
+                                <td class="description-column">${{row.description}}</td>
+                                <td>${{row.debit}}</td>
+                                <td>${{row.credit}}</td>
+                                <td>${{row.balance}}</td>
+                                <td>${{row.category}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += tr;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
 
-        layout.addWidget(table)
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                // Initial table load
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        web_view.setHtml(html_content)
+        web_view.setMinimumHeight(600)  # Set minimum height for the table
+        layout.addWidget(web_view)

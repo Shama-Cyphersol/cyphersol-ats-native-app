@@ -2,8 +2,7 @@ import json
 import pickle
 from datetime import datetime
 import json
-
-import pandas as pd
+import os
 
 def save_case_data(case_id, file_names, start_date, end_date,individual_names):
     today_date = datetime.now().strftime("%d-%m-%Y")
@@ -33,7 +32,7 @@ def save_case_data(case_id, file_names, start_date, end_date,individual_names):
         existing_data = []
 
     # Append the new case data to the beginning of the list
-    existing_data.insert(0, case_data)
+    existing_data.append( case_data)
 
     # Write the updated data back to the file
     with open("src/data/json/cases.json", "w") as f:
@@ -86,3 +85,36 @@ def check_and_add_date():
 
     print("Date checked and added where missing.")
 
+   
+def save_ner_results(case_id, processed_results):
+    """Save NER processing results separately"""
+    results_data = {
+        "case_id": case_id,
+        "timestamp": datetime.now().isoformat(),
+        "documents": []
+    }
+    
+    for result in processed_results:
+        if hasattr(result, '__dict__'):
+            doc_dict = {
+                "filename": result.filename,
+                "entities": [
+                    {
+                        "text": ent.text,
+                        "label": ent.label,
+                        "start_char": ent.start_char,
+                        "end_char": ent.end_char
+                    }
+                    for ent in result.entities
+                ] if hasattr(result, 'entities') else [],
+                "error": result.error if hasattr(result, 'error') else None
+            }
+            results_data["documents"].append(doc_dict)
+    
+    # Ensure the directory exists
+    os.makedirs("src/data/ner_results", exist_ok=True)
+    
+    with open(f"src/data/ner_results/{case_id}.json", "w") as f:
+        json.dump(results_data, f, indent=4)
+    
+    return results_data

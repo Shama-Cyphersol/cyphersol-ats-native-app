@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl
 import tempfile
+import json
 
 class SuspenseCredit(QWidget):
     def __init__(self,data,total_transactions):
@@ -48,3 +49,155 @@ class SuspenseCredit(QWidget):
         self.web_view.setFixedHeight(700)
 
         layout.addWidget(self.web_view)
+        self.create_html_table(layout, data)
+
+    def create_html_table(self, layout, data):
+        web_view = QWebEngineView()
+        
+        table_data = [
+            {
+                'date': row["Value Date"].strftime("%d-%m-%Y"),
+                'description': row["Description"],
+                'credit': f"₹{row['Credit']:.2f}",
+            }
+            for _, row in data.iterrows()
+        ]
+
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Suspense Credit Details</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    # box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }}
+                .table-container table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                }}
+                .table-container th, .table-container td {{
+                    padding: 10px;
+                    text-align: center;
+                    border-bottom: 1px solid #ddd;
+                }}
+                .table-container th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #2c3e50;
+                }}
+                .description-column {{
+                    text-align: left;
+                }}
+                tr:hover {{
+                    background-color: #f8fafc;
+                }}
+                
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+            <script>
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const data = {json.dumps(table_data)};
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(row => {{
+                        const tr = `
+                            <tr>
+                                <td>${{row.date}}</td>
+                                <td>${{row.description}}</td>
+                                <td>${{row.credit}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += tr;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevButton').disabled = currentPage === 1;
+                    document.getElementById('nextButton').disabled = currentPage === totalPages;
+                }}
+
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        web_view.setHtml(html_content)
+        web_view.setMinimumHeight(600)
+        layout.addWidget(web_view)

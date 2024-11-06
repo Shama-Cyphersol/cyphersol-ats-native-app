@@ -10,6 +10,7 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
+from utils.pdf_processor import PDFProcessor
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -433,7 +434,15 @@ class ReportGeneratorTab(QWidget):
 
         print("progress_data",progress_data)
 
+        ner_results={}
 
+        try:
+            processed_results = self.pdf_processor(pdf_paths=pdf_paths)
+            res = save_ner_results(CA_ID, processed_results)
+            ner_results= res
+        except Exception as e:
+            print("Error processing PDFs: ", e)
+            pass
         converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
         result = converter.start_extraction()
         # single_df = result["single_df"]
@@ -446,16 +455,94 @@ class ReportGeneratorTab(QWidget):
         #     except:
         #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
         #         pass
-        individual_names = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
+        # Check if NER model has extracted any entities
+        
+        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
+
+        ner_names = {
+            "Name": [],
+            "Acc Number": []
+        }
+
+        if ner_results != {}:
+            for doc in ner_results["documents"]:
+                got_name = False
+                got_acc_no = False
+                for ent in doc["entities"]:
+                    if ent["label"] == "PER" and not got_name:
+                        ner_names["Name"].append(ent["text"])
+                        got_name = True
+                    elif ent["label"] == "ACC NO" and not got_acc_no:
+                        ner_names["Acc Number"].append(ent["text"])
+                        got_acc_no = True
+                
+                if not got_name:
+                    ner_names["Name"].append(None)
+                if not got_acc_no:
+                    ner_names["Acc Number"].append(None)
+
+        print("names_from_cummalative_data",names_from_cummalative_data)
+        print("ner_names",ner_names)
+
+        # check ner_names and names_from_cummalative_data and for any null values in ner_names, replace with names_from_cummalative_data
+        # Combining results of sanchay and manish logic for names, acc no
+        for i in range(len(ner_names["Name"])):
+            if ner_names["Name"][i] == None:
+                ner_names["Name"][i] = names_from_cummalative_data["Name"][i]
+            if ner_names["Acc Number"][i] == None:
+                ner_names["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
+
+        
+        print("ner_names",ner_names)
+
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,names_from_cummalative_data)
         save_result(CA_ID,result)
-
-
+        
         print("Successfully saved case data and result")
         self.create_recent_reports_table()
 
+    def pdf_processor(self,pdf_paths):
+        
+        print("\n1. Initializing PDF Processor...")
+        processor = PDFProcessor(model_path="src/models/output_ner_model")
+        processed_results = []
+        entities_data = {"Name": [], "Acc Number": []}
+        # Process each PDF file
+        for pdf_path in pdf_paths:
+            print(f"\n2. Processing file: {pdf_path}")
+            result = processor.process_single_pdf(pdf_path)
+            processed_results.append(result)
+            print(f"3. Processing result: {result}")
+            
+            if not result.error:
+                print("4. Extracted entities:")
+                for entity in result.entities:
+                    print(f"   - {entity.label}: {entity.text}")
+                    # Changed PER to PERSON for consistency
+                    if entity.label == "PER":  # or entity.label == "PERSON":
+                        if entity.text not in entities_data["Name"]:
+                            entities_data["Name"].append(entity.text)
+                            print(f"     Added person: {entity.text}")
+                    elif entity.label == "ACC NO":  # or entity.label == "ACCOUNT_NUMBER":
+                        if entity.text not in entities_data["Acc Number"]:
+                            entities_data["Acc Number"].append(entity.text)
+                            print(f"     Added account: {entity.text}")
+            else:
+                print(f"   Error processing file: {result.error}")
 
+        # If no entities found, add default values
+        if not entities_data["Name"]:
+            entities_data["Name"] = ["Unknown"]
+        if not entities_data["Acc Number"]:
+            entities_data["Acc Number"] = ["Not Found"]
+
+        print("\n5. Final extracted entities:")
+        print(f"   Names: {entities_data['Name']}")
+        print(f"   Accounts: {entities_data['Acc Number']}")
+
+        return processed_results
+        
     def create_label(self, text):
         label = QLabel(text)
         label.setFont(QFont("Arial", 14))

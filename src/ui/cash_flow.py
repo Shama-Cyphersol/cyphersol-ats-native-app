@@ -9,7 +9,6 @@ import pandas as pd
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import numpy as np
 import sys
-from matplotlib.patches import ArrowStyle
 
 class CustomNavigationToolbar(NavigationToolbar):
     def __init__(self, canvas, parent):
@@ -261,78 +260,36 @@ class CashFlowNetwork(QMainWindow):
             node_sizes = {k: (base_size/2) + (v / max_size) * base_size for k, v in node_sizes.items()}
 
         pos = nx.spring_layout(G, k=self.k_value.value())
-        
-        # Calculate node radii for arrow adjustments
-        node_radii = {}
-        for node in G.nodes():
-            node_type = G.nodes[node]['type']
-            size = G.nodes[node]['size'] if node_type == 'Person' else node_sizes.get(node, base_size)
-            # Convert node size to radius in points
-            radius = (size / plt.rcParams['figure.dpi']) ** 0.5 * 20
-            node_radii[node] = radius
-        
+
         # Draw nodes
         for node, (x, y) in pos.items():
             node_type = G.nodes[node]['type']
             color = G.nodes[node]['color'] if node_type == 'Person' else self.color_palette[node_type]
             size = G.nodes[node]['size'] if node_type == 'Person' else node_sizes.get(node, base_size)
             node_collection = nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color=[color], node_size=size, alpha=0.85, ax=ax)
-            node_collection.set_zorder(10 if node_type == 'Person' else 1)
-        
-         # Custom arrow style with a smaller head
-        arrow_style = ArrowStyle("->", head_length=10, head_width=8)
+            node_collection.set_zorder(2 if node_type == 'Person' else 1)
 
-        # # Draw edges with different colors based on transaction type
-        # for (u, v, d) in G.edges(data=True):
-        #     edge_color = 'red' if d.get('transaction_type') == 'debit' else 'green'
-        #     alpha = 0.6
-        #     edge = nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], edge_color=edge_color, alpha=alpha, ax=ax, connectionstyle="arc3,rad=0.1", arrowsize=20)
-        #     if isinstance(edge, list):
-        #         for e in edge:
-        #             e.set_zorder(3)
-        #     else:
-        #         edge.set_zorder(3)
-# Draw edges with adjusted connection points
-
+        # Draw edges with different colors based on transaction type
         for (u, v, d) in G.edges(data=True):
             edge_color = 'red' if d.get('transaction_type') == 'debit' else 'green'
-            
-            # Get start and end positions
-            start_pos = pos[u]
-            end_pos = pos[v]
-            
-            # Calculate the direction vector
-            dx = end_pos[0] - start_pos[0]
-            dy = end_pos[1] - start_pos[1]
-            dist = (dx**2 + dy**2)**0.5
-            
-            # Normalize the direction vector
-            dx, dy = dx/dist, dy/dist
-            
-            # Adjust start and end points by node radii
-            start_radius = node_radii[u] / 1000  # Convert to graph coordinates
-            end_radius = node_radii[v] / 1000    # Convert to graph coordinates
-            
-            # Move start and end points to node borders
-            new_start = (start_pos[0] + dx * start_radius, 
-                        start_pos[1] + dy * start_radius)
-            new_end = (end_pos[0] - dx * end_radius,
-                      end_pos[1] - dy * end_radius)
-            
-            # Draw the edge with adjusted positions
-            ax.annotate("", xy=new_end, xytext=new_start,
-                       arrowprops=dict(arrowstyle=arrow_style, color=edge_color, 
-                                     alpha=0.6, connectionstyle="arc3,rad=0.1"))
-        
+            alpha = 0.6
+            edge = nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], edge_color=edge_color, alpha=alpha, ax=ax, connectionstyle="arc3,rad=0.1", arrowsize=20)
+            if isinstance(edge, list):
+                for e in edge:
+                    e.set_zorder(3)
+            else:
+                edge.set_zorder(3)
+
         # Add labels
         labels = nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', font_family='sans-serif', alpha=0.75, ax=ax)
         for label in labels.values():
             label.set_zorder(3)
 
-        # Add edge labels with amounts
-        edge_labels = nx.get_edge_attributes(G, 'amount')
-        edge_labels = {k: f'₹{abs(v):,.2f}' for k, v in edge_labels.items()}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax, font_size=8, font_family='sans-serif')
+        # Add edge labels with amounts on them
+        # edge_labels = nx.get_edge_attributes(G, 'amount')
+        # edge_labels = {k: f'₹{abs(v):,.2f}' for k, v in edge_labels.items()}
+        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax, font_size=8, font_family='sans-serif')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels="", ax=ax, font_size=8, font_family='sans-serif')
 
         ax.axis('off')
         self.canvas.draw()

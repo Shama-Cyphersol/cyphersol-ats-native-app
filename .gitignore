@@ -175,3 +175,4 @@ gliner_medium-v2.1/
 /src/data/results/*
 /src/gliner-medium-v2.1/
 /src/data/*xlsx
+/src/data/ner_results/*

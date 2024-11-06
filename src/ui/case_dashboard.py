@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout, QFrame,
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QHeaderView, QGraphicsDropShadowEffect,
-                             QScrollArea, QDialog,QComboBox,QPushButton)
+                             QScrollArea, QDialog,QPushButton,QSizePolicy)
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 from .individual_dashboard import IndividualDashboard
@@ -8,6 +8,11 @@ import pandas as pd
 import os
 from utils.json_logic import *
 from .cash_flow import CashFlowNetwork
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QObject, pyqtSlot
+import json
+
 
 class CaseDashboard(QWidget):
     def __init__(self,case_id):
@@ -35,16 +40,21 @@ class CaseDashboard(QWidget):
         title.setStyleSheet("color: #2c3e50;")
         content_layout.addWidget(title)
 
+        # Fund Flow Chart
         content_layout.addWidget(self.create_section_title("Fund Flow Chart"))
         content_layout.addWidget(self.create_network_graph())
+        
+        # Entity Distribution Chart
+        # content_layout.addWidget(self.create_section_title("Entity Distribution"))
+        content_layout.addWidget(self.create_entity_distribution_chart())
 
         # Individual Table
         content_layout.addWidget(self.create_section_title("Individual Person Table"))
         content_layout.addWidget(self.create_dummy_data_table_individual())
 
-        # Entity Table
-        content_layout.addWidget(self.create_section_title("Entity Table"))
-        content_layout.addWidget(self.create_dummy_data_table_entity())
+        # # Entity Table
+        # content_layout.addWidget(self.create_section_title("Entity Table"))
+        # content_layout.addWidget(self.create_dummy_data_table_entity())
 
         # Set content widget in scroll area
         scroll_area.setWidget(content_widget)
@@ -73,6 +83,9 @@ class CaseDashboard(QWidget):
                 border: none;
                 padding: 8px;
             }
+            QTableWidget::setItem {
+                text-align: center;
+            }
         """)
 
         # Dummy data for demonstration
@@ -95,10 +108,23 @@ class CaseDashboard(QWidget):
     def create_dummy_data_table_individual(self):
         data = []
         for i in range(len(self.case["individual_names"]["Name"])):
-            data.append({"ID": i+1, "Name": self.case["individual_names"]["Name"][i], "Account Number": self.case["individual_names"]["Acc Number"][i], "Pdf Path": self.case["file_names"][i]})
-        headers = ["ID","Name","Account Number","Pdf Path"]
+            data.append({ "Name": self.case["individual_names"]["Name"][i], "Account Number": self.case["individual_names"]["Acc Number"][i], "Pdf Path": self.case["file_names"][i]})
+        headers = ["Name","Account Number","Pdf Path"]
         table_widget = PaginatedTableWidget(headers, data, rows_per_page=10,case_id=self.case_id)
+        
         self.add_shadow(table_widget)
+        return table_widget
+    
+    def create_table_individual(self):
+        data = []
+        for i in range(len(self.case["individual_names"]["Name"])):
+            data.append({
+                "ID": i+1, 
+                "Name": self.case["individual_names"]["Name"][i], 
+                "Account Number": self.case["individual_names"]["Acc Number"][i], 
+                "Pdf Path": self.case["file_names"][i]
+            })
+        table_widget = IndividualTableWidget(data=data, case_id=self.case_id)
         return table_widget
 
     def create_dummy_data_table_entity(self):
@@ -155,7 +181,7 @@ class CaseDashboard(QWidget):
         filtered_df = process_df[['Name', 'Value Date', 'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
         
         # Filter based on entity frequency
-        min_frequency = 4
+        min_frequency = 20
         filtered_df = filtered_df[filtered_df['Entity'].map(lambda x: entity_freq_dict.get(x, 0) > min_frequency)]
         
         return CashFlowNetwork(data=filtered_df)
@@ -178,6 +204,25 @@ class CaseDashboard(QWidget):
             threshold = 10000
             filtered_df = df[(df['Debit'] >= threshold) | (df['Credit'] >= threshold)]
             return CashFlowNetwork(data=filtered_df)
+        
+    def create_entity_distribution_chart(self):
+        result = load_result(self.case_id)
+        try:
+            entity_df = result["cummalative_df"]["entity_df"]
+            # Remove rows where Entity is empty
+            entity_df = entity_df[entity_df.iloc[:, 0] != ""]
+            # Take top 10 entities by frequency
+            entity_df_10 = entity_df.nlargest(10, entity_df.columns[1])
+            return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df})
+        except Exception as e:
+            print("Error creating entity distribution chart:", e)
+            # Create dummy data if there's an error
+            dummy_data = pd.DataFrame({
+                'Entity': ['Entity1', 'Entity2', 'Entity3'],
+                'Frequency': [10, 8, 6]
+            })
+            return EntityDistributionChart(data={"piechart_data":dummy_data,"table_data":dummy_data})
+ 
 
 class PaginatedTableWidget(QWidget):
     def __init__(self, headers, data, case_id,rows_per_page=10):
@@ -230,7 +275,7 @@ class PaginatedTableWidget(QWidget):
                 padding: 8px;
             }
             QTableWidget::setItem {
-                text-align: center;  /* Center text in cells */
+                text-align: center; !important /* Center text in cells */
             }
             QTableWidget::item {
                 color: black;
@@ -387,4 +432,516 @@ class PaginatedTableWidget(QWidget):
 
                 # Show the new window
                 self.new_window.show()
-    
+
+   
+class EntityDistributionChart(QWidget):
+    def __init__(self, data):
+        super().__init__()
+        self.piechart_data = data["piechart_data"]
+        self.table_data = data["table_data"]
+        self.current_page = 1
+        self.rows_per_page = 10
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        # Create web view
+        self.web = QWebEngineView()
+        layout.addWidget(self.web)
+        
+        # Process data for chart
+        piechart_data = {}
+        for _, row in self.piechart_data.iterrows():
+            piechart_data[str(row.iloc[0])] = int(row.iloc[1])
+
+        # Process data for chart
+        table_data = {}
+        for _, row in self.table_data.iterrows():
+            table_data[str(row.iloc[0])] = int(row.iloc[1])
+
+        # Generate HTML content
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Entity Distribution</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .chart-container {{
+                    background: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin: 20px;
+                    min-height: 400px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }}
+                .header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2em;
+                    font-weight: bold;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    padding: 20px;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    border: 1px solid #e2e8f0; /* Add vertical line between cells */
+                }}
+                th, td {{
+                    padding: 12px;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    text-align: center;
+                }}
+                tr:hover {{
+                    background-color: #f8fafc;
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2em;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #2c3e50;
+                }}
+                #entityChart {{
+                    max-width: 100%;
+                    height: 100%;
+                }}
+                .tr-list td {{
+                    width: 50%;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    text-align: center;
+                }}
+                .key{{
+                    border-right: 1px solid #e2e8f0; /* Add vertical line between cells */
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">Top 10 Entities by Transaction Frequency</div>
+            <div class="chart-container">
+                <canvas id="entityChart"></canvas>
+            </div>
+            
+            <div class="table-container">
+                <div class="table-header">Complete Entity Frequency List</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entity</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+            
+            <script>
+                const piechart_data = {json.dumps(piechart_data)};
+                const table_data = {json.dumps(table_data)};
+                const colors = [
+                    '#10B981', '#6366F1', '#F59E0B', '#D946EF', '#0EA5E9',
+                    '#34D399', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'
+                ];
+                
+                // Pie Chart
+                const ctx = document.getElementById('entityChart').getContext('2d');
+                new Chart(ctx, {{
+                    type: 'pie',
+                    data: {{
+                        labels: Object.keys(piechart_data),
+                        datasets: [{{
+                            data: Object.values(piechart_data),
+                            backgroundColor: colors,
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{
+                                position: 'right',
+                                labels: {{
+                                    padding: 20,
+                                    font: {{
+                                        size: 12,
+                                        family: "'Segoe UI', sans-serif"
+                                    }},
+                                    generateLabels: function(chart) {{
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {{
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            return {{
+                                                text: `${{label}} (${{percentage}}%)`,
+                                                fillStyle: colors[i],
+                                                strokeStyle: colors[i],
+                                                lineWidth: 0,
+                                                hidden: false,
+                                                index: i
+                                            }};
+                                        }});
+                                    }}
+                                }}
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.raw;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${{context.label}}: ${{value}} transactions (${{percentage}}%)`;
+                                    }}
+                                }}
+                            }}
+                        }},
+                        layout: {{
+                            padding: 20
+                        }},
+                        animation: {{
+                            animateScale: true,
+                            animateRotate: true
+                        }}
+                    }}
+                }});
+
+                // Table Pagination
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const data = Object.entries(table_data).sort((a, b) => b[1] - a[1]);
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(([entity, frequency]) => {{
+                        const row = `
+                            <tr class="tr-list">
+                                <td class="key">${{entity}}</td>
+                                <td>${{frequency}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
+
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                // Initial table load
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        self.web.setMinimumHeight(1200)  # Set minimum height instead of fixed height
+        self.web.setHtml(html_content)
+
+class IndividualTableWidget(QWidget):
+    def __init__(self, data, case_id):
+        super().__init__()
+        self.all_data = data
+        self.case_id = case_id
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        # Create web view
+        self.web = QWebEngineView()
+        layout.addWidget(self.web)
+        
+        # Convert data to format needed for JavaScript
+        table_data = []
+        for item in self.all_data:
+            table_data.append({
+                'id': item['ID'],
+                'name': item['Name'],
+                'account': item['Account Number'],
+                'pdf': item['Pdf Path']
+            })
+
+        # Generate HTML content
+        html_content = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Individual Person Table</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/qt-webengine-channel/6.4.0/qwebchannel.js"></script>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+                .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    padding: 20px;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }}
+                th, td {{
+                    padding: 12px;
+                    border-bottom: 1px solid #e2e8f0;
+                    border-right: 1px solid #e2e8f0;
+                }}
+                th:last-child, td:last-child {{
+                    border-right: none;
+                }}
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                }}
+                tr:hover {{
+                    background-color: #f8fafc;
+                    cursor: pointer;
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2em;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
+                .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+                .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+                .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+                .pagination span {{
+                    font-weight: bold;
+                    color: #2c3e50;
+                }}
+                .tr-list td {{
+                    text-align: center;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }}
+                .clickable-name {{
+                    color: #3498db;
+                    text-decoration: underline;
+                    cursor: pointer;
+                }}
+                .clickable-name:hover {{
+                    color: #2980b9;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <div class="table-header">Individual Person List</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Account Number</th>
+                            <th>PDF Path</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+            
+            <script>
+                let qt = null;
+
+                const data = {table_data};
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+
+                function handleNameClick(name) {{
+                    if (qt) {{
+                        qt.nameClicked(name);
+                    }}
+                }}
+
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(item => {{
+                        const row = `
+                            <tr class="tr-list">
+                                <td>${{item.id}}</td>
+                                <td class="clickable-name" onclick="handleNameClick('${{item.name}}')">${{item.name}}</td>
+                                <td>${{item.account}}</td>
+                                <td>${{item.pdf}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
+
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                updateTable();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        # Set minimum height for the web view
+        self.web.setMinimumHeight(600)
+        class Handler(QObject):
+            def __init__(self, case_id, parent=None):
+                super().__init__(parent)
+                self.case_id = case_id
+                self.parent_widget = parent
+
+            @pyqtSlot(str)
+            def nameClicked(self, name):
+                dialog = QDialog(self.parent_widget)
+                dialog.setWindowTitle("Individual Dashboard")
+                dialog.showMaximized()
+                dialog.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
+                dialog.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
+                dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
+                
+                layout = QVBoxLayout()
+                individual_dashboard = IndividualDashboard(case_id=self.case_id, name=name, row_id=0)
+                layout.addWidget(individual_dashboard)
+                dialog.setLayout(layout)
+                dialog.show()
+        
+        # Create channel and handler
+        channel = QWebChannel()
+        handler = Handler(parent=self, case_id=self.case_id)
+        channel.registerObject('qt', handler)
+        self.web.page().setWebChannel(channel)
+        
+        # Load the HTML content
+        self.web.setHtml(html_content)
+
+       
