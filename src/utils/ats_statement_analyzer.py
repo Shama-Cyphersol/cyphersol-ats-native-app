@@ -563,7 +563,7 @@ class ATSFunctions:
         ff_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_yearly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
-        bda_all_analysis = self.cumulative_bidirectional_analysis(process_df):
+        bda_all_analysis = self.cumulative_bidirectional_analysis(process_df)
 
         print("********************************************************************************************")
 
