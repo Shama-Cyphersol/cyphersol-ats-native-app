@@ -10,8 +10,8 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
-from utils.pdf_processor import PDFProcessor
-from utils.ner_model import pdf_to_name
+# from utils.pdf_processor import PDFProcessor
+# from utils.ner_model import pdf_to_name
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
