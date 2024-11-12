@@ -21,6 +21,8 @@ from utils.summary_charts.Suspense_debit import SuspenseDebit
 from utils.summary_charts.Suspense_Credit import SuspenseCredit
 from utils.summary_charts.Summary import SummaryWindow
 from utils.json_logic import load_result
+from utils.summary_charts.Investment import InvestmentChart
+from utils.summary_charts.EMI import EMITransactionChart
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -150,6 +152,8 @@ class IndividualDashboard(QMainWindow):
             "Suspense Debit": SuspenseDebit,
             "Suspense Credit": SuspenseCredit,
             "Reversal": Reversal,
+            "Investment": InvestmentChart,
+            "EMI": EMITransactionChart
         }
         # # Create buttons for each category
         # for category, items in self.categories:
@@ -288,6 +292,10 @@ class IndividualDashboard(QMainWindow):
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_credit_df"], total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0])
         elif widget_class == Reversal:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["refund"])
+        elif widget_class == InvestmentChart:
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["investment_df"])
+        elif widget_class == EMITransactionChart:
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["emi_df"])
         else:
             widget = widget_class()
 
