@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QHeaderView, QGraphicsDropShadowEffect,
-                             QScrollArea, QDialog,QPushButton,QSizePolicy)
+                             QScrollArea, QDialog,QPushButton,QSplitter,QSizePolicy)
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 from .individual_dashboard import IndividualDashboard
@@ -12,6 +12,29 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot
 import json
+from functools import partial
+
+class SidebarButton(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.setCheckable(True)
+        self.setFixedHeight(40)
+        self.setStyleSheet("""
+            QPushButton {
+                border: none;
+                text-align: left;
+                padding: 8px 15px;
+                border-radius: 5px;
+                margin: 2px 10px;
+            }
+            QPushButton:checked {
+                background-color: #e0e7ff;
+                color: #4338ca;
+            }
+            QPushButton:hover:!checked {
+                background-color: #f3f4f6;
+            }
+        """)
 
 
 class CaseDashboard(QWidget):
@@ -21,82 +44,200 @@ class CaseDashboard(QWidget):
         self.case = load_case_data(case_id)
         print("self.case",self.case)
         self.case_result = load_result(self.case_id)
+        self.buttons = {}  # Store buttons for management
+        self.section_widgets = {}  # Store section widgets
+        self.current_section_label = None  # Store current section label
 
         self.init_ui()
 
     def init_ui(self):
-        # Create main layout for the scroll area
-        main_layout = QVBoxLayout()
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
+        self.showFullScreen()  # Make window fullscreen
 
-        # Create a widget to hold the main content
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(20)
-        content_layout.setContentsMargins(20, 20, 20, 20)
+         # Create main widget and layout
+        main_widget = QWidget()
+        # self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create sidebar
+        sidebar = self.createSidebar()
+        
+        # Create content area
+        content_area = self.createContentArea()
+
+        # Add splitter for resizable sidebar
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(sidebar)
+        splitter.addWidget(content_area)
+        splitter.setStretchFactor(splitter.indexOf(content_area), 1)
+        splitter.setStretchFactor(0, 0)  # Sidebar gets minimal stretch
+        splitter.setStretchFactor(1, 1)  # Content area stretches with the window
+        splitter.setSizes([250, 1150])  # Initial sizes
+            
+        main_layout.addWidget(splitter,stretch=1)
+
+        # Set default section to open
+        self.showSection("Fund Flow Network Graph", self.create_network_graph())
 
         # Title
-        title = QLabel("Case Dashboard Overview")
-        title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50;")
-        content_layout.addWidget(title)
+        # title = QLabel("Case Dashboard Overview")
+        # title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        # title.setStyleSheet("color: #2c3e50;")
+        # content_layout.addWidget(title)
 
         # Fund Flow Chart
-        content_layout.addWidget(self.create_section_title("Fund Flow Chart"))
-        content_layout.addWidget(self.create_network_graph())
+        # content_layout.addWidget(self.create_section_title("Fund Flow Chart"))
+        # content_layout.addWidget(self.create_network_graph())
         
         # Entity Distribution Chart
         # content_layout.addWidget(self.create_section_title("Entity Distribution"))
-        content_layout.addWidget(self.create_entity_distribution_chart(self.case_result))
+        # content_layout.addWidget(self.create_entity_distribution_chart(self.case_result))
 
-        # Individual Table
-        content_layout.addWidget(self.create_section_title("Individual Person Table"))
-        content_layout.addWidget(self.create_dummy_data_table_individual())
+        # # Individual Table
+        # content_layout.addWidget(self.create_section_title("Individual Person Table"))
+        # content_layout.addWidget(self.create_dummy_data_table_individual())
 
         # Link analysis
-        link_analysis_table = DynamicDataTable(
-            df=self.case_result["cummalative_df"]["link_analysis_df"],
-            title="Link Analysis Data Table",  # Optional
-            rows_per_page=10  # Optional
-        )
+        # link_analysis_table = DynamicDataTable(
+        #     df=self.case_result["cummalative_df"]["link_analysis_df"],
+        #     title="Link Analysis Data Table",  # Optional
+        #     rows_per_page=10  # Optional
+        # )
 
-        # Add it to your layout
-        link_analysis_table.create_table(content_layout)
-
+        # # Add it to your layout
+        # link_analysis_table.create_table(content_layout)
+        
         # Bidirectional analysis
-
-        test_daily = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_daily_analysis"]
-        print("test daily",test_daily)
-        print("test daily",test_daily.outflows.head())
-
-        test_weekly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
-        print("test weekly",test_weekly.outflows.head())
-
-        test_monthly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_monthly_analysis"]
-        print("test monthly",test_monthly.outflows.head())
-
-        test_half_yearly = self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_half_yearly_analysis"]
-        print("test half yearly",test_half_yearly.outflows.head())
-
-        bidirectional_analysis_table = DynamicDataTable(
-            df=self.case_result["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"],
-            title="Bidirectional Analysis Data Table",  # Optional
-            rows_per_page=10  # Optional
-        )
+        # bidirectional_analysis_table = DynamicDataTable(
+        #     df=self.case_result["cummalative_df"]["bidirectional_analysis"],
+        #     title="Bidirectional Analysis Data Table",  # Optional
+        #     rows_per_page=10  # Optional
+        # )
 
         # Add it to your layout
-        bidirectional_analysis_table.create_table(content_layout)
+        # bidirectional_analysis_table.create_table(content_layout)
 
         # # Entity Table
         # content_layout.addWidget(self.create_section_title("Entity Table"))
         # content_layout.addWidget(self.create_dummy_data_table_entity())
 
         # Set content widget in scroll area
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
         self.setLayout(main_layout)
+    
+    def createSidebar(self):
+        sidebar = QWidget()
+        sidebar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)  # Prevents sidebar from expanding unnecessarily
+        sidebar.setMaximumWidth(300)
+        sidebar.setMinimumWidth(200)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(5)
+        
+        # Header
+        header = QWidget()
+        header.setStyleSheet("background-color: #f8fafc;")
+        header_layout = QVBoxLayout(header)
+        
+        title = QLabel("Case Dashboard")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
+        subtitle = QLabel(f"Case ID: {self.case_id}")
+        subtitle.setStyleSheet("color: #64748b;padding:4px 0;")
+        
+        header_layout.addWidget(title)
+        header_layout.addWidget(subtitle)
+        sidebar_layout.addWidget(header)
+        
+       
+        self.categories = {
+            "Fund Flow Network Graph": self.create_network_graph(),
+            "Entites Distribution": self.create_entity_distribution_chart(self.case_result),
+            "Individual Table": self.create_dummy_data_table_individual(),
+            "Link Analysis": self.create_link_analysis(),
+        }
+    
+    # Create buttons for each category
+        for category, widget_class in self.categories.items():
+            # Create button for each category
+            btn = SidebarButton(category)
+            btn.clicked.connect(partial(self.showSection, category, widget_class))
+            self.buttons[category] = btn
+            sidebar_layout.addWidget(btn)
 
+        sidebar_layout.addStretch()
+        return sidebar
+   
+    def createContentArea(self):
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Header bar
+        header = QWidget()
+        header.setStyleSheet("background-color: white; border-bottom: 1px solid #e2e8f0;")
+        header_layout = QHBoxLayout(header)
+        
+        self.current_section_label = QLabel("Bank Transactions")
+        self.current_section_label.setStyleSheet("font-size: 24px; font-weight: bold; color:#1e293b;opacity:0.8;padding: 5px 0;")
+        self.current_section_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
+        header_layout.addWidget(self.current_section_label)
+        
+        content_layout.addWidget(header)
+        
+        # Scrollable content area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background-color: #f1f5f9;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #cbd5e1;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #94a3b8;
+            }
+        """)
+        
+        # # Content container
+        # self.content_stack = QStackedWidget()
+        # scroll.setWidget(self.content_stack)
+        
+        # # Wrap scroll area in a layout to maintain padding and spacing
+        # scroll_layout = QVBoxLayout()
+
+        # scroll_layout.setContentsMargins(0, 0, 0, 100)
+        # scroll_layout.addWidget(scroll)
+        # content_layout.addLayout(scroll_layout)
+        
+        # return content_widget
+        # Create a widget to hold all the content
+        self.content_container = QWidget()
+        # make content_container take all the height available
+
+        self.content_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.content_layout = QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+        self.content_layout.setSpacing(20)
+        self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        scroll.setWidget(self.content_container)
+        content_layout.addWidget(scroll,stretch=1)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        
+        return content_widget
+        
     def create_section_title(self, title):
         label = QLabel(title)
         label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
@@ -217,8 +358,8 @@ class CaseDashboard(QWidget):
         filtered_df = process_df[['Name', 'Value Date', 'Debit', 'Credit', 'Entity']].dropna(subset=['Entity'])
         
         # Filter based on entity frequency
-        min_frequency = 50
-        filtered_df = filtered_df[filtered_df['Entity'].map(lambda x: entity_freq_dict.get(x, 0) > min_frequency)]
+        # min_frequency = 30
+        # filtered_df = filtered_df[filtered_df['Entity'].map(lambda x: entity_freq_dict.get(x, 0) > min_frequency)]
         
         return CashFlowNetwork(data=filtered_df)
     
@@ -247,7 +388,7 @@ class CaseDashboard(QWidget):
             entity_df = entity_df[entity_df.iloc[:, 0] != ""]
             # Take top 10 entities by frequency
             entity_df_10 = entity_df.nlargest(10, entity_df.columns[1])
-            return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df})
+            return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df,"all_transactions":result["cummalative_df"]["process_df"]})
         except Exception as e:
             print("Error creating entity distribution chart:", e)
             # Create dummy data if there's an error
@@ -255,8 +396,56 @@ class CaseDashboard(QWidget):
                 'Entity': ['Entity1', 'Entity2', 'Entity3'],
                 'Frequency': [10, 8, 6]
             })
-            return EntityDistributionChart(data={"piechart_data":dummy_data,"table_data":dummy_data})
- 
+            return EntityDistributionChart(data={"piechart_data":dummy_data,"table_data":dummy_data,"all_transactions":pd.DataFrame()})
+    
+    # def create_link_analysis(self,content_layout):
+    def create_link_analysis(self):
+        link_analysis_table = DynamicDataTable(
+            df=self.case_result["cummalative_df"]["link_analysis_df"],
+            # title="Link Analysis Data Table",  # Optional
+            rows_per_page=10  # Optional
+        )
+        # link_analysis_table.create_table(content_layout)
+        return link_analysis_table.create_table()
+
+    def showSection(self, section_name, widget_class):
+        # Uncheck all buttons except the clicked one
+        for btn in self.buttons.values():
+            btn.setChecked(False)
+        self.buttons[section_name].setChecked(True)
+
+        # Update the section label
+        self.current_section_label.setText(section_name)
+
+        # # Clear previous content
+        # while self.content_layout.count():
+        #     item = self.content_layout.takeAt(0)
+        #     print("Item ",section_name," - ", item)
+        #     print("Item widget ",section_name," - ", item.widget())
+        #     if item.widget():
+        #         item.widget().deleteLater()
+
+        # Check if the widget for this section already exists
+        if section_name in self.section_widgets:
+            widget = self.section_widgets[section_name]
+        else:
+            widget = widget_class
+            self.section_widgets[section_name] = widget
+
+        # Set expanding size policy to adjust according to content
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        
+        # Clear the content layout
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
+        
+        # Add the widget to the content layout
+        self.content_layout.addWidget(widget)
+        
+        # Add stretch at the bottom to push content to the top and allow scroll if necessary
+        self.content_layout.addStretch()
 
 class PaginatedTableWidget(QWidget):
     def __init__(self, headers, data, case_id,rows_per_page=10):
@@ -473,6 +662,8 @@ class EntityDistributionChart(QWidget):
         super().__init__()
         self.piechart_data = data["piechart_data"]
         self.table_data = data["table_data"]
+        self.all_transactions = data["all_transactions"]  # Store transactions DataFrame
+
         self.current_page = 1
         self.rows_per_page = 10
         self.init_ui()
@@ -493,6 +684,28 @@ class EntityDistributionChart(QWidget):
         table_data = {}
         for _, row in self.table_data.iterrows():
             table_data[str(row.iloc[0])] = int(row.iloc[1])
+
+        # Process transactions data for JavaScript
+        transactions_by_entity = {}
+        print("all_transactions",self.all_transactions.head())
+        for entity in table_data.keys():
+            # Filter transactions for this entity
+            entity_transactions = self.all_transactions[
+                self.all_transactions['Description'].str.contains(entity, case=False, na=False)
+            ].copy()
+            
+            # Convert to list of dictionaries for JSON serialization
+            transactions_list = []
+            for _, trans in entity_transactions.iterrows():
+                transactions_list.append({
+                    'date': trans['Value Date'].strftime('%Y-%m-%d'),
+                    'description': trans['Description'],
+                    'debit': str(trans['Debit']) if not pd.isna(trans['Debit']) else '',
+                    'credit': str(trans['Credit']) if not pd.isna(trans['Credit']) else '',
+                    'category': trans['Category']
+                })
+            transactions_by_entity[entity] = transactions_list
+        
 
         # Generate HTML content
         html_content = f'''
@@ -594,10 +807,50 @@ class EntityDistributionChart(QWidget):
                     text-overflow: ellipsis;
                     white-space: nowrap;
                     text-align: center;
+                    cursor: pointer;
                 }}
                 .key{{
                     border-right: 1px solid #e2e8f0; /* Add vertical line between cells */
                 }}
+                .amount-cell {{
+                    text-align: right;
+                }}
+                .amount-cell.debit {{
+                    color: #e74c3c;
+                }}
+                .amount-cell.credit {{
+                    color: #27ae60;
+                }}
+                .close-button {{
+                    background: #f1f5f9;
+                    color: #64748b;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    margin-left:auto;
+                    margin-bottom: 10px;
+
+                }}
+
+                .close-button:hover {{
+                    background: #e2e8f0;
+                    color: #475569;
+                }}
+
+                .close-button::before {{
+                    content: '✕';
+                    font-size: 14px;
+                    margin-right: 4px;
+                }}
+
             </style>
         </head>
         <body>
@@ -624,10 +877,20 @@ class EntityDistributionChart(QWidget):
                     <button id="nextBtn" onclick="nextPage()">Next</button>
                 </div>
             </div>
+
+            <div id="table-container-nested">
+            </div>
+
             
             <script>
                 const piechart_data = {json.dumps(piechart_data)};
                 const table_data = {json.dumps(table_data)};
+                const transactionsByEntity = {json.dumps(transactions_by_entity)};
+                let currentTransactionsPage = 1;
+                const transactionsPerPage = 10;
+                let currentEntityTransactions = [];
+
+
                 const colors = [
                     '#10B981', '#6366F1', '#F59E0B', '#D946EF', '#0EA5E9',
                     '#34D399', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'
@@ -713,7 +976,7 @@ class EntityDistributionChart(QWidget):
                     
                     pageData.forEach(([entity, frequency]) => {{
                         const row = `
-                            <tr class="tr-list">
+                            <tr class="tr-list" onclick="showTransactionTable('${{entity}}')">
                                 <td class="key">${{entity}}</td>
                                 <td>${{frequency}}</td>
                             </tr>
@@ -726,6 +989,91 @@ class EntityDistributionChart(QWidget):
                     document.getElementById('nextBtn').disabled = currentPage === totalPages;
                 }}
 
+                function updateTransactionsTable(entity) {{
+                    const start = (currentTransactionsPage - 1) * transactionsPerPage;
+                    const end = start + transactionsPerPage;
+                    const pageTransactions = currentEntityTransactions.slice(start, end);
+                    const totalTransactionsPages = Math.ceil(currentEntityTransactions.length / transactionsPerPage);
+                    
+                    const transactionTableHtml = `
+                        <div class="table-container">
+                            <div class="table-header-container">
+                                <div class="table-header">Transactions for ${entity}</div>
+                                <button class="close-button" onclick="closeTransactionTable()">Close</button>
+                            </div>
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Debit</th>
+                                        <th>Credit</th>
+                                        <th>Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${{pageTransactions.map(t => `
+                                        <tr>
+                                            <td>${{t.date}}</td>
+                                            <td>${{t.description}}</td>
+                                            <td class="amount-cell debit">${{t.debit}}</td>
+                                            <td class="amount-cell credit">${{t.credit}}</td>
+                                            <td>${{t.category}}</td>
+                                        </tr>
+                                    `).join('')}}
+                                </tbody>
+                            </table>
+                            <div class="pagination">
+                                <button onclick="previousTransactionsPage('${{entity}}')" ${{currentTransactionsPage === 1 ? 'disabled' : ''}}>Previous</button>
+                                <span>Page ${{currentTransactionsPage}} of ${{totalTransactionsPages}}</span>
+                                <button onclick="nextTransactionsPage('${{entity}}')" ${{currentTransactionsPage === totalTransactionsPages ? 'disabled' : ''}}>Next</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('table-container-nested').innerHTML = transactionTableHtml;
+                }}
+
+                function showTransactionTable(entity) {{
+                    const transactions = transactionsByEntity[entity] || [];
+                    currentEntityTransactions = transactions;
+                    currentTransactionsPage = 1;
+                    
+                   if (transactions.length === 0) {{
+                        document.getElementById('table-container-nested').innerHTML = `
+                            <div class="table-container">
+                                <div class="table-header-container">
+                                    <div class="table-header">No transactions found for ${entity}</div>
+                                    <button class="close-button" onclick="closeTransactionTable()">Close</button>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }}
+                    
+                    updateTransactionsTable(entity);
+                }}
+
+                function previousTransactionsPage(entity) {{
+                    if (currentTransactionsPage > 1) {{
+                        currentTransactionsPage--;
+                        updateTransactionsTable(entity);
+                    }}
+                }}
+
+                function nextTransactionsPage(entity) {{
+                    const totalPages = Math.ceil(currentEntityTransactions.length / transactionsPerPage);
+                    if (currentTransactionsPage < totalPages) {{
+                        currentTransactionsPage++;
+                        updateTransactionsTable(entity);
+                    }}
+                }}
+
+                
+                function closeTransactionTable() {{
+                    document.getElementById('table-container-nested').innerHTML = '';
+                }}
+                
                 function nextPage() {{
                     if (currentPage < totalPages) {{
                         currentPage++;
@@ -747,7 +1095,7 @@ class EntityDistributionChart(QWidget):
         </html>
         '''
         
-        self.web.setMinimumHeight(1200)  # Set minimum height instead of fixed height
+        self.web.setMinimumHeight(2100)  # Set minimum height instead of fixed height
         self.web.setHtml(html_content)
 
 class IndividualTableWidget(QWidget):
@@ -1161,7 +1509,7 @@ import pandas as pd
 import json
 
 class DynamicDataTable:
-    def __init__(self, df, title="Data Table", rows_per_page=10):
+    def __init__(self, df, title="", rows_per_page=10):
         """
         Initialize the dynamic table with a DataFrame.
         
@@ -1174,7 +1522,8 @@ class DynamicDataTable:
         self.title = title
         self.rows_per_page = rows_per_page
 
-    def create_table(self, layout):
+    # def create_table(self, layout):
+    def create_table(self):
         """Create and add the table to the given layout."""
         web_view = QWebEngineView()
         
@@ -1413,4 +1762,5 @@ class DynamicDataTable:
         
         web_view.setHtml(html_content)
         web_view.setMinimumHeight(800)
-        layout.addWidget(web_view)
+        return web_view
+        # layout.addWidget(web_view)

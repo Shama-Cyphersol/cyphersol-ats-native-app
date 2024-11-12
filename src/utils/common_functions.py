@@ -928,12 +928,82 @@ class CommonFunctions:
 
         # Define keywords to exclude
         exclude_keywords = [
-            "upi", "kotakmahindra", "yesbank", "icicibank", "unionbank",
-            "hdfcbank", "utib", "axisbank", "dtax", "indianoverseas",
-            "centralbank", "paymentoncred", "razor", "okaxi", "gib/", "axie",
-            "icide", "okic", "axisbankltd", "tax", "ach/", "axis", "tds",
-            "itrfees", "okicici", "oki", "okhdf", "okbi", "okaxi", ""
-        ]
+    # Major Indian Banks and their variations
+    "sbi", "statebankofindia", "statebank",
+    "pnb", "punjabnationalbank",
+    "bob", "bankofbaroda",
+     "canara", "canarabank",
+     "unionbank", "unionbankofindia",
+     "boi", "bankofindia","indianbank",
+    "centralbank", "centralbankofindia",
+    "iob", "indianoverseasbank", "indianoverseas",
+    "uco", "ucobank",
+    "bankofmaharashtra", "maharashtrabank",
+    "psb", "punjabandsindbank",
+     "hdfc", "hdfcbank", "hdfcbankltd", "hdfcbanklimited",
+     "icici","icic", "icicibank", "icicibankltd", "icicibanklimited",
+     "axis", "axisbank", "axisbankltd", "axisbanklimited",
+     "kotak", "kotakbank", "kotakmahindrabank",
+     "yesbank", "yesbankltd", "yesbanklimited",
+     "idbi", "idbibank", "idbibankltd", "idbibanklimited",
+     "idfc", "idfcfirstbank", "idfcfirst",
+     "indusind","indusindbank",
+     "bandhan", "bandhanbank",
+     "rbl", "rblbank",
+     "dhanlaxmi", "dhanlaxmibank",
+     "federal", "federalbank",
+      "southindianbank",
+      "karurvysyabank", "karurvysya",
+      "cityunionbank",
+      "jkbank", "jammukashmirbank",
+     "dcbbank",
+     "lakshmivilasbank",
+     "dbsbank","axisb","okbizaxis","fcbank",""
+
+    # Payment Processors and Wallets
+    "upi",
+    "paytm", "okpaytm",
+    "phonepe",
+    "gpay", "googlepay",
+    "amazonpay",
+    "mobikwik",
+    "freecharge",
+    
+    "cred",
+    "billdesk",
+     "citruspay", "citrus",
+    "cashfree",
+    "instamojo",
+    "payoneer",
+    "razorpay", "razor",
+    "bhim",
+    "nsdl",
+    "traces",
+
+    # Tax and Financial Terms
+    "incometax",
+    "itrfees",
+    "cbdt", 
+    "dtax",
+
+    # UPI Handles and Prefixes
+    "okaxis", "okicici", "okhdfc", "okhdfcbank",
+    "oksbi", "okyesbank", "okkotak", "okbob", "okpnb",
+    "okunionbank", "okcanara", "okboi", "okiob",
+    "idfcbank", "idfc",
+    "ach/",
+    "gib/",
+    "upi/","paytmqr"
+
+    # Common Misspellings or Typos
+    "icide",  # typo for ICICI
+    "axie",   # typo for Axis
+    "hdffc",  # typo for HDFC
+    "okic", "oki", "okhdf", "okaxi", "okax","imps","rev-","neftcr","okbizaxis","yesupi","yblupi","idfcfirstbanklimi","utib","barb","eaw-","okbizicici","rev-","sbin","-utib","ybl","yesb",""
+
+    # Other Related Terms
+    "paymentoncred", "paymentoncredit", "creditpayment",
+]
 
         # Preprocessing function for 'Description'
         def preprocess_description(description):
@@ -942,7 +1012,7 @@ class CommonFunctions:
                 return ''
 
             # Remove special characters but keep slashes (/)
-            clean_description = re.sub(r'[^a-zA-Z0-9/\s]', ' ', description)
+            clean_description = re.sub(r'[^a-zA-Z/\s]', ' ', description)
 
             # Exclude keywords
             for keyword in exclude_keywords:
@@ -952,6 +1022,17 @@ class CommonFunctions:
             # Clean up extra spaces after removing keywords
             clean_description = re.sub(r'\s+', ' ', clean_description).strip()
 
+            def remove_keywords(text, keywords):
+                for keyword in keywords:
+                    # If the keyword contains non-word characters, don't use word boundaries
+                    if re.search(r'\W', keyword):
+                        pattern = re.escape(keyword)
+                    else:
+                        pattern = r'\b' + re.escape(keyword) + r'\b'
+                    text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+                return text
+
+            clean_description = remove_keywords(clean_description, exclude_keywords)
             # Convert to lowercase
             clean_description = clean_description.lower()
 
@@ -2427,6 +2508,36 @@ class CommonFunctions:
         ] = "Debtor"
 
         df["Balance"] = x  # Manish
+        def map_entities(df, mapping_dict):
+            """
+            Replace values in the 'Entity' column based on a mapping dictionary
+            
+            Parameters:
+            df (pandas.DataFrame): DataFrame containing 'Entity' column
+            mapping_dict (dict): Dictionary with current names as keys and new names as values
+            
+            Returns:
+            pandas.DataFrame: DataFrame with updated Entity values
+            """
+            # Create a copy to avoid modifying the original DataFrame
+            df_mapped = df.copy()
+            
+            # Replace values using the mapping dictionary
+            df_mapped['Entity'] = df_mapped['Entity'].replace(mapping_dict)
+            
+            return df_mapped
+
+        mapping = {
+            'poojan': 'poojanmanishvig',
+            'vigpoojanmanish': 'poojanmanishvig',
+            'poojanvig': 'poojanmanishvig',
+            'mraiyazanwarqures':"aiyazanwarqureshi",
+            'queshiaiyazanwar':"aiyazanwarqureshi",
+            
+        }
+
+        # Apply the mapping
+        df = map_entities(df, mapping)
 
         return df
 

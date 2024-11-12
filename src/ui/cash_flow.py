@@ -47,8 +47,9 @@ class CashFlowNetwork(QMainWindow):
     def __init__(self, data, CA_id=None):
         super().__init__()
         self.setGeometry(100, 100, 1200, 900)
-        
         self.data = self.clean_data(data)
+        self.backup_data = self.data
+        # print("data - ",self.data.head())
 
         # Add style for the empty state message
         self.setStyleSheet("""
@@ -175,7 +176,20 @@ class CashFlowNetwork(QMainWindow):
         
         self.k_value = QDoubleSpinBox()
         self.k_value.setValue(50)
-        
+
+        # Add frequency slider
+        frequency_label = QLabel("Minimum Transactions:")
+        self.frequency_slider = QSlider(Qt.Orientation.Horizontal)
+        self.frequency_slider.setRange(1, 200)
+        self.frequency_slider.setValue(10)
+        self.frequency_slider.valueChanged.connect(self.update_graph)
+        self.frequency_value_label = QLabel(str(self.frequency_slider.value()))
+        self.frequency_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        controls_layout.addWidget(frequency_label)
+        controls_layout.addWidget(self.frequency_value_label)
+        controls_layout.addWidget(self.frequency_slider)
+
         self.setMinimumSize(800, 600)
         self.setFixedHeight(1000)
         
@@ -185,6 +199,8 @@ class CashFlowNetwork(QMainWindow):
             self.create_graph()
         else:
             self.stacked_widget.setCurrentIndex(1)  # Show empty state
+        
+        
     
     def has_sufficient_data(self):
         """Check if there's enough data to create a meaningful network graph."""
@@ -229,6 +245,12 @@ class CashFlowNetwork(QMainWindow):
         node_sizes = {}
         edge_weights = {}
 
+        # Filter the data based on the frequency slider value
+        self.data = self.backup_data[self.backup_data['Entity'].isin(
+            self.backup_data['Entity'].value_counts()[self.backup_data['Entity'].value_counts() >= self.frequency_slider.value()].index
+        )]
+
+
         # First pass: Add all nodes and edges
         unique_names = self.data['Name'].unique()
         name_sizes = {name: self.node_size_slider.value() * 1.5 for name in unique_names}
@@ -248,7 +270,7 @@ class CashFlowNetwork(QMainWindow):
 
             if name not in G:
                 G.add_node(name, type='Person', size=name_sizes.get(name, self.node_size_slider.value()), 
-                          color=name_colors.get(name, self.color_palette['Person']))
+                        color=name_colors.get(name, self.color_palette['Person']))
             if entity not in G:
                 G.add_node(entity, type='Entity', size=self.node_size_slider.value())
 
@@ -350,6 +372,7 @@ class CashFlowNetwork(QMainWindow):
 
     def update_graph(self):
         if self.has_sufficient_data():
+            self.frequency_value_label.setText(str(self.frequency_slider.value()))
             self.stacked_widget.setCurrentIndex(0)  # Show graph
             self.create_graph()
         else:

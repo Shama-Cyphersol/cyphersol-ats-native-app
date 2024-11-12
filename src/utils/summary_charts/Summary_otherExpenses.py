@@ -9,7 +9,7 @@ from datetime import datetime
 class SummaryOtherExpenses(QMainWindow):
     def __init__(self,data):
         super().__init__()
-        self.setWindowTitle("Income Distribution Dashboard")
+        self.setWindowTitle("Other Expenses Distribution Dashboard")
         self.setGeometry(100, 100, 1200, 900)
 
 
@@ -167,7 +167,7 @@ class SummaryOtherExpenses(QMainWindow):
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Income Distribution Dashboard</title>
+                <title>Other Expenses Distribution Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -220,7 +220,36 @@ class SummaryOtherExpenses(QMainWindow):
                         font-weight: bold;
                         color: #333;
                     }}
+                    .table-container {{
+                        background: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        margin-top: 20px;
+                        overflow-x: auto;
+                    }}
+                    .data-table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                    }}
+
+                    .data-table th,
+                    .data-table td {{
+                        padding: 12px;
+                        border-bottom: 1px solid #eee;
+                        text-align: center !important;  /* Force center alignment */
+                    }}
                     
+                    .data-table th {{
+                        background-color: #3498db;
+                        color: white;
+                    }}
+                    
+                    .data-table tr:hover {{
+                        background-color: #f5f5f5;
+                    }}
+
                     .chart-container {{
                         background: white;
                         padding: 20px;
@@ -266,12 +295,11 @@ class SummaryOtherExpenses(QMainWindow):
             </head>
             <body>
                 <div class="dashboard">
+                    <div class="header">
+                        <h1>Other Expenses Distribution for <span id="selectedMonth">{selected_month}</span></h1>
+                    </div>
                     <div class="radio-group">
                         {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
-                    </div>
-                    
-                    <div class="header">
-                        <h1>Income Distribution for <span id="selectedMonth">{selected_month}</span></h1>
                     </div>
                     
                     <div class="metrics-grid">
@@ -289,6 +317,21 @@ class SummaryOtherExpenses(QMainWindow):
                     
                     <div class="chart-container">
                         <canvas id="pieChart"></canvas>
+                    </div>
+
+                    <div class="table-container">
+                        <h2>Detailed OtherExpenses Breakdown</h2>
+                        <table class="data-table" id="incomeTable">
+                            <thead>
+                                <tr>
+                                    <th>Income Category</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Percentage of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 
@@ -312,6 +355,28 @@ class SummaryOtherExpenses(QMainWindow):
                     }};
                     
                     let myChart = null;  // Global chart instance
+
+                    function updateTable(data) {{
+                        const tbody = document.querySelector('#incomeTable tbody');
+                        tbody.innerHTML = '';
+                        
+                        const totalIncome = Object.values(data).reduce((a, b) => a + b, 0);
+                        
+                        // Sort data by amount in descending order
+                        const sortedData = Object.entries(data)
+                            .sort(([,a], [,b]) => b - a);
+                        
+                        sortedData.forEach(([category, amount]) => {{
+                            const percentage = (amount / totalIncome * 100).toFixed(2);
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${{category}}</td>
+                                <td>₹${{amount.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}
+                                <td>${{percentage}}%</td>
+                            `;
+                            tbody.appendChild(row);
+                        }});
+                    }}
                     
                     function updateDashboard(selectedMonth) {{
                         const selectedData = monthsData[selectedMonth];
@@ -327,6 +392,8 @@ class SummaryOtherExpenses(QMainWindow):
                         document.getElementById('topCategory').textContent = topCategory[0];
                         document.getElementById('topAmount').textContent = `₹${{topCategory[1].toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`;
                         
+                        updateTable(selectedData);
+
                         // Destroy existing chart if it exists
                         if (myChart) {{
                             myChart.destroy();
@@ -403,8 +470,10 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             self.web.setHtml(error_html)
 
+    # Prepare the data for the table
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = OtherExpenses()
+    window = SummaryOtherExpenses()
     window.show()
     sys.exit(app.exec())

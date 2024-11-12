@@ -541,6 +541,10 @@ class ATSFunctions:
         # link analysis data
         link_analysis_df = process_df.groupby(['Name', 'Entity']).agg(Total_Credit=('Credit', 'sum'), Total_Debit=('Debit', 'sum')).reset_index()
         link_analysis_df = link_analysis_df[['Name', 'Total_Credit', 'Total_Debit', 'Entity']]
+        link_analysis_df = link_analysis_df[~((link_analysis_df['Total_Credit'] == 0) & (link_analysis_df['Total_Debit'] == 0))]
+        link_analysis_df['highlight'] = 0
+        unique_names = link_analysis_df['Name'].unique()
+        link_analysis_df.loc[link_analysis_df['Entity'].isin(unique_names), 'highlight'] = 1
 
         #fifo analysis
         fifo_dictionary = self.fifo_allocation(process_df)

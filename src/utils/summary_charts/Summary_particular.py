@@ -10,6 +10,7 @@ class SummaryParticular(QMainWindow):
     def __init__(self, data):
         super().__init__()
         self.setWindowTitle("Financial Analytics Dashboard")
+        self.data = data
         
         # Create main widget and layout
         main_widget = QWidget()
@@ -22,6 +23,8 @@ class SummaryParticular(QMainWindow):
         
         # Create tabs for different chart types
         self.create_transactions_tab(tab_widget, data)
+        # self.create_data_table_summaryParticular(layout, data)
+        self.create_data_table_summaryParticular(layout, data)
         
     def create_transactions_tab(self, tab_widget, data):
         transactions_widget = QWidget()
@@ -111,3 +114,182 @@ class SummaryParticular(QMainWindow):
         
         web_view.setHtml(html_content)
         tab_widget.addTab(transactions_widget, "Transactions")
+
+    def create_data_table_summaryParticular(self, layout, data):
+        # Extract months, credit data, and debit data
+        months = data.columns[1:-1].tolist()  # Exclude 'Particulars' and 'Total' columns
+        credit_data = data[data['Particulars'] == 'Total Amount of Credit Transactions'].iloc[0, 1:-1].tolist()
+        debit_data = data[data['Particulars'] == 'Total Amount of Debit Transactions'].iloc[0, 1:-1].tolist()
+
+        # Prepare the data for the table
+        table_data = []
+        for i, month in enumerate(months):
+            table_data.append({
+                'month': month,
+                'credit': f"₹{float(credit_data[i]):,.2f}",
+                'debit': f"₹{float(debit_data[i]):,.2f}"
+            })
+
+        # Generate HTML content with a table structure
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+         
+            <title>Summary Particular Data Table</title>
+
+           <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
+            .table-container {{
+                    margin: 20px;
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    overflow: hidden;
+                }}
+            .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
+                table {{
+                    margin-left: 30px;
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }}
+                
+                th, td {{
+                    padding: 12px;
+                    text-align: center;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    position: sticky;
+                    top: 0;
+                    padding: 6px; 
+                }}
+                tr:hover {{
+                    background-color: #f5f5f5;
+                }}
+            .pagination {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    gap: 10px;
+                }}
+            .pagination button {{
+                    padding: 8px 16px;
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }}
+            .pagination button:disabled {{
+                    background-color: #bdc3c7;
+                    cursor: not-allowed;
+                }}
+            .pagination span {{
+                    font-weight: bold;
+                    color: #333333;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="table-container">
+                <div class="table-header">Monthly Transaction Analysis Table</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Credit Transactions</th>
+                            <th>Debit Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                </div>
+            
+            
+            <div class="pagination">
+                <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                <button id="nextBtn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+            
+            <!-- Include DataTables JavaScript -->
+            <script src="https://cdn.datatables.net/v/dt/dt-1.13.1/datatables.min.js"></script>
+            
+            <script>
+                const rowsPerPage = 10;
+                let currentPage = 1;
+                const data = {json.dumps(table_data)};
+                const totalPages = Math.ceil(data.length / rowsPerPage);
+                
+                function updateTable() {{
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+                    const pageData = data.slice(start, end);
+                    
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    pageData.forEach(row => {{
+                        const tr = `
+                            <tr>
+                                <td>${{row.month}}</td>
+                                <td>${{row.credit}}</td>
+                                <td>${{row.debit}}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += tr;
+                    }});
+                    
+                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                }}
+
+                function nextPage() {{
+                    if (currentPage < totalPages) {{
+                        currentPage++;
+                        updateTable();
+                    }}
+                }}
+
+                function previousPage() {{
+                    if (currentPage > 1) {{
+                        currentPage--;
+                        updateTable();
+                    }}
+                }}
+
+                // Initial table load
+                updateTable();
+
+            </script>
+        </body>
+        </html>
+        """
+        
+        web_view = QWebEngineView()
+        web_view.setHtml(html_content)
+        web_view.setMinimumHeight(700)  # Set minimum height for the table
+        layout.addWidget(web_view)

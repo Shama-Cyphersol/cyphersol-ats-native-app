@@ -176,3 +176,7 @@ gliner_medium-v2.1/
 /src/gliner-medium-v2.1/
 /src/data/*xlsx
 /src/data/ner_results/*
+/src/sanchay/*
+/src/models/*
+/src/utils/local_model/*
+venv.zip

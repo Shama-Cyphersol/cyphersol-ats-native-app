@@ -11,6 +11,7 @@ import random
 import string
 from .case_dashboard import CaseDashboard
 from utils.pdf_processor import PDFProcessor
+from utils.ner_model import pdf_to_name
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -435,17 +436,30 @@ class ReportGeneratorTab(QWidget):
 
         print("progress_data",progress_data)
 
-        ner_results={}
+        ner_results={
+                    "Name": [],
+                    "Acc Number": []
+                }
 
         try:
-            processed_results = self.pdf_processor(pdf_paths=pdf_paths)
-            res = save_ner_results(CA_ID, processed_results)
-            ner_results= res
+            for pdf in pdf_paths:
+                result = pdf_to_name(pdf)
+                for entity in result:
+                    if entity["label"] == "PER":
+                        ner_results["Name"].append(entity["text"])
+                    elif entity["label"] == "ACC_NO":
+                        ner_results["Acc Number"].append(entity["text"])
+            
+            print("NER Results final: ",ner_results)
+            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
+            # res = save_ner_results(CA_ID, processed_results)
+            # ner_results= res
         except Exception as e:
             print("Error processing PDFs: ", e)
             pass
         converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
         result = converter.start_extraction()
+
         # single_df = result["single_df"]
         # cummalative_df = result["cummalative_df"]
 
@@ -461,41 +475,41 @@ class ReportGeneratorTab(QWidget):
         
         names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        ner_names = {
-            "Name": [],
-            "Acc Number": []
-        }
+        # ner_names = {
+        #     "Name": [],
+        #     "Acc Number": []
+        # }
 
-        if ner_results != {}:
-            for doc in ner_results["documents"]:
-                got_name = False
-                got_acc_no = False
-                for ent in doc["entities"]:
-                    if ent["label"] == "PER" and not got_name:
-                        ner_names["Name"].append(ent["text"])
-                        got_name = True
-                    elif ent["label"] == "ACC NO" and not got_acc_no:
-                        ner_names["Acc Number"].append(ent["text"])
-                        got_acc_no = True
+        # if ner_results != {}:
+        #     for doc in ner_results["documents"]:
+        #         got_name = False
+        #         got_acc_no = False
+        #         for ent in doc["entities"]:
+        #             if ent["label"] == "PER" and not got_name:
+        #                 ner_names["Name"].append(ent["text"])
+        #                 got_name = True
+        #             elif ent["label"] == "ACC NO" and not got_acc_no:
+        #                 ner_names["Acc Number"].append(ent["text"])
+        #                 got_acc_no = True
                 
-                if not got_name:
-                    ner_names["Name"].append(None)
-                if not got_acc_no:
-                    ner_names["Acc Number"].append(None)
+        #         if not got_name:
+        #             ner_names["Name"].append(None)
+        #         if not got_acc_no:
+        #             ner_names["Acc Number"].append(None)
 
         print("names_from_cummalative_data",names_from_cummalative_data)
-        print("ner_names",ner_names)
+        print("ner_results",ner_results)
 
         # check ner_names and names_from_cummalative_data and for any null values in ner_names, replace with names_from_cummalative_data
         # Combining results of sanchay and manish logic for names, acc no
-        for i in range(len(ner_names["Name"])):
-            if ner_names["Name"][i] == None:
-                ner_names["Name"][i] = names_from_cummalative_data["Name"][i]
-            if ner_names["Acc Number"][i] == None:
-                ner_names["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
+        for i in range(len(ner_results["Name"])):
+            if ner_results["Name"][i] == None:
+                ner_results["Name"][i] = names_from_cummalative_data["Name"][i]
+            if ner_results["Acc Number"][i] == None:
+                ner_results["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
 
         
-        print("ner_names",ner_names)
+        # print("ner_names",ner_names)
 
         save_case_data(CA_ID, pdf_paths, start_date, end_date,names_from_cummalative_data)
         save_result(CA_ID,result)

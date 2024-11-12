@@ -37,5 +37,58 @@
             ]
         },
         "date": "06-11-2024"
+    },
+    {
+        "case_id": "CA_ID_HJ1WV78CS28HO7HD",
+        "file_names": [
+            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
+            "C:/Users/qures/Downloads/hdfc poojan.pdf"
+        ],
+        "start_date": "-",
+        "end_date": "-",
+        "report_name": "Report_CA_ID_HJ1WV78CS28HO7HD",
+        "individual_names": {
+            "Name": [
+                "AIYAZ ANWAR QURES-QURESHI.AIYAZ12",
+                "POOJAN MANISH VIG"
+            ],
+            "Acc Number": [
+                "50100575475699",
+                "50100575475700"
+            ]
+        },
+        "date": "06-11-2024"
+    },
+    {
+        "case_id": "CA_ID_WF4RNVIEQOMTV7U3",
+        "file_names": [
+            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
+        ],
+        "start_date": "",
+        "end_date": "",
+        "report_name": "Report_CA_ID_WF4RNVIEQOMTV7U3",
+        "individual_names": {
+            "Name": [],
+            "Acc Number": []
+        },
+        "date": "06-11-2024"
+    },
+    {
+        "case_id": "CA_ID_DEEV9AKX2RIEP4AD",
+        "file_names": [
+            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf"
+        ],
+        "start_date": "",
+        "end_date": "",
+        "report_name": "Report_CA_ID_DEEV9AKX2RIEP4AD",
+        "individual_names": {
+            "Name": [
+                "AIYAZ ANWAR QURES-QURESHI.AIYAZ12"
+            ],
+            "Acc Number": [
+                "50100575475699"
+            ]
+        },
+        "date": "07-11-2024"
     }
 ]
