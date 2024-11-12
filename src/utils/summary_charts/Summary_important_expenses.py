@@ -69,7 +69,7 @@ class SummaryImportantExpenses(QMainWindow):
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Income Distribution Dashboard</title>
+                <title>Important Income Distribution Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -173,7 +173,7 @@ class SummaryImportantExpenses(QMainWindow):
                     </div>
                     
                     <div class="header">
-                        <h1>Income Distribution for <span id="selectedMonth">{selected_month}</span></h1>
+                        <h1>Important Income Distribution for <span id="selectedMonth">{selected_month}</span></h1>
                     </div>
                     
                     <div class="metrics-grid">
@@ -297,8 +297,3 @@ class SummaryImportantExpenses(QMainWindow):
             '''
             self.web.setHtml(error_html)
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = ImportantExpenses()
-    window.show()
-    sys.exit(app.exec())

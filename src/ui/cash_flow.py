@@ -50,6 +50,7 @@ class CashFlowNetwork(QMainWindow):
         self.data = self.clean_data(data)
         self.backup_data = self.data
         # print("data - ",self.data.head())
+        self.max_frequency = self.calculate_max_frequency()
 
         # Add style for the empty state message
         self.setStyleSheet("""
@@ -180,8 +181,8 @@ class CashFlowNetwork(QMainWindow):
         # Add frequency slider
         frequency_label = QLabel("Minimum Transactions:")
         self.frequency_slider = QSlider(Qt.Orientation.Horizontal)
-        self.frequency_slider.setRange(1, 200)
-        self.frequency_slider.setValue(10)
+        self.frequency_slider.setRange(1, self.max_frequency)
+        self.frequency_slider.setValue((int(self.max_frequency/3)))
         self.frequency_slider.valueChanged.connect(self.update_graph)
         self.frequency_value_label = QLabel(str(self.frequency_slider.value()))
         self.frequency_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -201,6 +202,12 @@ class CashFlowNetwork(QMainWindow):
             self.stacked_widget.setCurrentIndex(1)  # Show empty state
         
         
+    def calculate_max_frequency(self):
+        """Calculate the maximum frequency of transactions for any entity"""
+        entity_frequencies = self.backup_data['Entity'].value_counts()
+        if len(entity_frequencies) > 0:
+            return int(entity_frequencies.max())
+        return 1  # Return 1 as minimum if no data
     
     def has_sufficient_data(self):
         """Check if there's enough data to create a meaningful network graph."""

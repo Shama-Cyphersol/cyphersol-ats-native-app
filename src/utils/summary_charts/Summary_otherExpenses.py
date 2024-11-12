@@ -136,7 +136,7 @@ class SummaryOtherExpenses(QMainWindow):
 
         # Create the web view
         self.web = QWebEngineView()
-        self.web.setFixedHeight(1000)
+        self.web.setFixedHeight(1600)
         layout.addWidget(self.web)
         
         # Initialize the dashboard with the first month

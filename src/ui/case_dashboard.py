@@ -42,7 +42,6 @@ class CaseDashboard(QWidget):
         super().__init__()
         self.case_id = case_id
         self.case = load_case_data(case_id)
-        print("self.case",self.case)
         self.case_result = load_result(self.case_id)
         self.buttons = {}  # Store buttons for management
         self.section_widgets = {}  # Store section widgets
@@ -631,8 +630,6 @@ class PaginatedTableWidget(QWidget):
         if actual_row < len(self.all_data):
             if column == 1:
                 name = self.all_data[actual_row]["Name"]
-                print(f"Clicked on name: {name}")
-                print("row",row)
                 cash_flow_network = IndividualDashboard(case_id=self.case_id,name=name,row_id=row)
                 # Create a new dialog and set the CashFlowNetwork widget as its central widget
                 self.new_window = QDialog(self)
@@ -687,7 +684,6 @@ class EntityDistributionChart(QWidget):
 
         # Process transactions data for JavaScript
         transactions_by_entity = {}
-        print("all_transactions",self.all_transactions.head())
         for entity in table_data.keys():
             # Filter transactions for this entity
             entity_transactions = self.all_transactions[
@@ -997,9 +993,9 @@ class EntityDistributionChart(QWidget):
                     
                     const transactionTableHtml = `
                         <div class="table-container">
-                            <div class="table-header-container">
-                                <div class="table-header">Transactions for ${entity}</div>
                                 <button class="close-button" onclick="closeTransactionTable()">Close</button>
+                            <div class="table-header-container">
+                                <div class="table-header">Transactions for ${{entity}}</div>
                             </div>
                             <table class="transaction-table">
                                 <thead>

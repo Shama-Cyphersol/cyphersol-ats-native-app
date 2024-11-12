@@ -3,7 +3,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 import json
 
-class IncomeSummaryDashboard(QMainWindow):
+class bIncomeSummaryDashboard(QMainWindow):
     def __init__(self, data):
         super().__init__()
         self.setWindowTitle("Income Summary Dashboard")

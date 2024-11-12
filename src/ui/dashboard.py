@@ -182,6 +182,7 @@ class DashboardTab(QWidget):
             font-size: 18px;
             color: #7f8c8d;
         """)
+
         chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_shadow(chart)
         return chart
