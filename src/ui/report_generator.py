@@ -1,16 +1,25 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QDateEdit, QCheckBox, QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
+from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
 from apps.report.controllers import *
 import sys
+from utils.CA_Statement_Analyzer import CABankStatement
+from utils.json_logic import *
+import random
+import string
+from .case_dashboard import CaseDashboard
+# from utils.pdf_processor import PDFProcessor
+# from utils.ner_model import pdf_to_name
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
     def __init__(self):
         super().__init__()
         self.selected_files = []  # Store selected files
+        self.ca_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+        self.tab_widget = QWidget()
         self.init_ui()
 
     def init_ui(self):
@@ -40,7 +49,10 @@ class ReportGeneratorTab(QWidget):
         case_id_layout = QVBoxLayout()
         case_id_label = self.create_label("Case ID:")
         case_id_layout.addWidget(case_id_label)
+        
         self.case_id = QLineEdit()
+        self.case_id.setText(str(self.ca_id))
+        self.case_id.setReadOnly(True)
         self.case_id.setPlaceholderText("Auto-generate ID")
         self.case_id.setStyleSheet("""
             QLineEdit {
@@ -85,6 +97,8 @@ class ReportGeneratorTab(QWidget):
                 background-color: #f5f6fa;
             }
         """)
+        self.file_display.mousePressEvent = lambda e: self.browse_files()
+
         # Browse button
         self.browse_button = QPushButton("Browse")
         self.browse_button.setStyleSheet("""
@@ -176,6 +190,7 @@ class ReportGeneratorTab(QWidget):
                 background-color: white;
             }
         """)
+        self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
         self.end_date.setDate(QDate.currentDate())
         self.end_date.setStyleSheet("""
             QDateEdit {
@@ -236,6 +251,8 @@ class ReportGeneratorTab(QWidget):
         """)
 
         # Set the layout and window title
+        main_layout.addWidget(self.tab_widget)
+
         self.setLayout(main_layout)
         self.setWindowTitle('Styled PyQt6 App')
 
@@ -246,79 +263,106 @@ class ReportGeneratorTab(QWidget):
         return section_title
     
     def create_recent_reports_table(self):
-        try:
-           # Fetch recent reports
-           recent_reports = get_recent_reports()
-
-        # Ensure we have a valid list of reports, otherwise initialize an empty list
-           if recent_reports is None:
-            recent_reports = []
-    
-        except Exception as e:
-        # Log the exception (you can use logging or print)
-            print(f"Error fetching recent reports: {e}")
-            recent_reports = []
             
         # Create the table widget with 3 columns
-        table = QTableWidget()
-        table.setColumnCount(4)
-        
-        table.setHorizontalHeaderLabels(["Select", "Case ID", "Date", "Report Name"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border-radius: 10px;
-            }
-            QHeaderView::section {
-                background-color: #3498db;
-                color: white;
-                font-weight: bold;
-                border: none;
-                padding: 8px;
-            }
-            QCheckBox {
-                margin-left: 5px;
-            }
-            QTableWidget::setItem {
-                text-align: center;  /* Center text in cells */
-            }
-        """)
-        table.setRowCount(len(recent_reports))
+        if not hasattr(self, 'table'):
+
+            self.table = QTableWidget()
+            self.table.setColumnCount(4)
+            self.table.verticalHeader().setVisible(False)
+
+            self.table.setHorizontalHeaderLabels(["Sr no.","Date","Case ID", "Report Name"])
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            self.table.setStyleSheet("""
+                QTableWidget {
+                    background-color: white;
+                    border-radius: 10px;
+                }
+                QHeaderView::section {
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    border: none;
+                    padding: 8px;
+                }
+                QCheckBox {
+                    margin-left: 5px;
+                }
+                QTableWidget::setItem {
+                    text-align: center;  /* Center text in cells */
+                }
+                QTableWidget::item {
+                    color: black;
+                    padding: 5px;
+                }
+            """)
+            self.table.cellClicked.connect(self.case_id_clicked)
+
+        recent_reports = load_all_case_data()
+        self.table.setRowCount(len(recent_reports))
         # Populate the table with data
-        recent_reports = get_recent_reports()
         for row, report in enumerate(recent_reports):
-         # Add a checkbox in the first column
-            checkbox_widget = QWidget()
-            checkbox = QCheckBox()
-            checkbox_layout = QHBoxLayout()
-            checkbox_layout.addWidget(checkbox)
-            checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Align checkbox to center
-            
-            # Remove any extra spacing in the layout
-            checkbox_layout.setContentsMargins(0, 0, 0, 0)
-            checkbox_layout.setSpacing(0)
-            
-            checkbox_widget.setLayout(checkbox_layout)
 
-            table.setCellWidget(row, 0, checkbox_widget)  # Set the checkbox in the first column
+            # Serial Number column
+            serial_number_item = QTableWidgetItem(str(row + 1))
+            serial_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            serial_number_item.setFlags(serial_number_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 0, serial_number_item)
 
-        # Add the report data (Case ID, Date, and Report Name)
-            case_id_item = QTableWidgetItem(str(report['id']))
-            case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            table.setItem(row, 1, case_id_item)
-
+            # Date column
             date_item = QTableWidgetItem(report['date'])
             date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            table.setItem(row, 2, date_item)
+            date_item.setFlags(date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 1, date_item)
 
-            report_name_item = QTableWidgetItem(report['name'])
+            # Case ID column
+            case_id_item = QTableWidgetItem(str(report['case_id']))
+            case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 2, case_id_item)
+
+            # Report Name column
+            report_name_item = QTableWidgetItem(report['report_name'])
             report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            table.setItem(row, 3, report_name_item)
+            report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 3, report_name_item)
 
-        return table
+
+        return self.table
     
-    def browse_files(self):
+    
+    def case_id_clicked(self, row, column):
+        # if column == 2:
+        
+        case_id = self.table.item(row, 2).text() # getting 2nd col as it contains the case_id
+        print("Case ID clicked: ", case_id)
+        cash_flow_network = CaseDashboard(case_id=case_id)
+            # Create a new dialog and set the CashFlowNetwork widget as its central widget
+        self.new_window = QDialog(self)
+        self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
+        self.new_window.setModal(False)  # Set the dialog as non-modal
+        self.new_window.showMaximized()
+        self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
+        self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
+        self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
+
+        # Set the minimum size of the dialog
+        self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
+
+        # Create a layout for the dialog and add the CashFlowNetwork widget
+        layout = QVBoxLayout()
+        layout.addWidget(cash_flow_network)
+        self.new_window.setLayout(layout)
+
+        # Show the new window
+        self.new_window.show()
+
+    def browse_files(self,event=None):
+        if isinstance(event, bool):  # If called from button click
+            pass
+        elif event is not None:  # If called from mouse click
+            event.accept()
+
         files, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Bank Statements",
@@ -333,27 +377,194 @@ class ReportGeneratorTab(QWidget):
 
     def submit_form(self):
         # Get the form data
-        case_id = self.case_id.text()
-        files = self.selected_files  # List of selected file paths
+        CA_ID = self.ca_id
+        pdf_paths = self.selected_files  # List of selected file paths
         password = self.password.text()
+        print("password",password)
+
+        password_provided = False
+        start_date_provided = False
+        end_date_provided = False
+
+        if password == "": 
+            password = [""]
+        else:
+            password_provided = True
+            password = [password]
+
         start_date = self.start_date.date().toString("dd-MM-yyyy")
         end_date = self.end_date.date().toString("dd-MM-yyyy")
 
-        # Print the form data in the terminal
-        print(f"Case ID: {case_id}")
-        print(f"Selected Files: {files}")
-        print(f"Password: {password}")
-        print(f"Start Date: {start_date}")
-        print(f"End Date: {end_date}")
+        # check if start_date is same as today
+        if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            start_date = [""]
+        else:
+            start_date_provided = True
+            start_date = [start_date]
 
+        if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            end_date = [""]
+        else:
+            end_date_provided = True
+            end_date = [end_date]
+        
+
+        bank_names = []
+        # for each path in pdf_paths, assign a unique name as A,B,C etc
+        for i in range(len(pdf_paths)):
+            bank_names.append(chr(65 + i))
+            if password_provided == False:
+                password.append("")
+            if start_date_provided == False:
+                start_date.append("")
+            if end_date_provided == False:
+                end_date.append("")
+
+        print ("CA_ID",CA_ID)
+        print ("pdf_paths",pdf_paths)
+        print ("passwords",password)
+        print ("start_date",start_date)
+        print ("end_date",end_date)
+        print ("bank_names",bank_names)
+
+
+        progress_data = {
+            'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
+            'current_progress': 10,
+            'total_progress': 100
+        }
+
+        print("progress_data",progress_data)
+
+        ner_results={
+                    "Name": [],
+                    "Acc Number": []
+                }
+
+        try:
+            for pdf in pdf_paths:
+                result = pdf_to_name(pdf)
+                for entity in result:
+                    if entity["label"] == "PER":
+                        ner_results["Name"].append(entity["text"])
+                    elif entity["label"] == "ACC_NO":
+                        ner_results["Acc Number"].append(entity["text"])
+            
+            print("NER Results final: ",ner_results)
+            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
+            # res = save_ner_results(CA_ID, processed_results)
+            # ner_results= res
+        except Exception as e:
+            print("Error processing PDFs: ", e)
+            pass
+        converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
+        result = converter.start_extraction()
+
+        # single_df = result["single_df"]
+        # cummalative_df = result["cummalative_df"]
+
+        # # Saving all df as Excel
+        # for key,value in single_df["A0"]["data"].items():
+        #     try:
+        #         value.to_excel("src/data/"+key+".xlsx")
+        #     except:
+        #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
+        #         pass
+
+        # Check if NER model has extracted any entities
+        
+        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
+
+        # ner_names = {
+        #     "Name": [],
+        #     "Acc Number": []
+        # }
+
+        # if ner_results != {}:
+        #     for doc in ner_results["documents"]:
+        #         got_name = False
+        #         got_acc_no = False
+        #         for ent in doc["entities"]:
+        #             if ent["label"] == "PER" and not got_name:
+        #                 ner_names["Name"].append(ent["text"])
+        #                 got_name = True
+        #             elif ent["label"] == "ACC NO" and not got_acc_no:
+        #                 ner_names["Acc Number"].append(ent["text"])
+        #                 got_acc_no = True
+                
+        #         if not got_name:
+        #             ner_names["Name"].append(None)
+        #         if not got_acc_no:
+        #             ner_names["Acc Number"].append(None)
+
+        print("names_from_cummalative_data",names_from_cummalative_data)
+        print("ner_results",ner_results)
+
+        # check ner_names and names_from_cummalative_data and for any null values in ner_names, replace with names_from_cummalative_data
+        # Combining results of sanchay and manish logic for names, acc no
+        for i in range(len(ner_results["Name"])):
+            if ner_results["Name"][i] == None:
+                ner_results["Name"][i] = names_from_cummalative_data["Name"][i]
+            if ner_results["Acc Number"][i] == None:
+                ner_results["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
+
+        
+        # print("ner_names",ner_names)
+
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,names_from_cummalative_data)
+        save_result(CA_ID,result)
+        
+        print("Successfully saved case data and result")
+        self.create_recent_reports_table()
+
+    def pdf_processor(self,pdf_paths):
+        
+        print("\n1. Initializing PDF Processor...")
+        processor = PDFProcessor(model_path="src/models/output_ner_model")
+        processed_results = []
+        entities_data = {"Name": [], "Acc Number": []}
+        # Process each PDF file
+        for pdf_path in pdf_paths:
+            print(f"\n2. Processing file: {pdf_path}")
+            result = processor.process_single_pdf(pdf_path)
+            processed_results.append(result)
+            print(f"3. Processing result: {result}")
+            
+            if not result.error:
+                print("4. Extracted entities:")
+                for entity in result.entities:
+                    print(f"   - {entity.label}: {entity.text}")
+                    # Changed PER to PERSON for consistency
+                    if entity.label == "PER":  # or entity.label == "PERSON":
+                        if entity.text not in entities_data["Name"]:
+                            entities_data["Name"].append(entity.text)
+                            print(f"     Added person: {entity.text}")
+                    elif entity.label == "ACC NO":  # or entity.label == "ACCOUNT_NUMBER":
+                        if entity.text not in entities_data["Acc Number"]:
+                            entities_data["Acc Number"].append(entity.text)
+                            print(f"     Added account: {entity.text}")
+            else:
+                print(f"   Error processing file: {result.error}")
+
+        # If no entities found, add default values
+        if not entities_data["Name"]:
+            entities_data["Name"] = ["Unknown"]
+        if not entities_data["Acc Number"]:
+            entities_data["Acc Number"] = ["Not Found"]
+
+        print("\n5. Final extracted entities:")
+        print(f"   Names: {entities_data['Name']}")
+        print(f"   Accounts: {entities_data['Acc Number']}")
+
+        return processed_results
+        
     def create_label(self, text):
         label = QLabel(text)
         label.setFont(QFont("Arial", 14))
         label.setStyleSheet("""
             QLabel {
                 color: #34495e;
-                font-size: 14px;
-                padding: 0px;
+                  padding: 0px;
                 margin: 0px;
                 border: none;
             }
@@ -366,263 +577,3 @@ class ReportGeneratorTab(QWidget):
         layout.addWidget(label)
         layout.addWidget(widget)
         return layout
-
-def main():
-    app = QApplication(sys.argv)
-    window = ReportsApp()
-    window.resize(600, 400)  # Resize the window to accommodate the form
-    window.show()
-    sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()
-
-
-
-# File Opener
-class FileOpenerTab(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Title
-        title = QLabel("File Opener")
-        title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
-        layout.addWidget(title)
-
-        # File selection area
-        file_frame = QFrame()
-        file_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 20px;
-            }
-        """)
-        file_layout = QHBoxLayout(file_frame)
-
-        self.file_path_input = QLineEdit()
-        self.file_path_input.setPlaceholderText("Select an Excel file...")
-        self.file_path_input.setStyleSheet("""
-            QLineEdit {
-                padding: 12px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-            }
-        """)
-        file_layout.addWidget(self.file_path_input)
-
-        self.open_button = QPushButton("Browse")
-        self.open_button.clicked.connect(self.open_file)
-        self.open_button.setStyleSheet("""
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                padding: 12px 20px;
-                font-size: 16px;
-                border: none;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-        file_layout.addWidget(self.open_button)
-
-        layout.addWidget(file_frame)
-
-        # Table for displaying Excel data
-        table_frame = QFrame()
-        table_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 20px;
-            }
-        """)
-        table_layout = QVBoxLayout(table_frame)
-
-        table_label = QLabel("Excel Content")
-        table_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        table_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
-        table_layout.addWidget(table_label)
-
-        self.table = QTableWidget()
-        self.table.setStyleSheet("""
-            QTableWidget {
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-            }
-            QHeaderView::section {
-                background-color: #3498db;
-                color: white;
-                font-weight: bold;
-                border: none;
-                padding: 8px;
-            }
-            QTableWidget::item {
-                color: black;
-                font-size: 14px;
-            }
-        """)
-        table_layout.addWidget(self.table)
-
-        layout.addWidget(table_frame)
-        self.setLayout(layout)
-
-    def open_file(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open Excel File", "", "Excel Files (*.xlsx *.xls)")
-        if file_name:
-            self.file_path_input.setText(file_name)
-            df = read_excel(file_name)
-            self.display_data(df)
-
-    def display_data(self, df):
-        self.table.setRowCount(df.shape[0])
-        self.table.setColumnCount(df.shape[1])
-        self.table.setHorizontalHeaderLabels(df.columns)
-
-        for row in range(df.shape[0]):
-            for col in range(df.shape[1]):
-                item = QTableWidgetItem(str(df.iloc[row, col]))
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.table.setItem(row, col, item)
-
-        self.table.resizeColumnsToContents()
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
-
-class SettingsTab(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        # Window title
-        self.setWindowTitle("Automatic Activation")
-
-        # Fonts
-        title_font = QFont("Arial", 12)
-        title_font.setBold(True)
-
-        label_font = QFont("Arial", 10)
-
-        # Main layout
-        main_layout = QVBoxLayout()
-
-        # Title label
-        title_label = QLabel("Please copy/paste your license information from the registration message:")
-        title_label.setFont(label_font)
-        title_label.setWordWrap(True)
-
-        # Form layout
-        form_layout = QFormLayout()
-        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # License Name
-        license_name_label = QLabel("License Name:")
-        license_name_label.setFont(label_font)
-        self.license_name_input = QLineEdit()
-
-        # License Key
-        license_key_label = QLabel("License Key:")
-        license_key_label.setFont(label_font)
-        self.license_key_input = QLineEdit()
-
-        # Add fields to form layout
-        form_layout.addRow(license_name_label, self.license_name_input)
-        form_layout.addRow(license_key_label, self.license_key_input)
-
-        # Activate Button
-        activate_button = QPushButton("Activate")
-        activate_button.setFont(title_font)
-        activate_button.setStyleSheet("background-color: #0078D7; color: white; padding: 8px;")
-
-        # Align button in the center
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(activate_button)
-        button_layout.addStretch()
-
-        # Add elements to the main layout
-        main_layout.addWidget(title_label)
-        main_layout.addLayout(form_layout)
-        main_layout.addLayout(button_layout)
-
-        # Set the layout to the window
-        self.setLayout(main_layout)
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        layout = QVBoxLayout()
-        layout.setSpacing(10)
-        layout.setContentsMargins(20, 20, 20, 20)
-
-        # Title
-        title_label = QLabel("Automatic activation")
-        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        layout.addWidget(title_label)
-
-        # Instructions
-        instructions_label = QLabel("Please copy/paste your license information from the registration\nmessage:")
-        instructions_label.setFont(QFont("Arial", 10))
-        layout.addWidget(instructions_label)
-
-        # License Name
-        name_layout = QHBoxLayout()
-        name_label = QLabel("License Name:")
-        name_label.setFont(QFont("Arial", 10))
-        name_layout.addWidget(name_label)
-        self.name_input = QLineEdit()
-        self.name_input.setFont(QFont("Arial", 10))
-        self.name_input.setText("Irena Davis")
-        name_layout.addWidget(self.name_input)
-        layout.addLayout(name_layout)
-
-        # License Key
-        key_layout = QHBoxLayout()
-        key_label = QLabel("License Key:")
-        key_label.setFont(QFont("Arial", 10))
-        key_layout.addWidget(key_label)
-        self.key_input = QLineEdit()
-        self.key_input.setFont(QFont("Arial", 10))
-        self.key_input.setText("11111-22222-33333-44444-55555-66666")
-        key_layout.addWidget(self.key_input)
-        layout.addLayout(key_layout)
-
-        # Add stretch to push everything to the top
-        layout.addStretch()
-
-        # Divider
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(divider)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        help_button = QPushButton("Help")
-        back_button = QPushButton("< Back")
-        next_button = QPushButton("Next >")
-        next_button.setStyleSheet("background-color: #007bff; color: white;")
-        cancel_button = QPushButton("Cancel")
-
-        button_layout.addWidget(help_button)
-        button_layout.addStretch()
-        button_layout.addWidget(back_button)
-        button_layout.addWidget(next_button)
-        button_layout.addWidget(cancel_button)
-
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-        self.setWindowTitle('License Activation')
-        self.setGeometry(100, 100, 400, 250)

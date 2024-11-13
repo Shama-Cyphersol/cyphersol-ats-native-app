@@ -7,6 +7,8 @@ from .file_opener import FileOpenerTab
 from .report_generator import ReportGeneratorTab
 from .cash_flow import CashFlowNetwork
 from .settings import SettingsTab
+import pandas as pd
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -44,6 +46,12 @@ class MainWindow(QMainWindow):
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
+        # Show the window maximized
+        self.showMaximized()
+
+        # Set window flags to allow minimizing and closing
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint | Qt.WindowType.WindowCloseButtonHint)
+
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -85,10 +93,9 @@ class MainWindow(QMainWindow):
         self.nav_buttons = []
         button_icons = [
             ("Dashboard", "dashboard.png"),
-            ("File Opener", "file_opener.png"),
             ("Generate Report", "generate_report.png"),
             ("Settings", "settings.png"),
-            ("Cash Flow Network", "cash-flow.png"),
+            # ("Cash Flow Network", "cash-flow.png"),
         ]
 
         for text, icon in button_icons:
@@ -113,10 +120,9 @@ class MainWindow(QMainWindow):
 
         self.content_area = QStackedWidget()
         self.content_area.addWidget(DashboardTab())
-        self.content_area.addWidget(FileOpenerTab())
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(SettingsTab())
-        self.content_area.addWidget(CashFlowNetwork())
+        # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
         content_layout.addWidget(self.content_area)
         main_layout.addWidget(content_widget)
