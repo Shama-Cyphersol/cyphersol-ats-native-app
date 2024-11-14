@@ -92,6 +92,24 @@
         "date": "07-11-2024"
     },
     {
+        "case_id": "CA_ID_HK43ULXNYZURYEDF",
+        "file_names": [
+            "/Users/rajaa/Downloads/Axis bank AC statement.pdf"
+        ],
+        "start_date": "01-04-2022",
+        "end_date": "31-03-2023",
+        "report_name": "Report_CA_ID_HK43ULXNYZURYEDF",
+        "individual_names": {
+            "Name": [
+                "MITA BISWAS"
+            ],
+            "Acc Number": [
+                "916010029755238"
+            ]
+        },
+        "date": "12-11-2024"
+    },
+    {
         "case_id": "CA_ID_JKZBX5HW7L7BYRNP",
         "file_names": [
             "C:/Users/qures/Downloads/aiyaz jupiter.pdf"

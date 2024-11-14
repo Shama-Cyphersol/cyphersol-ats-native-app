@@ -527,6 +527,10 @@ class ATSFunctions:
         #name_table
         name_acc_df = self.get_unique_name_acc(single_person_output)
 
+        del_folder_path = os.path.join(BASE_DIR, "del")
+        if not os.path.exists(del_folder_path):
+            os.makedirs(del_folder_path)
+
         # save the process_df to excel file in del folder of current directory make sure to include base dir
         process_df.to_excel(BASE_DIR + "/del/process_df.xlsx", index=False)
 
