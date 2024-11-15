@@ -180,3 +180,6 @@ gliner_medium-v2.1/
 /src/models/*
 /src/utils/local_model/*
 venv.zip
+saved_pdf
+alembic.ini
+
