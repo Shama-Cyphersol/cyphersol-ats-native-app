@@ -1,6 +1,9 @@
 # core/db.py
 from sqlalchemy import Column, Integer, String
-from core.db import Base
+# from src.core.db import Base  # Import your Base class from db.py
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
 
 class User(Base):
     __tablename__ = 'users'
