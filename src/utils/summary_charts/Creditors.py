@@ -281,5 +281,5 @@ class Creditors(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setMinimumHeight(600)  # Set minimum height for the table
+        web_view.setMinimumHeight(1000)  # Set minimum height for the table
         layout.addWidget(web_view)

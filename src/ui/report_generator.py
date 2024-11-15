@@ -509,9 +509,9 @@ class ReportGeneratorTab(QWidget):
                 ner_results["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
 
         
-        # print("ner_names",ner_names)
+        print("ner_names last",ner_results)
 
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,names_from_cummalative_data)
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
         save_result(CA_ID,result)
         
         print("Successfully saved case data and result")

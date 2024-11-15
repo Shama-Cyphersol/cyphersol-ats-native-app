@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 from typing import Dict, List, Any
 import re
+import os
 
 class BankStatementExtractor:
     def __init__(self, model_path: str):  # Fixed constructor name
@@ -91,6 +92,7 @@ def test_single_pdf(model_path: str, pdf_path: str) -> None:
     extractor = BankStatementExtractor(model_path)
     results = extractor.process_statement(pdf_path)
     results = results["entities"]
+    print("results from ner_model.py ", results)
     # Save results
     # output_file = Path(pdf_path).stem + "_extraction.json"
     # with open(output_file, 'w', encoding='utf-8') as f:
@@ -100,17 +102,17 @@ def test_single_pdf(model_path: str, pdf_path: str) -> None:
     return results
 
 def pdf_to_name(pdf_path: str):
-    model_path = "trained_model"
+    model_path = "src/utils/trained_model"
     print("pdf_path ", pdf_path)
     result = test_single_pdf(model_path, pdf_path)
-
     return result
-
-
 
 def main():
     # Paths
-    model_path = "trained_model"
+    # current_dir = os.getcwd()
+    # print("curr", current_dir)
+    # model_path = os.path.join(current_dir, "trained_model")
+    model_path = "src/utils/trained_model"
     pdf_path= "aiya.pdf"
     test_single_pdf(model_path, pdf_path)
 
