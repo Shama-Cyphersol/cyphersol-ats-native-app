@@ -60,71 +60,15 @@
         "date": "06-11-2024"
     },
     {
-        "case_id": "CA_ID_WF4RNVIEQOMTV7U3",
+        "case_id": "CA_ID_4G3I9VNNUK6GV926",
         "file_names": [
-            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
+            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
+            "C:/Users/qures/Downloads/hdfc poojan.pdf"
         ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_CA_ID_WF4RNVIEQOMTV7U3",
-        "individual_names": {
-            "Name": [],
-            "Acc Number": []
-        },
-        "date": "06-11-2024"
-    },
-    {
-        "case_id": "CA_ID_DEEV9AKX2RIEP4AD",
-        "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf"
-        ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_CA_ID_DEEV9AKX2RIEP4AD",
-        "individual_names": {
-            "Name": [
-                "AIYAZ ANWAR QURES-QURESHI.AIYAZ12"
-            ],
-            "Acc Number": [
-                "50100575475699"
-            ]
-        },
-        "date": "07-11-2024"
-    },
-    {
-        "case_id": "CA_ID_HK43ULXNYZURYEDF",
-        "file_names": [
-            "/Users/rajaa/Downloads/Axis bank AC statement.pdf"
-        ],
-        "start_date": "01-04-2022",
-        "end_date": "31-03-2023",
-        "report_name": "Report_CA_ID_HK43ULXNYZURYEDF",
-        "individual_names": {
-            "Name": [
-                "MITA BISWAS"
-            ],
-            "Acc Number": [
-                "916010029755238"
-            ]
-        },
-        "date": "12-11-2024"
-    },
-    {
-        "case_id": "CA_ID_JKZBX5HW7L7BYRNP",
-        "file_names": [
-            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
-        ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_CA_ID_JKZBX5HW7L7BYRNP",
-        "individual_names": {
-            "Name": [
-                "AJ"
-            ],
-            "Acc Number": [
-                "77770106311893"
-            ]
-        },
+        "start_date": "-",
+        "end_date": "-",
+        "report_name": "Report_CA_ID_4G3I9VNNUK6GV926",
+        "individual_names": {"Name": ["AIYAZ ANWAR QURESHI", "POOJAN MANISH VIG"], "Acc Number": ["50100575475699", "50100575475700"]},
         "date": "14-11-2024"
     }
 ]

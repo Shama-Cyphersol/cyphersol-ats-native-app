@@ -3,9 +3,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt,QSize
 from .dashboard import DashboardTab
-from .file_opener import FileOpenerTab
 from .report_generator import ReportGeneratorTab
-from .cash_flow import CashFlowNetwork
 from .settings import SettingsTab
 import pandas as pd
 

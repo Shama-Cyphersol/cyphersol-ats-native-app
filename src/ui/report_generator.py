@@ -10,8 +10,8 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
-# from utils.pdf_processor import PDFProcessor
-# from utils.ner_model import pdf_to_name
+from utils.pdf_processor import PDFProcessor
+from utils.ner_model import pdf_to_name
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -475,42 +475,7 @@ class ReportGeneratorTab(QWidget):
         
         names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        # ner_names = {
-        #     "Name": [],
-        #     "Acc Number": []
-        # }
-
-        # if ner_results != {}:
-        #     for doc in ner_results["documents"]:
-        #         got_name = False
-        #         got_acc_no = False
-        #         for ent in doc["entities"]:
-        #             if ent["label"] == "PER" and not got_name:
-        #                 ner_names["Name"].append(ent["text"])
-        #                 got_name = True
-        #             elif ent["label"] == "ACC NO" and not got_acc_no:
-        #                 ner_names["Acc Number"].append(ent["text"])
-        #                 got_acc_no = True
-                
-        #         if not got_name:
-        #             ner_names["Name"].append(None)
-        #         if not got_acc_no:
-        #             ner_names["Acc Number"].append(None)
-
-        print("names_from_cummalative_data",names_from_cummalative_data)
-        print("ner_results",ner_results)
-
-        # check ner_names and names_from_cummalative_data and for any null values in ner_names, replace with names_from_cummalative_data
-        # Combining results of sanchay and manish logic for names, acc no
-        for i in range(len(ner_results["Name"])):
-            if ner_results["Name"][i] == None:
-                ner_results["Name"][i] = names_from_cummalative_data["Name"][i]
-            if ner_results["Acc Number"][i] == None:
-                ner_results["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
-
-        
         print("ner_names last",ner_results)
-
         save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
         save_result(CA_ID,result)
         
