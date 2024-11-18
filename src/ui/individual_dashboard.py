@@ -19,7 +19,7 @@ from utils.summary_charts.Cash_Deposit import CashDeposit
 from utils.summary_charts.Reversal import Reversal
 from utils.summary_charts.Suspense_debit import SuspenseDebit
 from utils.summary_charts.Suspense_Credit import SuspenseCredit
-# from utils.summary_charts.Summary import SummaryWindow
+from utils.summary_charts.Summary import SummaryWindow
 from utils.json_logic import load_result
 # from utils.summary_charts.Investment import InvestmentChart
 # from utils.summary_charts.EMI import EMITransactionChart
