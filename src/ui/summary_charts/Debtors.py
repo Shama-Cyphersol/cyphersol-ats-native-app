@@ -3,6 +3,8 @@ import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QFile, QTextStream
+from PyQt6.QtWidgets import QLabel
+from PyQt6.QtCore import Qt
 
 class DebtorsChart(QMainWindow):
     def __init__(self,data):
@@ -13,11 +15,18 @@ class DebtorsChart(QMainWindow):
         self.browser = QWebEngineView()
         data = data.sort_values(by="Value Date")
         self.data = data
-        # # Prepare data
-        # dates = ["04-03-2024", "15-07-2023", "19-03-2024", "26-02-2024", "19-04-2023"]
-        # credits = [79873.00, 100000.00, 18000.00, 50000.00, 5000.00]
-        # balances = [1079401.47, 720361.94, -716597.43, 1039334.47, 249575.78]
-        # Extract data from the DataFrame
+
+        layout = QVBoxLayout()
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+
+        # Handle empty DataFrame
+        if data.empty:
+            self.handle_empty_data(layout)
+            return
+        
         dates = data["Value Date"].dt.strftime("%d-%m-%Y").tolist()
         credits = data["Credit"].tolist() if "Credit" in data.columns else []
         balances = data["Balance"].tolist()
@@ -28,17 +37,28 @@ class DebtorsChart(QMainWindow):
         # Load the HTML content into the QWebEngineView
         self.browser.setHtml(html_content)
         self.browser.setFixedHeight(600)
-
-
-        layout = QVBoxLayout()
+        
         layout.addWidget(self.browser)
 
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
         self.create_data_table_debtor(layout)
-
+    
+    def handle_empty_data(self, layout):
+        """Handle case when DataFrame is empty"""
+        empty_message = QLabel("No creditor data available to display")
+        empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_message.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                color: #666;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 5px;
+                margin: 20px;
+            }
+        """)
+        layout.addWidget(empty_message)
+    
     def create_html(self, dates, credits, balances):
         # Create the HTML content with Plotly.js
         html = f"""

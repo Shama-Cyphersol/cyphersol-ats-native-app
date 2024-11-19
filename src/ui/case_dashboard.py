@@ -15,27 +15,36 @@ class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
         self.setCheckable(True)
-        self.setFixedHeight(40)
+        self.setFixedHeight(50)
         self.setStyleSheet("""
             QPushButton {
-                border: none;
+                background-color: #ffffff;
+                color: #252525;
+                font-weight: 400;
+                border: none;  
+                padding: 12px 20px;
                 text-align: left;
-                padding: 8px 15px;
-                border-radius: 5px;
+                font-size: 18px;
                 margin: 2px 10px;
+                outline: none;
+                border-left: 3px solid transparent;
+                border-radius: 5px;
+     
+            }
+            QPushButton:hover {
+                background-color: #f8f9fa;
+                color: #3498db;
+
             }
             QPushButton:checked {
                 background-color: #e0e7ff;
-                color: #4338ca;
-            }
-            QPushButton:hover:!checked {
-                background-color: #f3f4f6;
+                color: #3498db;
+                border-left: 3px solid #3498db;
             }
         """)
 
-
 class CaseDashboard(QWidget):
-    def __init__(self,case_id):
+    def __init__(self, case_id):
         super().__init__()
         self.case_id = case_id
         self.case = load_case_data(case_id)
@@ -43,15 +52,13 @@ class CaseDashboard(QWidget):
         self.buttons = {}  # Store buttons for management
         self.section_widgets = {}  # Store section widgets
         self.current_section_label = None  # Store current section label
-
         self.init_ui()
 
     def init_ui(self):
         self.showFullScreen()  # Make window fullscreen
 
-         # Create main widget and layout
+        # Create main widget and layout
         main_widget = QWidget()
-        # self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -69,9 +76,9 @@ class CaseDashboard(QWidget):
         splitter.setStretchFactor(splitter.indexOf(content_area), 1)
         splitter.setStretchFactor(0, 0)  # Sidebar gets minimal stretch
         splitter.setStretchFactor(1, 1)  # Content area stretches with the window
-        splitter.setSizes([250, 1150])  # Initial sizes
+        splitter.setSizes([350, 1150])  # Initial sizes
             
-        main_layout.addWidget(splitter,stretch=1)
+        main_layout.addWidget(splitter, stretch=1)
 
         # Set default section to open
         self.showSection("Fund Flow Network Graph", create_network_graph(result=self.case_result))
@@ -87,32 +94,39 @@ class CaseDashboard(QWidget):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(5)
         
+        # Sidebar background and border style
+        sidebar.setStyleSheet("""
+            background-color: white;  
+        """)
+        
         # Header
         header = QWidget()
         header.setStyleSheet("background-color: #f8fafc;")
         header_layout = QVBoxLayout(header)
-        
+
         title = QLabel("Case Dashboard")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
         subtitle = QLabel(f"Case ID: {self.case_id}")
-        subtitle.setStyleSheet("color: #64748b;padding:4px 0;")
-        
+        subtitle.setStyleSheet("color: #64748b; padding: 4px 0; ")
+
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
+
         sidebar_layout.addWidget(header)
+
+        # Add significant padding between the header and the categories
+        sidebar_layout.addSpacing(20)  # Adjust the value (e.g., 20 pixels) as needed
         
-       
         self.categories = {
             "Fund Flow Network Graph": create_network_graph(self.case_result),
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
-            # "Link Analysis": create_link_analysis(self.case_result),
             "Link Analysis": LinkAnalysisWidget(self.case_result),
             "Bi-Directional Analysis": create_bidirectional_analysis(self.case_result),
             "FIFO LIFO": create_fifo_lifo_analysis(self.case_result),
         }
     
-    # Create buttons for each category
+        # Create buttons for each category
         for category, widget_class in self.categories.items():
             # Create button for each category
             btn = SidebarButton(category)
@@ -122,6 +136,7 @@ class CaseDashboard(QWidget):
 
         sidebar_layout.addStretch()
         return sidebar
+
    
     def createContentArea(self):
         content_widget = QWidget()
@@ -134,10 +149,9 @@ class CaseDashboard(QWidget):
         header_layout = QHBoxLayout(header)
         
         self.current_section_label = QLabel("Bank Transactions")
-        self.current_section_label.setStyleSheet("font-size: 24px; font-weight: bold; color:#1e293b;opacity:0.8;padding: 5px 0;")
+        self.current_section_label.setStyleSheet("font-size: 20px; font-weight: bold; color:#1e293b;opacity:0.8;padding:14px 0;")
         self.current_section_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
         header_layout.addWidget(self.current_section_label)
-        
         content_layout.addWidget(header)
         
         # Scrollable content area
@@ -183,8 +197,8 @@ class CaseDashboard(QWidget):
 
         self.content_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout = QVBoxLayout(self.content_container)
-        self.content_layout.setContentsMargins(20, 20, 20, 20)
-        self.content_layout.setSpacing(20)
+        self.content_layout.setContentsMargins(30, 30, 30, 30)
+        self.content_layout.setSpacing(30)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         scroll.setWidget(self.content_container)
@@ -197,7 +211,7 @@ class CaseDashboard(QWidget):
     def create_section_title(self, title):
         label = QLabel(title)
         label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        label.setStyleSheet("color: #2c3e50; margin-top: 20px;")
+        label.setStyleSheet("color: #2c3e50; margin-top: 30px;")
         return label
 
     def on_cell_click(self, row, column):
@@ -206,7 +220,7 @@ class CaseDashboard(QWidget):
         dialog.setWindowTitle("Entry Details")
         dialog_layout = QVBoxLayout(dialog)
         entry_label = QLabel(f"Details for Entry {row + 1}")
-        entry_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        entry_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         dialog_layout.addWidget(entry_label)
 
         dialog.setLayout(dialog_layout)

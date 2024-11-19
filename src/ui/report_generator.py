@@ -14,6 +14,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
+from utils.ner_model import pdf_to_name
 
 
 class WebBridge(QObject):
@@ -35,8 +36,9 @@ class WebBridge(QObject):
 
 class CustomWebPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
-        print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
-        print("Ready to console messages")
+        # print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+        print(f"JS Console conntected")
+
 
 
 # Report Generator
@@ -294,6 +296,7 @@ class ReportGeneratorTab(QWidget):
             self.web_view = QWebEngineView()
             self.web_page = CustomWebPage(self.web_view)
             self.web_view.setPage(self.web_page)
+            self.web_view.setFixedHeight(500)
             
             # Create and set up web channel
             self.channel = QWebChannel()
@@ -350,21 +353,73 @@ class ReportGeneratorTab(QWidget):
                         background-color: #2980b9;
                     }
                     .case-id {
-                        color: black;
+                        color: blue;
                         cursor: pointer;
-                        text-decoration: none;
+                        text-decoration: underline;
+                    }
+                    .search-container {
+                        margin: 20px 0;
+                        padding: 10px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .search-input {
+                        width: 300px;
+                        padding: 10px;
+                        border: 2px solid #3498db;
+                        border-radius: 5px;
+                        font-size: 14px;
+                        outline: none;
+                        transition: border-color 0.3s;
+                    }
+                    .search-input:focus {
+                        border-color: #2980b9;
+                    }
+                    .pagination {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin-top: 20px;
+                        gap: 10px;
+                    }
+                    .pagination button {
+                        padding: 8px 16px;
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    }
+                    .pagination button:disabled {
+                        background-color: #bdc3c7;
+                        cursor: not-allowed;
+                    }
+                    .pagination span {
+                        font-weight: bold;
+                        color: #333333;
+                    }
+                    .no-results {
+                        text-align: center;
+                        padding: 20px;
+                        color: #666;
+                        font-style: italic;
                     }
                 </style>
                 <script>
                     let bridge = null;
                     let initialized = false;
+                    let filteredData = [];
+                    const rowsPerPage = 10;
+                    let currentPage = 1;
 
                     function initWebChannel() {
                         return new Promise((resolve) => {
                             if (typeof qt !== 'undefined') {
                                 new QWebChannel(qt.webChannelTransport, function(channel) {
                                     bridge = channel.objects.bridge;
-                                    # bridge.log("WebChannel initialized");
+                                    bridge.log("WebChannel initialized");
                                     resolve();
                                 });
                             } else {
@@ -375,59 +430,121 @@ class ReportGeneratorTab(QWidget):
 
                     function caseIdClicked(caseId) {
                         if (bridge) {
-                            # bridge.log("Clicking case ID: " + caseId);
+                            bridge.log("Clicking case ID: " + caseId);
                             bridge.caseIdClicked(caseId);
                         }
                     }
                     
                     function uploadPdf(row, caseId) {
                         if (bridge) {
-                            # bridge.log("Uploading PDF for case: " + caseId);
+                            bridge.log("Uploading PDF for case: " + caseId);
                             bridge.uploadPdf(row, caseId);
                         }
                     }
                     
+                    function handleSearch() {
+                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                        
+                        filteredData = window.tableData.filter(report => {
+                            return report.date.toLowerCase().includes(searchTerm) ||
+                                report.case_id.toLowerCase().includes(searchTerm) ||
+                                report.report_name.toLowerCase().includes(searchTerm);
+                        });
+                        currentPage = 1;
+                        updateTable();
+                    }
+
                     function updateTable(data) {
                         if (!initialized) {
-                            # bridge.log("Table update called before initialization");
+                            bridge.log("Table update called before initialization");
                             return;
                         }
-                        # bridge.log("Updating table with data: " + JSON.stringify(data));
+
+                        if (data) {
+                            window.tableData = data;
+                            filteredData = [...data];
+                        }
+                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                        const start = (currentPage - 1) * rowsPerPage;
+                        const end = start + rowsPerPage;
+                        const pageData = filteredData.slice(start, end);
                         
                         const tbody = document.getElementById('tableBody');
                         tbody.innerHTML = '';
-                        
-                        data.forEach((report, index) => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${index + 1}</td>
-                                <td>${report.date}</td>
-                                <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
-                                <td>${report.report_name}</td>
-                                <td>
-                                    <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
-                                        Add PDF
-                                    </button>
-                                </td>
+
+                        if (filteredData.length === 0) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" class="no-results">No matching results found</td>
+                                </tr>
                             `;
-                            tbody.appendChild(row);
-                        });
+                        } else {
+                            pageData.forEach((report, index) => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${start +index + 1}</td>
+                                    <td>${report.date}</td>
+                                    <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
+                                    <td>${report.report_name}</td>
+                                    <td>
+                                        <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
+                                            Add PDF
+                                        </button>
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+                        document.getElementById('pageInfo').textContent = filteredData.length > 0 ? 
+                            `Page ${currentPage} of ${totalPages}` : '';
+                        document.getElementById('prevBtn').disabled = currentPage === 1;
+                        document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
+                    }
+                    function nextPage() {
+                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            updateTable();
+                        }
                     }
 
-                    // Initialize when the document is loaded
+                    function previousPage() {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            updateTable();
+                        }
+                    }
                     document.addEventListener('DOMContentLoaded', async function() {
                         try {
                             await initWebChannel();
                             initialized = true;
-                            # bridge.log("Page fully initialized");
+                            bridge.log("Page fully initialized");
                             window.updateTableData && window.updateTableData();
                         } catch (error) {
                             console.error("Initialization error:", error);
                         }
                     });
+                    function updateTableData(data) {
+                        if (!initialized) {
+                            bridge.log("Table update called before initialization");
+                            return;
+                        }
+                        bridge.log("Updating table with data: " + JSON.stringify(data));
+                        tableData = data;
+                        filteredData = [...tableData];
+                        updateTable();
+                    }
+
                 </script>
             </head>
             <body>
+                <div class="search-container">
+                    <input type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Search..."
+                        oninput="handleSearch()">
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -441,6 +558,11 @@ class ReportGeneratorTab(QWidget):
                     <tbody id="tableBody">
                     </tbody>
                 </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
             </body>
             </html>
             """
@@ -457,7 +579,6 @@ class ReportGeneratorTab(QWidget):
             
             # Start checking for initialization
             QTimer.singleShot(100, check_initialization)
-            
             return self.web_view
 
     def update_table_data(self):
@@ -552,6 +673,7 @@ class ReportGeneratorTab(QWidget):
             files_text = f"{len(files)} file(s) selected"
             self.file_display.setText(files_text)
 
+
     def submit_form(self):
         # Get the form data
         CA_ID = self.ca_id
@@ -613,9 +735,30 @@ class ReportGeneratorTab(QWidget):
 
         print("progress_data",progress_data)
 
+        ner_results={
+                    "Name": [],
+                    "Acc Number": []
+                }
 
+        try:
+            for pdf in pdf_paths:
+                result = pdf_to_name(pdf)
+                for entity in result:
+                    if entity["label"] == "PER":
+                        ner_results["Name"].append(entity["text"])
+                    elif entity["label"] == "ACC_NO":
+                        ner_results["Acc Number"].append(entity["text"])
+            
+            print("NER Results final: ",ner_results)
+            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
+            # res = save_ner_results(CA_ID, processed_results)
+            # ner_results= res
+        except Exception as e:
+            print("Error processing PDFs: ", e)
+            pass
         converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
         result = converter.start_extraction()
+
         # single_df = result["single_df"]
         # cummalative_df = result["cummalative_df"]
 
@@ -626,15 +769,17 @@ class ReportGeneratorTab(QWidget):
         #     except:
         #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
         #         pass
-        individual_names = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
+        # Check if NER model has extracted any entities
+        
+        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
+
+        print("ner_names last",ner_results)
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
         save_result(CA_ID,result)
-
-
+        
         print("Successfully saved case data and result")
         self.create_recent_reports_table()
-
 
     def create_label(self, text):
         label = QLabel(text)

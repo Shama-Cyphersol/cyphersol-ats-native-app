@@ -3,41 +3,59 @@ import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget,QLabel, QWidgetItem,QTableView,QTableWidgetItem,QTableWidget,QHeaderView
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import pandas as pd
+from PyQt6.QtCore import Qt
 
 class Creditors(QMainWindow):
     def __init__(self, data):
         super().__init__()
         self.setGeometry(100, 100, 1200, 600)
 
+        # Create central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+
+        # Handle empty DataFrame
+        if data.empty:
+            self.handle_empty_data(layout)
+            return
+
         # Create a QWebEngineView
         self.browser = QWebEngineView()
         
         # Sort data by date
-        data = data.sort_values(by="Value Date")
-        print(data.head())
-        self.data= data
+        self.data = data.sort_values(by="Value Date")
+        print(self.data.head())
 
         # Extract data from the DataFrame
-        dates = data["Value Date"].dt.strftime("%d-%m-%Y").tolist()
-        debits = data["Debit"].tolist() if "Debit" in data.columns else []
-        balances = data["Balance"].tolist()
+        dates = self.data["Value Date"].dt.strftime("%d-%m-%Y").tolist()
+        debits = self.data["Debit"].tolist() if "Debit" in self.data.columns else []
+        balances = self.data["Balance"].tolist()
 
-        # Create the HTML and JavaScript for the chart
+        # Create and load the chart
         html_content = self.create_html(dates, debits, balances)
-        
-        # Load the HTML content into the QWebEngineView
         self.browser.setHtml(html_content)
         self.browser.setFixedHeight(600)
 
-
-        layout = QVBoxLayout()
         layout.addWidget(self.browser)
-
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
         self.create_data_table_creditor(layout)
+
+    def handle_empty_data(self, layout):
+        """Handle case when DataFrame is empty"""
+        empty_message = QLabel("No creditor data available to display")
+        empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_message.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                color: #666;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 5px;
+                margin: 20px;
+            }
+        """)
+        layout.addWidget(empty_message)
 
     def create_html(self, dates, debits, balances):
         # Create the HTML content with Plotly.js
