@@ -274,7 +274,7 @@ class IndividualDashboard(QMainWindow):
         if widget_class == SummaryWindow:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["summary_df_list"])
         elif widget_class == BankTransactionDashboard:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["transaction_sheet_df"])
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["df"])
         elif widget_class == EODBalanceChart:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["eod_sheet_df"])
         elif widget_class == Creditors:

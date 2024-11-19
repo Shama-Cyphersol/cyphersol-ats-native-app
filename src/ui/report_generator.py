@@ -36,6 +36,7 @@ class WebBridge(QObject):
 class CustomWebPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+        print("Ready to console messages")
 
 
 # Report Generator
