@@ -29,7 +29,7 @@ class EODBalanceChart(QMainWindow):
         html_content = self.create_html_content(months_data)
         
         # Set HTML content in the QWebEngineView
-        self.web_view.setFixedHeight(800)
+        self.web_view.setFixedHeight(1500)
         self.web_view.setHtml(html_content)
     
     def process_data(self):
@@ -90,7 +90,7 @@ class EODBalanceChart(QMainWindow):
                     height: full;
                 }}
                 .chart-container {{ 
-                    width: 80%;
+                    width: 100%;
                     height: auto;
                     background-color: white;
                     padding: 10px;
@@ -99,7 +99,7 @@ class EODBalanceChart(QMainWindow):
                     margin-bottom: 20px;
                 }}
                 .table-container {{
-                    width: 80%;
+                    width: 100%;
                     background-color: white;
                     padding: 20px;
                     border-radius: 10px;

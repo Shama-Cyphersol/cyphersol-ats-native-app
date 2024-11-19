@@ -1,30 +1,31 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QComboBox, QVBoxLayout, QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl
 import sys
-from PyQt6.QtGui import QFont
 import json
+from datetime import datetime
 import pandas as pd
 
-class SummaryOtherExpenses(QMainWindow):
-    def __init__(self,data):
+class SummaryImportantExpenses(QMainWindow):
+    def __init__(self, data):
         super().__init__()
-        self.setWindowTitle("Other Expenses Dashboard")
+        self.setWindowTitle("Important Expenses Distribution Dashboard")
         self.setGeometry(100, 100, 1200, 900)
-
 
         # Create central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-        
-        # print("Data: \n",data)
+    
         self.months = self.get_months_from_data(data)
+
+        # print("Data: \n",data)
+        
         self.data = {}
         for month in self.months:
             month_data = {}
             for _, row in data.iterrows():
-                expense_type = row['Other Expenses / Payments']
+                expense_type = row['Important Expenses / Payments']
                 amount = row[month]
                 if pd.notnull(amount) and amount != 0:
                     month_data[expense_type] = float(amount)
@@ -35,11 +36,12 @@ class SummaryOtherExpenses(QMainWindow):
         self.web = QWebEngineView()
         self.web.setFixedHeight(1000)
         layout.addWidget(self.web)
-
+        
+        # Initialize the dashboard with the first month that has data
         if self.data:
             first_month = next(iter(self.data))
             self.update_dashboard(first_month)
-        
+
     def get_months_from_data(self, data):
         month_columns = [
             col for col in data.columns
@@ -69,13 +71,13 @@ class SummaryOtherExpenses(QMainWindow):
             # Calculate metrics
             total_income = sum(filtered_data.values())
             top_category, top_amount = self.get_highest_category(selected_month)
-
+            
             # Create HTML content with modern dashboard design
             html_content = f'''
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Other Expenses Dashboard</title>
+                <title>Important Expenses Distribution Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -213,12 +215,13 @@ class SummaryOtherExpenses(QMainWindow):
             </head>
             <body>
                 <div class="dashboard">
-                <div class="header">
-                        <h1>Other Expenses for <span id="selectedMonth">{selected_month}</span></h1>
+                    <div class="header">
+                        <h1>Important Expenses for <span id="selectedMonth">{selected_month}</span></h1>
                     </div>
                     <div class="radio-group">
                         {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
                     </div>
+                    
                     
                     
                     <div class="metrics-grid">
@@ -239,7 +242,7 @@ class SummaryOtherExpenses(QMainWindow):
                     </div>
 
                     <div class="table-container">
-                        <div class="table-header">Detailed Other Expenses Breakdown</div>
+                        <div class="table-header">Detailed Important Expenses Breakdown</div>
                         <table class="data-table" id="incomeTable">
                             <thead>
                                 <tr>
@@ -257,20 +260,21 @@ class SummaryOtherExpenses(QMainWindow):
                 <script>
                     const monthsData = {json.dumps(self.data)};
                     const colors = {{
-                        
-				        'Credit Card Payment': '#10B981',
-                        'Bank Charges': '#F59E0B',
-                        'Other Expenses': '#EC4899',
-                        'Utility Bills': '#8B5CF6',
-                        'Subscription / Entertainment': '#6366F1',
-                        'Food Expenses': '#D946EF',
-                        'Online Shopping': '#EF4444',
-                        'Withdrawal': '#F97316',
-                        'POS Txns - Dr': '#22C55E',
-                        'UPI-Dr': '#0EA5E9',
-                        'Loan Given': '#A855F7',
-                        'Suspense - Dr': '#EAB308',
-                        'Total Debit': '#34D399'
+                        'Creditor Amount': '#10B981',
+                        'Salaries Paid': '#10B981',
+                        'Probable EMI': '#F59E0B',
+                        'Investment Details': '#EC4899',
+                        'Interest Debit': '#8B5CF6',
+                        'Travelling Expense': '#6366F1',
+                        'Donation': '#D946EF',
+                        'TDS Deducted':'#8B0000',
+                        'Total Income Tax Paid': '#EF4444',
+                        'General Insurance': '#F97316',
+                        'Life Insurance': '#22C55E',
+                        'Rent Paid': '#F08080',
+                        'Total': '#DC143C',
+                        'TDS on Forex': '#FFFFE0',
+                        'Total GST': '#FFD700'
                     }};
                     
                     let myChart = null;  // Global chart instance
@@ -312,7 +316,6 @@ class SummaryOtherExpenses(QMainWindow):
                         document.getElementById('topAmount').textContent = `₹${{topCategory[1].toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`;
                         
                         updateTable(selectedData);
-
                         // Destroy existing chart if it exists
                         if (myChart) {{
                             myChart.destroy();
@@ -376,8 +379,9 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             
             self.web.setHtml(html_content)
-            self.web.setFixedHeight(1000)
-
+            self.web.setFixedHeight(1200)
+            # make this window non resizeable by touchpad
+        
         except Exception as e:
             print(f"Error updating dashboard: {e}")
             error_html = f'''
@@ -391,3 +395,8 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             self.web.setHtml(error_html)
 
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = SummaryImportantExpenses()
+    window.show()
+    sys.exit(app.exec())

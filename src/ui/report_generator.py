@@ -363,7 +363,7 @@ class ReportGeneratorTab(QWidget):
                             if (typeof qt !== 'undefined') {
                                 new QWebChannel(qt.webChannelTransport, function(channel) {
                                     bridge = channel.objects.bridge;
-                                    bridge.log("WebChannel initialized");
+                                    # bridge.log("WebChannel initialized");
                                     resolve();
                                 });
                             } else {
@@ -374,24 +374,24 @@ class ReportGeneratorTab(QWidget):
 
                     function caseIdClicked(caseId) {
                         if (bridge) {
-                            bridge.log("Clicking case ID: " + caseId);
+                            # bridge.log("Clicking case ID: " + caseId);
                             bridge.caseIdClicked(caseId);
                         }
                     }
                     
                     function uploadPdf(row, caseId) {
                         if (bridge) {
-                            bridge.log("Uploading PDF for case: " + caseId);
+                            # bridge.log("Uploading PDF for case: " + caseId);
                             bridge.uploadPdf(row, caseId);
                         }
                     }
                     
                     function updateTable(data) {
                         if (!initialized) {
-                            bridge.log("Table update called before initialization");
+                            # bridge.log("Table update called before initialization");
                             return;
                         }
-                        bridge.log("Updating table with data: " + JSON.stringify(data));
+                        # bridge.log("Updating table with data: " + JSON.stringify(data));
                         
                         const tbody = document.getElementById('tableBody');
                         tbody.innerHTML = '';
@@ -418,7 +418,7 @@ class ReportGeneratorTab(QWidget):
                         try {
                             await initWebChannel();
                             initialized = true;
-                            bridge.log("Page fully initialized");
+                            # bridge.log("Page fully initialized");
                             window.updateTableData && window.updateTableData();
                         } catch (error) {
                             console.error("Initialization error:", error);
