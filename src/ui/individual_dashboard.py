@@ -21,8 +21,8 @@ from utils.summary_charts.Suspense_debit import SuspenseDebit
 from utils.summary_charts.Suspense_Credit import SuspenseCredit
 from utils.summary_charts.Summary import SummaryWindow
 from utils.json_logic import load_result
-# from utils.summary_charts.Investment import InvestmentChart
-# from utils.summary_charts.EMI import EMITransactionChart
+from utils.summary_charts.Investment import InvestmentChart
+from utils.summary_charts.EMI import EMITransactionChart
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -93,7 +93,6 @@ class IndividualDashboard(QMainWindow):
     def create_id(self):
         id = chr(ord('A') + self.row_id)
         id+=str(self.row_id)
-        print("ID - ",id)
         return id
     
     def createSidebar(self):
