@@ -261,8 +261,3 @@ class PaymentVoucherDashboard(QMainWindow):
             }
         """ % json.dumps(chart_data))
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = PaymentDashboard()
-    window.show()
-    sys.exit(app.exec())

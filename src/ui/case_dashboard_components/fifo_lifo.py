@@ -111,7 +111,6 @@ dummy_data = {
 class FIFO_LFIO(QWidget):
     def __init__(self, data):
         super().__init__()
-        self.setWindowTitle("User Retention Data")
         self.setStyleSheet("background-color: white; color: #3498db;")
         layout = QVBoxLayout()
         scroll_area = QScrollArea()
@@ -148,6 +147,7 @@ class AccordionItem(QFrame):
                 border: none;
                 border-radius: 5px;
                 font-size: 14px;
+                           
             }
             QPushButton:hover {
                 background-color: #2980b9;

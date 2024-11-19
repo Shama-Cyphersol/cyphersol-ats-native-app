@@ -4,45 +4,50 @@ from PyQt6.QtCore import QUrl
 import sys
 import json
 from datetime import datetime
+import pandas as pd
 
 class SummaryImportantExpenses(QMainWindow):
-    def __init__(self,data):
+    def __init__(self, data):
         super().__init__()
-        self.setWindowTitle("Income Distribution Dashboard")
+        self.setWindowTitle("Important Expenses Distribution Dashboard")
         self.setGeometry(100, 100, 1200, 900)
-
 
         # Create central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+    
+        self.months = self.get_months_from_data(data)
+
+        # print("Data: \n",data)
         
-        self.months = ['Apr-2023', 'May-2023', 'Jun-2023', 'Jul-2023', 'Aug-2023', 
-                      'Sep-2023', 'Oct-2023', 'Nov-2023', 'Dec-2023', 'Jan-2024', 
-                      'Feb-2024', 'Mar-2024']
-        
-        self.data = {
-            'Apr-2023': {'Creditor Amount': 845000.00},
-            'May-2023': {'Creditor Amount': 1281500.00, 'Total Income Tax Paid': 123115.00, 'Life Insurance': 153086.00},
-            'Jun-2023': {'Creditor Amount': 189500.00, 'Total Income Tax Paid': 40100.00},
-            'Jul-2023': {'Creditor Amount': 700000.00, 'Travelling Expense': 19706.40},
-            'Aug-2023': {'Creditor Amount': 100000.00, 'Life Insurance': 153086.00},
-            'Sep-2023': {'Creditor Amount': 102500.00, 'Interest Debit': 103.00, 'Total Income Tax Paid': 50000.00, 'General Insurance': 9440.00},
-            'Oct-2023': {'Creditor Amount': 355000.00, 'Total Income Tax Paid': 262910.00},
-            'Nov-2023': {'Creditor Amount': 336161.00, 'Travelling Expense': 24560.00, 'Life Insurance': 153086.00},
-            'Dec-2023': {'Creditor Amount': 350000.00, 'Interest Debit': 184.00, 'Total Income Tax Paid': 172650.00},
-            'Jan-2024': {'Creditor Amount': 37788.00, 'Travelling Expense': 16496.00},
-            'Feb-2024': {'Travelling Expense': 2464.00},
-            'Mar-2024': {'Travelling Expense': 13553.00}
-        }
+        self.data = {}
+        for month in self.months:
+            month_data = {}
+            for _, row in data.iterrows():
+                expense_type = row['Important Expenses / Payments']
+                amount = row[month]
+                if pd.notnull(amount) and amount != 0:
+                    month_data[expense_type] = float(amount)
+            if month_data:  # Only add months that have data
+                self.data[month] = month_data
 
         # Create the web view
         self.web = QWebEngineView()
         self.web.setFixedHeight(1000)
         layout.addWidget(self.web)
         
-        # Initialize the dashboard with the first month
-        self.update_dashboard(self.months[0])
+        # Initialize the dashboard with the first month that has data
+        if self.data:
+            first_month = next(iter(self.data))
+            self.update_dashboard(first_month)
+
+    def get_months_from_data(self, data):
+        month_columns = [
+            col for col in data.columns
+            if pd.to_datetime(col, format='%b-%Y', errors='coerce') is not pd.NaT
+        ]
+        return month_columns
     
     def get_highest_category(self, selected_month):
         try:
@@ -57,6 +62,9 @@ class SummaryImportantExpenses(QMainWindow):
     
     def update_dashboard(self, selected_month):
         try:
+            if selected_month not in self.data:
+                raise ValueError(f"No data available for {selected_month}")
+
             # Filter out zero values
             filtered_data = {k: v for k, v in self.data[selected_month].items() if v > 0}
             
@@ -69,7 +77,7 @@ class SummaryImportantExpenses(QMainWindow):
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Important Income Distribution Dashboard</title>
+                <title>Important Expenses Distribution Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -122,6 +130,36 @@ class SummaryImportantExpenses(QMainWindow):
                         font-weight: bold;
                         color: #333;
                     }}
+
+                    .table-container {{
+                        background: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        margin-top: 20px;
+                        overflow-x: auto;
+                    }}
+                    .data-table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                    }}
+
+                    .data-table th,
+                    .data-table td {{
+                        padding: 12px;
+                        border-bottom: 1px solid #eee;
+                        text-align: center !important;  /* Force center alignment */
+                    }}
+                    
+                    .data-table th {{
+                        background-color: #3498db;
+                        color: white;
+                    }}
+                    
+                    .data-table tr:hover {{
+                        background-color: #f5f5f5;
+                    }}
                     
                     .chart-container {{
                         background: white;
@@ -164,17 +202,27 @@ class SummaryImportantExpenses(QMainWindow):
                         color: #3B82F6;
                         font-weight: 600;
                     }}
+
+                    .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.3rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
                 </style>
             </head>
             <body>
                 <div class="dashboard">
+                    <div class="header">
+                        <h1>Important Expenses for <span id="selectedMonth">{selected_month}</span></h1>
+                    </div>
                     <div class="radio-group">
                         {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
                     </div>
                     
-                    <div class="header">
-                        <h1>Important Income Distribution for <span id="selectedMonth">{selected_month}</span></h1>
-                    </div>
+                    
                     
                     <div class="metrics-grid">
                         <div class="metric-card">
@@ -192,20 +240,66 @@ class SummaryImportantExpenses(QMainWindow):
                     <div class="chart-container">
                         <canvas id="pieChart"></canvas>
                     </div>
+
+                    <div class="table-container">
+                        <div class="table-header">Detailed Important Expenses Breakdown</div>
+                        <table class="data-table" id="incomeTable">
+                            <thead>
+                                <tr>
+                                    <th>Income Category</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Percentage of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 
                 <script>
                     const monthsData = {json.dumps(self.data)};
                     const colors = {{
                         'Creditor Amount': '#10B981',
-                        'Total Income Tax Paid': '#3B82F6',
-                        'Life Insurance': '#F59E0B',
-                        'Travelling Expense': '#EC4899',
+                        'Salaries Paid': '#10B981',
+                        'Probable EMI': '#F59E0B',
+                        'Investment Details': '#EC4899',
                         'Interest Debit': '#8B5CF6',
-                        'General Insurance': '#6366F1'
+                        'Travelling Expense': '#6366F1',
+                        'Donation': '#D946EF',
+                        'TDS Deducted':'#8B0000',
+                        'Total Income Tax Paid': '#EF4444',
+                        'General Insurance': '#F97316',
+                        'Life Insurance': '#22C55E',
+                        'Rent Paid': '#F08080',
+                        'Total': '#DC143C',
+                        'TDS on Forex': '#FFFFE0',
+                        'Total GST': '#FFD700'
                     }};
                     
                     let myChart = null;  // Global chart instance
+
+                    function updateTable(data) {{
+                        const tbody = document.querySelector('#incomeTable tbody');
+                        tbody.innerHTML = '';
+                        
+                        const totalIncome = Object.values(data).reduce((a, b) => a + b, 0);
+                        
+                        // Sort data by amount in descending order
+                        const sortedData = Object.entries(data)
+                            .sort(([,a], [,b]) => b - a);
+                        
+                        sortedData.forEach(([category, amount]) => {{
+                            const percentage = (amount / totalIncome * 100).toFixed(2);
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${{category}}</td>
+                                <td>₹${{amount.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}
+                                <td>${{percentage}}%</td>
+                            `;
+                            tbody.appendChild(row);
+                        }});
+                    }}
                     
                     function updateDashboard(selectedMonth) {{
                         const selectedData = monthsData[selectedMonth];
@@ -221,6 +315,7 @@ class SummaryImportantExpenses(QMainWindow):
                         document.getElementById('topCategory').textContent = topCategory[0];
                         document.getElementById('topAmount').textContent = `₹${{topCategory[1].toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`;
                         
+                        updateTable(selectedData);
                         // Destroy existing chart if it exists
                         if (myChart) {{
                             myChart.destroy();
@@ -284,6 +379,7 @@ class SummaryImportantExpenses(QMainWindow):
             '''
             
             self.web.setHtml(html_content)
+            self.web.setFixedHeight(1000)
         except Exception as e:
             print(f"Error updating dashboard: {e}")
             error_html = f'''
@@ -297,3 +393,8 @@ class SummaryImportantExpenses(QMainWindow):
             '''
             self.web.setHtml(error_html)
 
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = SummaryImportantExpenses()
+    window.show()
+    sys.exit(app.exec())

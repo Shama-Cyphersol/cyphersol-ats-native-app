@@ -37,7 +37,7 @@ class CashWithdrawalChart(QMainWindow):
         self.browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.browser)
         self.show_charts()
-
+        
         self.create_data_table_cashWithdrawal(layout)
 
     def show_charts(self):
@@ -179,6 +179,25 @@ class CashWithdrawalChart(QMainWindow):
                     font-weight: bold;
                     margin-bottom: 10px;
                 }}
+                .search-container {{
+                    margin: 20px;
+                    padding: 10px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
+                }}
                 table {{
                     width: 100%;
                     border-collapse: collapse;
@@ -229,11 +248,25 @@ class CashWithdrawalChart(QMainWindow):
                     font-weight: bold;
                     color: #333333;
                 }}
+                .no-results {{
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                    font-style: italic;
+                }}
             </style>
         </head>
         <body>
             <div class="table-container">
                 <div class="table-header">Cash Withdrawal Data Table</div>
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Search transactions..."
+                           oninput="handleSearch()"
+                    >
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -258,36 +291,60 @@ class CashWithdrawalChart(QMainWindow):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 const data = {json.dumps(table_data)};
-                const totalPages = Math.ceil(data.length / rowsPerPage);
-                
+                let filteredData = [...data];                
+
+                function handleSearch() {{
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    
+                    filteredData = data.filter(row => {{
+                        return row.date.toLowerCase().includes(searchTerm) ||
+                               row.description.toLowerCase().includes(searchTerm) ||
+                               row.credit.toLowerCase().includes(searchTerm) ||
+                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.category.toLowerCase().includes(searchTerm);
+                    }});
+                    
+                    currentPage = 1;
+                    updateTable();
+                }}
 
                 function updateTable() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
                     const end = start + rowsPerPage;
-                    const pageData = data.slice(start, end);
+                    const pageData = filteredData.slice(start, end);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
                     
-                    pageData.forEach(row => {{
-                        const tr = `
+                    if (filteredData.length === 0) {{
+                        tableBody.innerHTML = `
                             <tr>
-                                <td>${{row.date}}</td>
-                                <td class="description-column">${{row.description}}</td>
-                                <td>${{row.credit}}</td>
-                                <td>${{row.balance}}</td>
-                                <td>${{row.category}}</td>
+                                <td colspan="5" class="no-results">No matching results found</td>
                             </tr>
                         `;
-                        tableBody.innerHTML += tr;
-                    }});
+                    }}else{{
+                        pageData.forEach(row => {{
+                            const tr = `
+                                <tr>
+                                    <td>${{row.date}}</td>
+                                    <td class="description-column">${{row.description}}</td>
+                                    <td>${{row.credit}}</td>
+                                    <td>${{row.balance}}</td>
+                                    <td>${{row.category}}</td>
+                                </tr>
+                            `;
+                            tableBody.innerHTML += tr;
+                        }});
+                    }}
                     
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
                     document.getElementById('prevBtn').disabled = currentPage === 1;
-                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
 
                 function nextPage() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();

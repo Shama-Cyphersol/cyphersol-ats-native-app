@@ -5,6 +5,8 @@ from PyQt6.QtCore import Qt,QSize
 from .dashboard import DashboardTab
 from .report_generator import ReportGeneratorTab
 from .settings import SettingsTab
+from .reports import ReportsTab
+from .name_manager import NameManagerTab
 import pandas as pd
 
 
@@ -92,8 +94,10 @@ class MainWindow(QMainWindow):
         button_icons = [
             ("Dashboard", "dashboard.png"),
             ("Generate Report", "generate_report.png"),
+            ("Reports", "generate_report.png"),
+            ("Name Manager", "generate_report.png"),
             ("Settings", "settings.png"),
-            # ("Cash Flow Network", "cash-flow.png"),
+            ("Logout", "settings.png"),
         ]
 
         for text, icon in button_icons:
@@ -119,6 +123,8 @@ class MainWindow(QMainWindow):
         self.content_area = QStackedWidget()
         self.content_area.addWidget(DashboardTab())
         self.content_area.addWidget(ReportGeneratorTab())
+        self.content_area.addWidget(ReportsTab())
+        self.content_area.addWidget(NameManagerTab())
         self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 

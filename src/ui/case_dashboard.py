@@ -7,8 +7,7 @@ from functools import partial
 from .case_dashboard_components.network import create_network_graph
 from .case_dashboard_components.entity import create_entity_distribution_chart
 from .case_dashboard_components.individual_table import create_individual_dashboard_table
-from .case_dashboard_components.link_analysis import create_link_analysis
-from .case_dashboard_components.link_analysis import create_link_analysis
+from .case_dashboard_components.link_analysis import LinkAnalysisWidget
 from .case_dashboard_components.bidirectional import create_bidirectional_analysis
 from .case_dashboard_components.fifo_lifo import create_fifo_lifo_analysis
 
@@ -107,8 +106,9 @@ class CaseDashboard(QWidget):
             "Fund Flow Network Graph": create_network_graph(self.case_result),
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
-            "Link Analysis": create_link_analysis(self.case_result),
-            "Bidirectional Analysis": create_bidirectional_analysis(self.case_result),
+            # "Link Analysis": create_link_analysis(self.case_result),
+            "Link Analysis": LinkAnalysisWidget(self.case_result),
+            "Bi-Directional Analysis": create_bidirectional_analysis(self.case_result),
             "FIFO LIFO": create_fifo_lifo_analysis(self.case_result),
         }
     

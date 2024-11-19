@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
+from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
 from apps.report.controllers import *
@@ -10,8 +10,33 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
-from utils.pdf_processor import PDFProcessor
-from utils.ner_model import pdf_to_name
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
+
+
+class WebBridge(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+
+    @pyqtSlot(str)
+    def caseIdClicked(self, case_id):
+        self.parent.handle_case_id_clicked(case_id)
+
+    @pyqtSlot(str, str)
+    def uploadPdf(self, row, case_id):
+        self.parent.handle_upload_pdf(row, case_id)
+
+    @pyqtSlot(str)
+    def log(self, message):
+        print("JavaScript Log:", message)
+
+class CustomWebPage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -263,99 +288,250 @@ class ReportGeneratorTab(QWidget):
         return section_title
     
     def create_recent_reports_table(self):
+        if not hasattr(self, 'web_view'):
+            # Create web view and custom page
+            self.web_view = QWebEngineView()
+            self.web_page = CustomWebPage(self.web_view)
+            self.web_view.setPage(self.web_page)
             
-        # Create the table widget with 3 columns
-        if not hasattr(self, 'table'):
+            # Create and set up web channel
+            self.channel = QWebChannel()
+            self.web_page.setWebChannel(self.channel)
+            
+            # Create bridge and register it with the channel
+            self.bridge = WebBridge(self)
+            self.channel.registerObject('bridge', self.bridge)
 
-            self.table = QTableWidget()
-            self.table.setColumnCount(4)
-            self.table.verticalHeader().setVisible(False)
+            # HTML content with modern styling and QWebChannel integration
+            html_content = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        background-color: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }
+                    th {
+                        background-color: #3498db;
+                        color: white;
+                        font-weight: bold;
+                        padding: 12px;
+                        text-align: center;
+                    }
+                    td {
+                        padding: 10px;
+                        text-align: center;
+                        border-bottom: 1px solid #eee;
+                    }
+                    tr:hover {
+                        background-color: #f5f5f5;
+                    }
+                    .upload-btn {
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 12px;
+                    }
+                    .upload-btn:hover {
+                        background-color: #2980b9;
+                    }
+                    .case-id {
+                        color: black;
+                        cursor: pointer;
+                        text-decoration: none;
+                    }
+                </style>
+                <script>
+                    let bridge = null;
+                    let initialized = false;
 
-            self.table.setHorizontalHeaderLabels(["Sr no.","Date","Case ID", "Report Name"])
-            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            self.table.setStyleSheet("""
-                QTableWidget {
-                    background-color: white;
-                    border-radius: 10px;
-                }
-                QHeaderView::section {
-                    background-color: #3498db;
-                    color: white;
-                    font-weight: bold;
-                    border: none;
-                    padding: 8px;
-                }
-                QCheckBox {
-                    margin-left: 5px;
-                }
-                QTableWidget::setItem {
-                    text-align: center;  /* Center text in cells */
-                }
-                QTableWidget::item {
-                    color: black;
-                    padding: 5px;
-                }
-            """)
-            self.table.cellClicked.connect(self.case_id_clicked)
+                    function initWebChannel() {
+                        return new Promise((resolve) => {
+                            if (typeof qt !== 'undefined') {
+                                new QWebChannel(qt.webChannelTransport, function(channel) {
+                                    bridge = channel.objects.bridge;
+                                    bridge.log("WebChannel initialized");
+                                    resolve();
+                                });
+                            } else {
+                                setTimeout(initWebChannel, 100);
+                            }
+                        });
+                    }
 
+                    function caseIdClicked(caseId) {
+                        if (bridge) {
+                            bridge.log("Clicking case ID: " + caseId);
+                            bridge.caseIdClicked(caseId);
+                        }
+                    }
+                    
+                    function uploadPdf(row, caseId) {
+                        if (bridge) {
+                            bridge.log("Uploading PDF for case: " + caseId);
+                            bridge.uploadPdf(row, caseId);
+                        }
+                    }
+                    
+                    function updateTable(data) {
+                        if (!initialized) {
+                            bridge.log("Table update called before initialization");
+                            return;
+                        }
+                        bridge.log("Updating table with data: " + JSON.stringify(data));
+                        
+                        const tbody = document.getElementById('tableBody');
+                        tbody.innerHTML = '';
+                        
+                        data.forEach((report, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${index + 1}</td>
+                                <td>${report.date}</td>
+                                <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
+                                <td>${report.report_name}</td>
+                                <td>
+                                    <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
+                                        Add PDF
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+
+                    // Initialize when the document is loaded
+                    document.addEventListener('DOMContentLoaded', async function() {
+                        try {
+                            await initWebChannel();
+                            initialized = true;
+                            bridge.log("Page fully initialized");
+                            window.updateTableData && window.updateTableData();
+                        } catch (error) {
+                            console.error("Initialization error:", error);
+                        }
+                    });
+                </script>
+            </head>
+            <body>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sr no.</th>
+                            <th>Date</th>
+                            <th>Case ID</th>
+                            <th>Report Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </body>
+            </html>
+            """
+            
+            # Load the HTML content
+            self.web_view.setHtml(html_content)
+            
+            # Wait for the page to load before updating table data
+            def check_initialization():
+                self.web_page.runJavaScript(
+                    'typeof initialized !== "undefined" && initialized',
+                    lambda result: self.update_table_data() if result else QTimer.singleShot(100, check_initialization)
+                )
+            
+            # Start checking for initialization
+            QTimer.singleShot(100, check_initialization)
+            
+            return self.web_view
+
+    def update_table_data(self):
         recent_reports = load_all_case_data()
-        self.table.setRowCount(len(recent_reports))
-        # Populate the table with data
-        for row, report in enumerate(recent_reports):
-
-            # Serial Number column
-            serial_number_item = QTableWidgetItem(str(row + 1))
-            serial_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            serial_number_item.setFlags(serial_number_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 0, serial_number_item)
-
-            # Date column
-            date_item = QTableWidgetItem(report['date'])
-            date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            date_item.setFlags(date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 1, date_item)
-
-            # Case ID column
-            case_id_item = QTableWidgetItem(str(report['case_id']))
-            case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 2, case_id_item)
-
-            # Report Name column
-            report_name_item = QTableWidgetItem(report['report_name'])
-            report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 3, report_name_item)
-
-
-        return self.table
-    
-    
-    def case_id_clicked(self, row, column):
-        # if column == 2:
+        json_data = json.dumps(recent_reports)
         
-        case_id = self.table.item(row, 2).text() # getting 2nd col as it contains the case_id
+        # Store data in JavaScript and call updateTable
+        js_code = f"""
+            window.tableData = {json_data};
+            if (typeof updateTable === 'function') {{
+                updateTable(window.tableData);
+            }} else {{
+                window.updateTableData = function() {{
+                    updateTable(window.tableData);
+                }};
+            }}
+        """
+        self.web_page.runJavaScript(js_code)
+
+    def handle_case_id_clicked(self, case_id):
         print("Case ID clicked: ", case_id)
         cash_flow_network = CaseDashboard(case_id=case_id)
-            # Create a new dialog and set the CashFlowNetwork widget as its central widget
+        
+        # Create a new dialog
         self.new_window = QDialog(self)
         self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
-        self.new_window.setModal(False)  # Set the dialog as non-modal
+        self.new_window.setModal(False)
         self.new_window.showMaximized()
-        self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
-        self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
-        self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
-
-        # Set the minimum size of the dialog
-        self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
-
-        # Create a layout for the dialog and add the CashFlowNetwork widget
+        
+        # Set window flags
+        self.new_window.setWindowFlags(
+            self.new_window.windowFlags() |
+            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMaximizeButtonHint |
+            Qt.WindowType.WindowCloseButtonHint
+        )
+        
+        # Set minimum size
+        self.new_window.setMinimumSize(1000, 800)
+        
+        # Create layout and add widget
         layout = QVBoxLayout()
         layout.addWidget(cash_flow_network)
         self.new_window.setLayout(layout)
-
-        # Show the new window
+        
+        # Show the window
         self.new_window.show()
+
+    def handle_upload_pdf(self, row, case_id):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Upload PDF Report",
+            "",
+            "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
+        )
+        
+        if file_name:
+            try:
+                # Add your file handling logic here
+                print(f"Uploading PDF for Case ID: {case_id}")
+                print(f"Selected file: {file_name}")
+                
+                success_message = f'<p style="color: black;">PDF successfully uploaded for Case ID: {case_id}</p>'
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    success_message
+                )
+            except Exception as e:
+                error_message = f"Failed to upload PDF: {str(e)}"
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    error_message
+                )
 
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
@@ -436,30 +612,9 @@ class ReportGeneratorTab(QWidget):
 
         print("progress_data",progress_data)
 
-        ner_results={
-                    "Name": [],
-                    "Acc Number": []
-                }
 
-        try:
-            for pdf in pdf_paths:
-                result = pdf_to_name(pdf)
-                for entity in result:
-                    if entity["label"] == "PER":
-                        ner_results["Name"].append(entity["text"])
-                    elif entity["label"] == "ACC_NO":
-                        ner_results["Acc Number"].append(entity["text"])
-            
-            print("NER Results final: ",ner_results)
-            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
-            # res = save_ner_results(CA_ID, processed_results)
-            # ner_results= res
-        except Exception as e:
-            print("Error processing PDFs: ", e)
-            pass
         converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
         result = converter.start_extraction()
-
         # single_df = result["single_df"]
         # cummalative_df = result["cummalative_df"]
 
@@ -470,59 +625,16 @@ class ReportGeneratorTab(QWidget):
         #     except:
         #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
         #         pass
+        individual_names = result["cummalative_df"]["name_acc_df"].to_dict("list")
 
-        # Check if NER model has extracted any entities
-        
-        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
-
-        print("ner_names last",ner_results)
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
+        save_case_data(CA_ID, pdf_paths, start_date, end_date,individual_names)
         save_result(CA_ID,result)
-        
+
+
         print("Successfully saved case data and result")
         self.create_recent_reports_table()
 
-    def pdf_processor(self,pdf_paths):
-        
-        print("\n1. Initializing PDF Processor...")
-        processor = PDFProcessor(model_path="src/models/output_ner_model")
-        processed_results = []
-        entities_data = {"Name": [], "Acc Number": []}
-        # Process each PDF file
-        for pdf_path in pdf_paths:
-            print(f"\n2. Processing file: {pdf_path}")
-            result = processor.process_single_pdf(pdf_path)
-            processed_results.append(result)
-            print(f"3. Processing result: {result}")
-            
-            if not result.error:
-                print("4. Extracted entities:")
-                for entity in result.entities:
-                    print(f"   - {entity.label}: {entity.text}")
-                    # Changed PER to PERSON for consistency
-                    if entity.label == "PER":  # or entity.label == "PERSON":
-                        if entity.text not in entities_data["Name"]:
-                            entities_data["Name"].append(entity.text)
-                            print(f"     Added person: {entity.text}")
-                    elif entity.label == "ACC NO":  # or entity.label == "ACCOUNT_NUMBER":
-                        if entity.text not in entities_data["Acc Number"]:
-                            entities_data["Acc Number"].append(entity.text)
-                            print(f"     Added account: {entity.text}")
-            else:
-                print(f"   Error processing file: {result.error}")
 
-        # If no entities found, add default values
-        if not entities_data["Name"]:
-            entities_data["Name"] = ["Unknown"]
-        if not entities_data["Acc Number"]:
-            entities_data["Acc Number"] = ["Not Found"]
-
-        print("\n5. Final extracted entities:")
-        print(f"   Names: {entities_data['Name']}")
-        print(f"   Accounts: {entities_data['Acc Number']}")
-
-        return processed_results
-        
     def create_label(self, text):
         label = QLabel(text)
         label.setFont(QFont("Arial", 14))

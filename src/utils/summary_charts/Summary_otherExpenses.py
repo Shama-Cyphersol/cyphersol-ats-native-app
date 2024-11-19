@@ -4,12 +4,12 @@ from PyQt6.QtCore import QUrl
 import sys
 from PyQt6.QtGui import QFont
 import json
-from datetime import datetime
+import pandas as pd
 
 class SummaryOtherExpenses(QMainWindow):
     def __init__(self,data):
         super().__init__()
-        self.setWindowTitle("Other Expenses Distribution Dashboard")
+        self.setWindowTitle("Other Expenses Dashboard")
         self.setGeometry(100, 100, 1200, 900)
 
 
@@ -18,129 +18,34 @@ class SummaryOtherExpenses(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
         
-        self.months = ['Apr-2023', 'May-2023', 'Jun-2023', 'Jul-2023', 'Aug-2023', 
-                      'Sep-2023', 'Oct-2023', 'Nov-2023', 'Dec-2023', 'Jan-2024', 
-                      'Feb-2024', 'Mar-2024']
-        
-        self.data = {
-            'Apr-2023': {
-        'Bank Charges': 6.72,
-        'Utility Bills': 588.82,
-        'Withdrawal': 31024.78,
-        'POS Txns - Dr': 283.00,
-        'UPI-Dr': 13197.00,
-        'Loan Given': 500000.00,
-        'Suspense - Dr': 216242.00,
-        'Total Debit': 761342.32
-    },
-    'May-2023': {
-        'Credit Card Payment': 30114.00,
-        'Bank Charges': 21.39,
-        'Utility Bills': 4245.64,
-        'Subscription / Entertainment': 2000.00,
-        'Withdrawal': 10000.00,
-        'UPI-Dr': 59843.40,
-        'Loan Given': 46000.00,
-        'Suspense - Dr': 40933.00,
-        'Total Debit': 193157.43
-    },
-    'Jun-2023': {
-        'Bank Charges': 45.42,
-        'Utility Bills': 588.82,
-        'Subscription / Entertainment': 5605.72,
-        'Withdrawal': 10000.00,
-        'POS Txns - Dr': 4533.00,
-        'UPI-Dr': 11094.00,
-        'Suspense - Dr': 48030.32,
-        'Total Debit': 79897.28
-    },
-    'Jul-2023': {
-        'Bank Charges': 41.76,
-        'Utility Bills': 1829.44,
-        'POS Txns - Dr': 3211.00,
-        'UPI-Dr': 12493.00,
-        'Suspense - Dr': 191094.00,
-        'Total Debit': 208669.20
-    },
-    'Aug-2023': {
-        'Bank Charges': 80.82,
-        'Utility Bills': 1395.79,
-        'Subscription / Entertainment': 1458.64,
-        'Food Expenses': 330.00,
-        'POS Txns - Dr': 490.00,
-        'UPI-Dr': 25180.00,
-        'Loan Given': 1010000.00,
-        'Suspense - Dr': 111523.90,
-        'Total Debit': 1150459.15
-    },
-    'Sep-2023': {
-        'Bank Charges': 47.20,
-        'Utility Bills': 3119.72,
-        'Online Shopping': 299.00,
-        'POS Txns - Dr': 3935.00,
-        'UPI-Dr': 28361.46,
-        'Suspense - Dr': 110489.00,
-        'Total Debit': 146251.38
-    },
-    'Oct-2023': {
-        'Bank Charges': 17.70,
-        'POS Txns - Dr': 2834.00,
-        'UPI-Dr': 19967.00,
-        'Suspense - Dr': 122961.00,
-        'Total Debit': 145779.70
-    },
-    'Nov-2023': {
-        'Bank Charges': 23.60,
-        'POS Txns - Dr': 10915.00,
-        'UPI-Dr': 31815.14,
-        'Loan Given': 71834.00,
-        'Suspense - Dr': 33886.00,
-        'Total Debit': 148473.74
-    },
-    'Dec-2023': {
-        'Credit Card Payment': 10995.00,
-        'Bank Charges': 27.72,
-        'Online Shopping': 642.00,
-        'Withdrawal': 10000.00,
-        'UPI-Dr': 67035.11,
-        'Loan Given': 71834.00,
-        'Suspense - Dr': 56505.00,
-        'Total Debit': 217038.83
-    },
-    'Jan-2024': {
-        'Bank Charges': 47.78,
-        'Utility Bills': 1428.98,
-        'Food Expenses': 481.01,
-        'UPI-Dr': 87393.30,
-        'Loan Given': 71834.00,
-        'Suspense - Dr': 397717.00,
-        'Total Debit': 558902.07
-    },
-    'Feb-2024': {
-        'Bank Charges': 39.80,
-        'Utility Bills': 1350.10,
-        'POS Txns - Dr': 2834.00,
-        'UPI-Dr': 40000.00,
-        'Loan Given': 71834.00,
-        'Suspense - Dr': 186486.00,
-        'Total Debit': 302543.90
-    },
-    'Mar-2024': {
-        'Bank Charges': 16.10,
-        'Other Expenses': 0.00,
-        'Utility Bills': 3156.96,
-        'UPI-Dr': 40000.00,
-        'Suspense - Dr': 32089.00,
-    }
-        }
+        # print("Data: \n",data)
+        self.months = self.get_months_from_data(data)
+        self.data = {}
+        for month in self.months:
+            month_data = {}
+            for _, row in data.iterrows():
+                expense_type = row['Other Expenses / Payments']
+                amount = row[month]
+                if pd.notnull(amount) and amount != 0:
+                    month_data[expense_type] = float(amount)
+            if month_data:  # Only add months that have data
+                self.data[month] = month_data
 
         # Create the web view
         self.web = QWebEngineView()
-        self.web.setFixedHeight(1600)
+        self.web.setFixedHeight(1000)
         layout.addWidget(self.web)
+
+        if self.data:
+            first_month = next(iter(self.data))
+            self.update_dashboard(first_month)
         
-        # Initialize the dashboard with the first month
-        self.update_dashboard(self.months[0])
+    def get_months_from_data(self, data):
+        month_columns = [
+            col for col in data.columns
+            if pd.to_datetime(col, format='%b-%Y', errors='coerce') is not pd.NaT
+        ]
+        return month_columns
     
     def get_highest_category(self, selected_month):
         try:
@@ -155,19 +60,22 @@ class SummaryOtherExpenses(QMainWindow):
     
     def update_dashboard(self, selected_month):
         try:
+            if selected_month not in self.data:
+                raise ValueError(f"No data available for {selected_month}")
+
             # Filter out zero values
             filtered_data = {k: v for k, v in self.data[selected_month].items() if v > 0}
             
             # Calculate metrics
             total_income = sum(filtered_data.values())
             top_category, top_amount = self.get_highest_category(selected_month)
-            
+
             # Create HTML content with modern dashboard design
             html_content = f'''
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Other Expenses Distribution Dashboard</title>
+                <title>Other Expenses Dashboard</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
                 <style>
                     * {{
@@ -220,6 +128,7 @@ class SummaryOtherExpenses(QMainWindow):
                         font-weight: bold;
                         color: #333;
                     }}
+
                     .table-container {{
                         background: white;
                         padding: 20px;
@@ -249,7 +158,7 @@ class SummaryOtherExpenses(QMainWindow):
                     .data-table tr:hover {{
                         background-color: #f5f5f5;
                     }}
-
+                    
                     .chart-container {{
                         background: white;
                         padding: 20px;
@@ -291,16 +200,26 @@ class SummaryOtherExpenses(QMainWindow):
                         color: #3B82F6;
                         font-weight: 600;
                     }}
+
+                    .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.3rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }}
                 </style>
             </head>
             <body>
                 <div class="dashboard">
-                    <div class="header">
-                        <h1>Other Expenses Distribution for <span id="selectedMonth">{selected_month}</span></h1>
+                <div class="header">
+                        <h1>Other Expenses for <span id="selectedMonth">{selected_month}</span></h1>
                     </div>
                     <div class="radio-group">
                         {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
                     </div>
+                    
                     
                     <div class="metrics-grid">
                         <div class="metric-card">
@@ -320,7 +239,7 @@ class SummaryOtherExpenses(QMainWindow):
                     </div>
 
                     <div class="table-container">
-                        <h2>Detailed OtherExpenses Breakdown</h2>
+                        <div class="table-header">Detailed Other Expenses Breakdown</div>
                         <table class="data-table" id="incomeTable">
                             <thead>
                                 <tr>
@@ -457,6 +376,8 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             
             self.web.setHtml(html_content)
+            self.web.setFixedHeight(1000)
+
         except Exception as e:
             print(f"Error updating dashboard: {e}")
             error_html = f'''
@@ -470,10 +391,3 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             self.web.setHtml(error_html)
 
-    # Prepare the data for the table
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = SummaryOtherExpenses()
-    window.show()
-    sys.exit(app.exec())

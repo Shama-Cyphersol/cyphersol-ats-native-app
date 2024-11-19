@@ -287,9 +287,15 @@ class IndividualDashboard(QMainWindow):
         elif widget_class == CashDeposit:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["cash_deposit_df"])
         elif widget_class == SuspenseDebit:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_debit_df"], total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0])
+                widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_debit_df"], 
+                                      total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0],
+                                      total_debit_txn=len(self.single_df[self.create_id()]["data"]["transaction_sheet_df"][
+                                        self.single_df[self.create_id()]["data"]["transaction_sheet_df"]["Debit"] > 0]))
         elif widget_class == SuspenseCredit:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_credit_df"], total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0])
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_credit_df"], 
+                                  total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0],
+                                  total_credit_txn=len(self.single_df[self.create_id()]["data"]["transaction_sheet_df"][
+                                    self.single_df[self.create_id()]["data"]["transaction_sheet_df"]["Credit"] > 0]))
         elif widget_class == Reversal:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["refund"])
         elif widget_class == InvestmentChart:

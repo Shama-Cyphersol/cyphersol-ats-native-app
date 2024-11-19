@@ -1,54 +1,61 @@
-# suspense_Credit.py
 import sys
 import pandas as pd
 import plotly.express as px
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl
-import tempfile
 import json
-
+import tempfile
 class SuspenseCredit(QWidget):
-    def __init__(self,data,total_transactions):
+    def __init__(self, data, total_transactions, total_credit_txn):
         super().__init__()
-        print("SuspenseCredit",data.head())
-        print("total_transactions", total_transactions)
-        # Set up layout
+
+
         layout = QVBoxLayout(self)
 
-        # Create the Plotly chart and convert to HTML
-        # data = {
-        #     "Value Date": ["12-04-2023", "25-04-2023", "25-04-2023", "27-04-2023", "20-05-2023", "14-07-2023", "07-08-2023", 
-        #                    "11-08-2023", "19-08-2023", "18-11-2023", "21-11-2023", "15-12-2023", "15-12-2023", "18-12-2023", 
-        #                    "17-01-2024", "13-03-2024", "14-03-2024", "14-03-2024", "18-03-2024", "25-03-2024"],
-        #     "Description": ["clg/chandrakantlaxman", "clg/pradeepssharma", "clg/naishadhjdalal", "clg/antketdeelip", "clg/rgsynthetics",
-        #                     "clg/mohiniikapoor", "acxfrfromgl05051to05066", "clg/rgsynthetics", "clg/babunidoni", "clg/neerajmishra",
-        #                     "clg/pranitaparagraut", "clg/savitameshr", "clg/vijayvitthalrao", "trfrfrom:sunilmarutishelke", 
-        #                     "clg/vijaykarkhile", "clg/shivdastrbak", "clg/jitendrabubhai", "clg/apexakumarinatvarlal", 
-        #                     "clg/kbgeneral", "clg/madhusudan"],
-        #     "Credit": [25000, 325000, 55000, 50000, 410000, 200000, 5192.90, 180000, 500000, 450000, 95000, 100000, 50000, 25000, 
-        #                225000, 300000, 100000, 100000, 20000, 250000]
-        # }
-
-        
+        # Chart visualization setup
         df = pd.DataFrame(data)
-        # Swap x and y to display 'Credit' on x-axis and 'Description' on y-axis
+
+        suspense_credit_count = len(df)
+
+        pie_data = {
+            'labels': ['Suspense Credit', 'Total Credit'],
+            'values': [suspense_credit_count, total_credit_txn]
+        }
+
         fig = px.bar(df, x='Credit', y='Description', color='Credit',
                      color_continuous_scale='Viridis', title='Credit Transactions')
         
         fig.update_layout(xaxis_title="Credit Amount (₹)", yaxis_title="Description", 
                           yaxis_tickangle=0, template="plotly_white")
         
-        # Save the chart as an HTML file
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
         fig.write_html(temp_file.name)
 
-        # Set up QWebEngineView to display the HTML chart
         self.web_view = QWebEngineView()
         self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
         self.web_view.setFixedHeight(700)
 
         layout.addWidget(self.web_view)
+
+        temp_file_pie = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
+        
+        fig_pie = px.pie(pie_data, names='labels', values='values', 
+                        #  color_discrete_sequence=['#a5d7a7', '#f9a19a'], 
+                         color_discrete_sequence=['#94cb94', '#f16e65'],
+                         title='Suspense Credit Transactions vs Total Credit Transactions')
+        
+        fig_pie.update_layout(margin=dict(l=10, r=40, t=50, b=10))
+        
+        fig_pie.write_html(temp_file_pie.name)
+
+        self.web_view_pie = QWebEngineView()
+        self.web_view_pie.setUrl(QUrl.fromLocalFile(temp_file_pie.name))
+        self.web_view_pie.setFixedHeight(500)
+
+        layout.addWidget(self.web_view_pie)
+        
+        # Call create_html_table to add the table below the chart
         self.create_html_table(layout, data)
 
     def create_html_table(self, layout, data):
@@ -81,6 +88,14 @@ class SuspenseCredit(QWidget):
                     border-radius: 10px;
                     padding: 20px;
                     # box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }}
+                .table-header {{
+                    text-align: center;
+                    padding: 10px;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                    font-weight: bold;
+                    margin-bottom: 10px;
                 }}
                 .table-container table {{
                     width: 100%;
@@ -126,11 +141,45 @@ class SuspenseCredit(QWidget):
                 tr:hover {{
                     background-color: #f8fafc;
                 }}
+                .search-container {{
+                    margin: 20px;
+                    padding: 10px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
+                }}
+                .no-results {{
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                    font-style: italic;
+                }}
                 
             </style>
         </head>
         <body>
             <div class="table-container">
+                <div class="table-header">Suspense Credit Data Table</div>
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Search transactions..."
+                           oninput="handleSearch()"
+                    >
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -152,33 +201,58 @@ class SuspenseCredit(QWidget):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 const data = {json.dumps(table_data)};
-                const totalPages = Math.ceil(data.length / rowsPerPage);
+                let filteredData = [...data];
+
+                function handleSearch() {{
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    
+                    filteredData = data.filter(row => {{
+                        return row.date.toLowerCase().includes(searchTerm) ||
+                               row.description.toLowerCase().includes(searchTerm) ||
+                               row.credit.toLowerCase().includes(searchTerm);
+                    }});
+                    
+                    currentPage = 1;
+                    updateTable();
+                }}
 
                 function updateTable() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
                     const end = start + rowsPerPage;
-                    const pageData = data.slice(start, end);
+                    const pageData = filteredData.slice(start, end);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
                     
-                    pageData.forEach(row => {{
-                        const tr = `
+                    if (filteredData.length === 0) {{
+                        tableBody.innerHTML = `
                             <tr>
-                                <td>${{row.date}}</td>
-                                <td>${{row.description}}</td>
-                                <td>${{row.credit}}</td>
+                                <td colspan="5" class="no-results">No matching results found</td>
                             </tr>
                         `;
-                        tableBody.innerHTML += tr;
-                    }});
+                    }} else{{
+                        pageData.forEach(row => {{
+                            const tr = `
+                                <tr>
+                                    <td>${{row.date}}</td>
+                                    <td>${{row.description}}</td>
+                                    <td>${{row.credit}}</td>
+                                </tr>
+                            `;
+                            tableBody.innerHTML += tr;
+                        }});
+                    }}
+
                     
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
-                    document.getElementById('prevButton').disabled = currentPage === 1;
-                    document.getElementById('nextButton').disabled = currentPage === totalPages;
+                    
+                    document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
+                    document.getElementById('prevBtn').disabled = currentPage === 1;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
 
                 function nextPage() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();
@@ -199,5 +273,6 @@ class SuspenseCredit(QWidget):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setMinimumHeight(600)
+        web_view.setMinimumHeight(800)
         layout.addWidget(web_view)
+

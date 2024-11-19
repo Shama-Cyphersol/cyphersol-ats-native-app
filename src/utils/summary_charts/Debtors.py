@@ -13,7 +13,6 @@ class DebtorsChart(QMainWindow):
         self.browser = QWebEngineView()
         data = data.sort_values(by="Value Date")
         self.data = data
-        
         # # Prepare data
         # dates = ["04-03-2024", "15-07-2023", "19-03-2024", "26-02-2024", "19-04-2023"]
         # credits = [79873.00, 100000.00, 18000.00, 50000.00, 5000.00]
@@ -37,6 +36,7 @@ class DebtorsChart(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
         self.create_data_table_debtor(layout)
 
     def create_html(self, dates, credits, balances):
@@ -106,6 +106,7 @@ class DebtorsChart(QMainWindow):
         """
         return html
 
+
     def create_data_table_debtor(self, layout):
         web_view = QWebEngineView()
         
@@ -147,6 +148,25 @@ class DebtorsChart(QMainWindow):
                     font-size: 1.2rem;
                     font-weight: bold;
                     margin-bottom: 10px;
+                }}
+                .search-container {{
+                    margin: 20px;
+                    padding: 10px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
                 }}
                 table {{
                     width: 100%;
@@ -199,11 +219,25 @@ class DebtorsChart(QMainWindow):
                     font-weight: bold;
                     color: #333333;
                 }}
+                .no-results {{
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                    font-style: italic;
+                }}
             </style>
         </head>
         <body>
             <div class="table-container">
                 <div class="table-header">Debtors Data Table</div>
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Search transactions..."
+                           oninput="handleSearch()"
+                    >
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -229,37 +263,63 @@ class DebtorsChart(QMainWindow):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 const data = {json.dumps(table_data)};
-                const totalPages = Math.ceil(data.length / rowsPerPage);
-                
+                let filteredData = [...data];
+
+                function handleSearch() {{
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    
+                    filteredData = data.filter(row => {{
+                        return row.date.toLowerCase().includes(searchTerm) ||
+                               row.description.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().includes(searchTerm) ||
+                               row.credit.toLowerCase().includes(searchTerm) ||
+                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.category.toLowerCase().includes(searchTerm);
+                    }});
+                    
+                    currentPage = 1;
+                    updateTable();
+                }}                
 
                 function updateTable() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
                     const end = start + rowsPerPage;
-                    const pageData = data.slice(start, end);
+                    const pageData = filteredData.slice(start, end);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
                     
-                    pageData.forEach(row => {{
-                        const tr = `
+                    if (filteredData.length === 0) {{
+                        tableBody.innerHTML = `
                             <tr>
-                                <td>${{row.date}}</td>
-                                <td class="description-column">${{row.description}}</td>
-                                <td>${{row.debit}}</td>
-                                <td>${{row.credit}}</td>
-                                <td>${{row.balance}}</td>
-                                <td>${{row.category}}</td>
+                                <td colspan="6" class="no-results">No matching results found</td>
                             </tr>
                         `;
-                        tableBody.innerHTML += tr;
-                    }});
-                    
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    }}else{{
+                        pageData.forEach(row => {{
+                            const tr = `
+                                <tr>
+                                    <td>${{row.date}}</td>
+                                    <td class="description-column">${{row.description}}</td>
+                                    <td>${{row.debit}}</td>
+                                    <td>${{row.credit}}</td>
+                                    <td>${{row.balance}}</td>
+                                    <td>${{row.category}}</td>
+                                </tr>
+                            `;
+                            tableBody.innerHTML += tr;
+                        }});
+                    }}
+
+
+                    document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
                     document.getElementById('prevBtn').disabled = currentPage === 1;
-                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
 
                 function nextPage() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();
@@ -281,5 +341,5 @@ class DebtorsChart(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setMinimumHeight(1000)  # Set minimum height for the table
+        web_view.setMinimumHeight(800)  # Set minimum height for the table
         layout.addWidget(web_view)

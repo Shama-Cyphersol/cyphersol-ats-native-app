@@ -29,7 +29,7 @@ class EODBalanceChart(QMainWindow):
         html_content = self.create_html_content(months_data)
         
         # Set HTML content in the QWebEngineView
-        self.web_view.setFixedHeight(1300)
+        self.web_view.setFixedHeight(800)
         self.web_view.setHtml(html_content)
     
     def process_data(self):
@@ -88,7 +88,6 @@ class EODBalanceChart(QMainWindow):
                     font-family: Arial, sans-serif;
                     background-color: #f8fafc;
                     height: full;
-
                 }}
                 .chart-container {{ 
                     width: 80%;
@@ -122,6 +121,25 @@ class EODBalanceChart(QMainWindow):
                     margin-right: 15px;
                     font-size: 16px;
                 }}
+                .search-container {{
+                    margin: 20px;
+                    padding: 10px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
+                }}
                 table {{
                     width: 100%;
                     border-collapse: collapse;
@@ -129,8 +147,6 @@ class EODBalanceChart(QMainWindow):
                     height: auto;
                 }}
                 th, td {{
-
-                    # border: 1px solid #e2e8f0;
                     padding: 8px;
                     text-align: center;
                 }}
@@ -138,11 +154,9 @@ class EODBalanceChart(QMainWindow):
                     padding: 10px;
                     background-color: white;
                     color: black;
-                    
                     text-align: center;
                     border-bottom: 1px solid #ddd;
                 }}
-                
                 .table-container th {{
                     background-color: #3498db;
                     color: white;
@@ -189,6 +203,9 @@ class EODBalanceChart(QMainWindow):
             
             <div class="table-container">
                 <div class="title">Monthly Data</div>
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by day or amount...">
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -222,6 +239,7 @@ class EODBalanceChart(QMainWindow):
                 }});
 
                 let selectedMonth = Object.keys(monthsData)[0];
+                let searchTerm = '';
                 
                 function generateLabels(dataLength) {{
                     return Array.from({{length: dataLength}}, (_, i) => (i + 1).toString());
@@ -280,11 +298,25 @@ class EODBalanceChart(QMainWindow):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 
-                function updateTable() {{
+                function filterData() {{
                     const currentData = tableData[selectedMonth];
-                    const totalPages = Math.ceil(currentData.length / rowsPerPage);
+                    if (!searchTerm) return currentData;
+                    
+                    return currentData.filter(item => {{
+                        const dayStr = item.day.toString();
+                        const valueStr = item.value.toFixed(2).toString();
+                        const searchTermLower = searchTerm.toLowerCase();
+                        
+                        return dayStr.includes(searchTermLower) || 
+                               valueStr.includes(searchTermLower);
+                    }});
+                }}
+                
+                function updateTable() {{
+                    const filteredData = filterData();
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
-                    const end = Math.min(start + rowsPerPage, currentData.length);
+                    const end = Math.min(start + rowsPerPage, filteredData.length);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
@@ -292,19 +324,23 @@ class EODBalanceChart(QMainWindow):
                     for (let i = start; i < end; i++) {{
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>${{currentData[i].day}}</td>
-                            <td>${{currentData[i].value.toFixed(2)}}</td>
+                            <td>${{filteredData[i].day}}</td>
+                            <td>${{filteredData[i].value.toFixed(2)}}</td>
                         `;
                         tableBody.appendChild(tr);
                     }}
                     
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    document.getElementById('pageInfo').textContent = 
+                        filteredData.length > 0 
+                            ? `Page ${{currentPage}} of ${{totalPages}}` 
+                            : 'No results found';
+                    
                     document.getElementById('prevBtn').disabled = currentPage === 1;
-                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
                 
                 function nextPage() {{
-                    const totalPages = Math.ceil(tableData[selectedMonth].length / rowsPerPage);
+                    const totalPages = Math.ceil(filterData().length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();
@@ -317,6 +353,14 @@ class EODBalanceChart(QMainWindow):
                         updateTable();
                     }}
                 }}
+                
+                // Search functionality
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', function(e) {{
+                    searchTerm = e.target.value;
+                    currentPage = 1; // Reset to first page when searching
+                    updateTable();
+                }});
                 
                 // Update chart and table when radio button changes
                 document.querySelectorAll('input[name="month"]').forEach(radio => {{
@@ -336,8 +380,10 @@ class EODBalanceChart(QMainWindow):
                         
                         financialChart.update('active');
                         
-                        // Reset pagination and update table
+                        // Reset pagination and search
                         currentPage = 1;
+                        searchTerm = '';
+                        searchInput.value = '';
                         updateTable();
                     }});
                 }});

@@ -356,9 +356,9 @@ class CashFlowNetwork(QMainWindow):
         
         # Create legend elements
         legend_elements = [
-            Patch(facecolor=self.color_palette['Person'], label='Person Node', alpha=0.85),
-            Patch(facecolor=self.color_palette['Entity'], label='Single-Connection Entity', alpha=0.85),
-            Patch(facecolor=self.color_palette['CommonEntity'], label='Multi-Connection Entity', alpha=0.85),
+            Patch(facecolor=self.color_palette['Person'], label='Statement Person', alpha=0.85),
+            Patch(facecolor=self.color_palette['Entity'], label='Entity', alpha=0.85),
+            Patch(facecolor=self.color_palette['CommonEntity'], label='Common Entity', alpha=0.85),
             Patch(facecolor='red', label='Debit Transaction', alpha=0.6),
             Patch(facecolor='green', label='Credit Transaction', alpha=0.6),
         ]

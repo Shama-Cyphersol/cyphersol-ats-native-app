@@ -31,7 +31,7 @@ class SummaryParticular(QMainWindow):
         layout = QVBoxLayout(transactions_widget)
         
         web_view = QWebEngineView()
-        web_view.setFixedHeight(600)
+        web_view.setFixedHeight(800)
         layout.addWidget(web_view)
         
         # Extract the months and transaction data for the chart
