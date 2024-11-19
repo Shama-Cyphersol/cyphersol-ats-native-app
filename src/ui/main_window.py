@@ -8,12 +8,15 @@ from .settings import SettingsTab
 from .reports import ReportsTab
 from .name_manager import NameManagerTab
 import pandas as pd
+from core.db import Database
+from sqlalchemy.sql import text  # Import the text function
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("CypherSol")
+        self.initialize_database()
         self.setGeometry(100, 100, 1200, 800)
         self.setStyleSheet("""
                            
@@ -134,6 +137,20 @@ class MainWindow(QMainWindow):
         # Connect buttons
         for i, btn in enumerate(self.nav_buttons):
             btn.clicked.connect(lambda checked, index=i: self.switch_page(index))
+
+    def initialize_database(self):
+        """Initial method to set up or validate the database connection"""
+        try:
+            db = Database.get_session()
+            # Use text() to wrap the raw SQL query
+            result = db.execute(text("SELECT datetime('now');")).fetchone()
+            if result:
+                print("Database connection established successfully.")
+            else:
+                print("Failed to retrieve data from the database.")
+            db.close()  # Always close the session after use
+        except Exception as e:
+            print(f"Error initializing database: {e}")
 
     def switch_page(self, index):
         self.content_area.setCurrentIndex(index)
