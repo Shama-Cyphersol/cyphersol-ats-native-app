@@ -30,10 +30,6 @@ This app provides a user-friendly interface to manage files, view dashboards, ge
 
 ---
 
-
-
----
-
 ## Libraries and Dependencies
 
 This project uses the following libraries:
