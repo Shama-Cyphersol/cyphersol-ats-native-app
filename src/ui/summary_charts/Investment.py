@@ -12,7 +12,6 @@ class InvestmentChart(QMainWindow):
         
         # Transaction data
         self.data = data
-        print(self.data.head())
 
         # Create central widget and layout
         central_widget = QWidget()
@@ -200,6 +199,25 @@ class InvestmentChart(QMainWindow):
                     font-weight: bold;
                     margin-bottom: 10px;
                 }}
+                .search-container {{
+                    margin: 20px;
+                    padding: 10px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
+                }}
                 table {{
                     width: 100%;
                     border-collapse: collapse;
@@ -250,11 +268,26 @@ class InvestmentChart(QMainWindow):
                     font-weight: bold;
                     color: #333333;
                 }}
+
+                 .no-results {{
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                    font-style: italic;
+                }}
             </style>
         </head>
         <body>
             <div class="table-container">
                 <div class="table-header">Investment Transactions Data</div>
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Search..."
+                           oninput="handleSearch()"
+                    >
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -279,15 +312,41 @@ class InvestmentChart(QMainWindow):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 const data = {json.dumps(table_data)};
-                const totalPages = Math.ceil(data.length / rowsPerPage);
+                let filteredData = [...data];
+                
+
+                function handleSearch() {{
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    
+                    filteredData = data.filter(row => {{
+                        return row.date.toLowerCase().includes(searchTerm) ||
+                               row.description.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().includes(searchTerm) ||
+                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.category.toLowerCase().includes(searchTerm);
+                    }});
+                    
+                    currentPage = 1;
+                    updateTable();
+                }}
+                
 
                 function updateTable() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
                     const end = start + rowsPerPage;
-                    const pageData = data.slice(start, end);
+                    const pageData = filteredData.slice(start, end);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
+
+                    if (filteredData.length === 0) {{
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="no-results">No matching results found</td>
+                            </tr>
+                        `;
+                    }}else{{
                     
                     pageData.forEach(row => {{
                         const tr = `
@@ -301,13 +360,14 @@ class InvestmentChart(QMainWindow):
                         `;
                         tableBody.innerHTML += tr;
                     }});
-                    
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    }}
+                    document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
                     document.getElementById('prevBtn').disabled = currentPage === 1;
-                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
 
                 function nextPage() {{
+                const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();
@@ -328,5 +388,5 @@ class InvestmentChart(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setMinimumHeight(600)
+        web_view.setMinimumHeight(800)
         layout.addWidget(web_view)

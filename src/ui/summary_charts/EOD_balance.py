@@ -11,7 +11,7 @@ class EODBalanceChart(QMainWindow):
         self.setWindowTitle("Daily Financial Trends")
         self.resize(1400, 800)
         self.data = data
-        print(self.data.head())
+        # print(self.data.head())
         
         # Create main widget and layout
         main_widget = QWidget()

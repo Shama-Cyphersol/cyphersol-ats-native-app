@@ -1,83 +1,70 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
-                             QHeaderView, QDialog, QPushButton)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
-from .case_dashboard import CaseDashboard
+import sys
+import os
+from typing import List, Dict
+
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QTableWidget, QTableWidgetItem, QHeaderView, QDialog, 
+    QPushButton, QFileDialog, QMessageBox, QGraphicsDropShadowEffect, QToolButton
+)
+from PyQt6.QtCore import Qt, QSize, QUrl
+from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+
 from utils.json_logic import load_all_case_data, load_case_data
 
-class IndividualsDialog(QDialog):
-    def __init__(self, case_id, parent=None):
+
+
+class ModernStyledTableWidget(QTableWidget):
+    def __init__(self, columns: List[str], parent=None):
         super().__init__(parent)
-        self.case_id = case_id
-        self.init_ui()
+        self.setup_ui(columns)
 
-    def init_ui(self):
-        # Set up dialog properties
-        self.setWindowTitle(f"Individuals in Case {self.case_id}")
-        self.setMinimumSize(800, 600)
+    def setup_ui(self, columns: List[str]):
+        # Configure table
+        self.setColumnCount(len(columns))
+        self.setHorizontalHeaderLabels(columns)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.verticalHeader().setVisible(False)
 
-        # Main layout
-        layout = QVBoxLayout()
-
-        # Title
-        title = QLabel(f"Individuals in Case {self.case_id}")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
-        layout.addWidget(title)
-
-        # Create table for individuals
-        self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["Sr no.", "Individual Name", "Account Number"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.verticalHeader().setVisible(False)
-        
-        # Style the table
-        self.table.setStyleSheet("""
+        # Modern styling
+        self.setStyleSheet("""
             QTableWidget {
                 background-color: white;
-                border-radius: 10px;
+                border-radius: 12px;
+                alternate-background-color: #f0f4f8;
+                selection-background-color: #3498db;
+                selection-color: white;
             }
             QHeaderView::section {
                 background-color: #3498db;
                 color: white;
+                padding: 10px;
+                font-size: 14px;
                 font-weight: bold;
                 border: none;
-                padding: 8px;
+                border-bottom: 2px solid #34495e;
+            }
+            QTableWidget::item {
+                border-bottom: 1px solid #ecf0f1;
+                color: #34495e;
+            }
+             QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
             }
         """)
 
-        # Load case data
-        case_data = load_case_data(self.case_id)
-        names = case_data['individual_names']['Name']
-        acc_numbers = case_data['individual_names']['Acc Number']
-        
-        # Set row count
-        self.table.setRowCount(len(names))
+        # Hover and selection effects
+        self.setAlternatingRowColors(True)
+        self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
 
-        for row in range(len(names)):
-            # Serial Number
-            serial_number = QTableWidgetItem(str(row + 1))
-            serial_number.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            serial_number.setFlags(serial_number.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 0, serial_number)
-
-            # Individual Name
-            name_item = QTableWidgetItem(names[row])
-            print(names[row])
-            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            name_item.setFlags(name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 1, name_item)
-
-            # Account Number
-            acc_item = QTableWidgetItem(str(acc_numbers[row]))
-            acc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            acc_item.setFlags(acc_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 2, acc_item)
-
-        self.table.setStyleSheet("color: black;")
-        layout.addWidget(self.table)
-        self.setLayout(layout)
 
 class ReportsTab(QWidget):
     def __init__(self):
@@ -86,80 +73,169 @@ class ReportsTab(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)
-
-        # Title
-        title = QLabel("Reports Overview")
-        title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50;")
+        
+        # Title with shadow effect
+        title = QLabel("Case Reports")
+        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
+        
+        # Add shadow to title
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 50))
+        shadow.setOffset(0, 2)
+        title.setGraphicsEffect(shadow)
+        
         layout.addWidget(title)
-        layout.addWidget(self.create_recent_reports_table())
+
+        # Create reports table
+        self.reports_table = ModernStyledTableWidget([
+            "Sr No.", "Date", "Case ID", "Report Name", "Actions"
+        ])
+        self.populate_reports_table()
+        
+        # Connect row click
+        self.reports_table.cellClicked.connect(self.show_case_individuals)
+
+        layout.addWidget(self.reports_table)
         self.setLayout(layout)
 
-    def create_recent_reports_table(self):
-        # Create the table widget with 4 columns
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.verticalHeader().setVisible(False)
-
-        self.table.setHorizontalHeaderLabels(["Sr no.", "Date", "Case ID", "Report Name"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border-radius: 10px;
-            }
-            QHeaderView::section {
-                background-color: #3498db;
-                color: white;
-                font-weight: bold;
-                border: none;
-                padding: 8px;
-            }
-            QTableWidget::item {
-                text-align: center;
-                color: black;
-                padding: 5px;
-            }
-        """)
-        self.table.cellClicked.connect(self.case_id_clicked)
-
+    def populate_reports_table(self):
         recent_reports = load_all_case_data()
-        self.table.setRowCount(len(recent_reports))
+        self.reports_table.setRowCount(len(recent_reports))
         
-        # Populate the table with data
         for row, report in enumerate(recent_reports):
-            # Serial Number column
-            serial_number_item = QTableWidgetItem(str(row + 1))
-            serial_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            serial_number_item.setFlags(serial_number_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 0, serial_number_item)
+            # Standard columns
+            for col, key in enumerate(["Sr No.", "Date", "Case ID", "Report Name"]):
+                value = str(row + 1) if key == "Sr No." else report.get(key.lower().replace(" ", "_"), "")
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setFlags(item.flags() ^ Qt.ItemFlag.ItemIsEditable)
+                self.reports_table.setItem(row, col, item)
+            
+            # Action button
+            label = QLabel(f'<a href="#">View Details</a>')
+            label.setStyleSheet("a { color: #3498db; } a:hover { color: #2980b9; }")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setOpenExternalLinks(False)  # Disable opening links in browser
+            label.mousePressEvent = lambda event, r=row: self.show_case_individuals(r,0)  # Attach row click handler
+            self.reports_table.setCellWidget(row, 4, label)
 
-            # Date column
-            date_item = QTableWidgetItem(report['date'])
-            date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            date_item.setFlags(date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 1, date_item)
-
-            # Case ID column
-            case_id_item = QTableWidgetItem(str(report['case_id']))
-            case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 2, case_id_item)
-
-            # Report Name column
-            report_name_item = QTableWidgetItem(report['report_name'])
-            report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 3, report_name_item)
-
-        return self.table
-    
-    def case_id_clicked(self, row, column):
-        # Get the case ID when a case is clicked
-        case_id = self.table.item(row, 2).text()
-        
-        # Open a new dialog with individuals for this case
+    def show_case_individuals(self, row, column):
+        case_id = self.reports_table.item(row, 2).text()
         individuals_dialog = IndividualsDialog(case_id, parent=self)
         individuals_dialog.exec()
+
+
+class IndividualsDialog(QDialog):
+    def __init__(self, case_id, parent=None):
+        super().__init__(parent)
+        self.case_id = case_id
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle(f"Individuals in Case {self.case_id}")
+        self.setMinimumSize(900, 600)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+        self.setStyleSheet("background-color: white;")
+
+        layout = QVBoxLayout()
+
+        # Header section
+        header_layout = QHBoxLayout()
+        title = QLabel(f"Case {self.case_id} - Individual Details")
+        title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2c3e50;")
+        header_layout.addWidget(title)
+        layout.addLayout(header_layout)
+
+        # Individuals Table
+        self.individuals_table = ModernStyledTableWidget([
+            "Sr No.", "Individual Name", "Account Number", "Actions"
+        ])
+        self.populate_individuals_table()
+        
+        layout.addWidget(self.individuals_table)
+
+        self.setLayout(layout)
+
+    def populate_individuals_table(self):
+        case_data = load_case_data(self.case_id)
+        names = case_data['individual_names']['Name']
+        acc_numbers = case_data['individual_names']['Acc Number']
+        
+        self.individuals_table.setRowCount(len(names))
+
+        for row in range(len(names)):
+            # Serial Number
+            serial_item = QTableWidgetItem(str(row + 1))
+            serial_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.individuals_table.setItem(row, 0, serial_item)
+
+            # Name
+            name_item = QTableWidgetItem(names[row])
+            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.individuals_table.setItem(row, 1, name_item)
+
+            # Account Number
+            acc_item = QTableWidgetItem(str(acc_numbers[row]))
+            acc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.individuals_table.setItem(row, 2, acc_item)
+
+            # Actions Button
+            # download_btn = QPushButton("Download Report")
+            # download_btn.setStyleSheet("""
+            #     QPushButton {
+            #         background-color: #2ecc71;
+            #         color: white;
+            #         border: none;
+            #         padding: 5px 10px;
+            #         border-radius: 5px;
+            #     }
+            #     QPushButton:hover {
+            #         background-color: #27ae60;
+            #     }
+            # """)
+            # download_btn.clicked.connect(
+            #     lambda checked, n=names[row], a=acc_numbers[row]: 
+            #     self.download_individual_report(n, a)
+            # )
+            # self.individuals_table.setCellWidget(row, 4, download_btn)
+            label = QLabel(f'<a href="#">Download Report</a>')
+            label.setStyleSheet("QLabel { color: #3498db; } QLabel:hover { color: #2980b9; }")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setOpenExternalLinks(False)  # Disable opening links in browser
+            label.mousePressEvent = lambda checked, n=names[row], a=acc_numbers[row]:self.download_individual_report(n, a)   # Attach row click handler
+            self.individuals_table.setCellWidget(row, 3, label)
+
+    def download_individual_report(self, name, acc_number):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Save Individual Report", 
+            f"{name}_{acc_number}_report.pdf", 
+            "PDF Files (*.pdf);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w') as f:
+                    f.write(f"Report for {name} (Account: {acc_number})\n")
+                
+                QMessageBox.information(
+                    self, 
+                    "Report Downloaded", 
+                    f"Report for {name} has been saved to {file_path}"
+                )
+            except Exception as e:
+                QMessageBox.warning(
+                    self, 
+                    "Download Failed", 
+                    f"Could not save report: {str(e)}"
+                )
+
+# Example usage
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    reports_tab = ReportsTab()
+    reports_tab.show()
+    sys.exit(app.exec())

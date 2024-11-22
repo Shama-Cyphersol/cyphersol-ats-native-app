@@ -296,7 +296,6 @@ class ReportGeneratorTab(QWidget):
             self.web_view = QWebEngineView()
             self.web_page = CustomWebPage(self.web_view)
             self.web_view.setPage(self.web_page)
-            self.web_view.setFixedHeight(500)
             
             # Create and set up web channel
             self.channel = QWebChannel()
@@ -579,6 +578,7 @@ class ReportGeneratorTab(QWidget):
             
             # Start checking for initialization
             QTimer.singleShot(100, check_initialization)
+            self.web_view.setFixedHeight(800)
             return self.web_view
 
     def update_table_data(self):

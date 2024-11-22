@@ -10,7 +10,7 @@ class Reversal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Financial Dashboard")
         self.resize(1200, 800)
-        print("Reversal",data.head())
+        # print("Reversal",data.head())
         
         main_widget = QWidget()
         self.setCentralWidget(main_widget)

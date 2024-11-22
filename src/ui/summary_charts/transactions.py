@@ -13,7 +13,7 @@ class BankTransactionDashboard(QMainWindow):
         self.resize(1200, 1200)
         self.data = data
 
-        print("data",self.data.head())
+        # print("data",self.data.head())
 
         # Convert date column to datetime if it's not already
         self.data['Value Date'] = pd.to_datetime(self.data['Value Date'])

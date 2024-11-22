@@ -11,7 +11,7 @@ class CashDeposit(QMainWindow):
 
         # Transaction data (this can be replaced with real data as shown in the example dataframe)
         self.data = data
-        print(self.data.head())
+        # print(self.data.head())
 
         # Process data for monthly aggregation
         self.data['Month-Year'] = self.data['Value Date'].dt.to_period('M')

@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QHeaderView, QGraphicsDropShadowEffect,
-                             QScrollArea, QDialog,QPushButton,QSplitter,QSizePolicy)
+                             QScrollArea, QDialog, QPushButton, QSplitter, QSizePolicy)
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
+
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QObject, pyqtSlot, QUrl
 import pandas as pd
 import os
-from utils.json_logic import *
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-import json
 import json
 def create_entity_distribution_chart(result):
     try:
@@ -24,6 +26,17 @@ def create_entity_distribution_chart(result):
         })
         return EntityDistributionChart(data={"piechart_data":dummy_data,"table_data":dummy_data,"all_transactions":pd.DataFrame()})
    
+
+class WebBridge(QObject):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent_widget = parent
+
+    @pyqtSlot(int)
+    def adjustHeight(self, height):
+        self.parent_widget.web.setMinimumHeight(height)
+
+
 class EntityDistributionChart(QWidget):
     def __init__(self, data):
         super().__init__()
@@ -40,8 +53,24 @@ class EntityDistributionChart(QWidget):
         
         # Create web view
         self.web = QWebEngineView()
+        self.web.setMinimumHeight(1400)
         layout.addWidget(self.web)
         
+        # Create web channel
+        self.channel = QWebChannel()
+
+        # Create web bridge
+        self.web_bridge = WebBridge(self)
+
+        self.channel.registerObject('pyqtBridge', self.web_bridge)
+
+        self.web_bridge = WebBridge(self)
+
+        # Set up the web page
+        self.web_page = QWebEnginePage(self.web)
+        self.web_page.setWebChannel(self.channel)
+        self.web.setPage(self.web_page)
+
         # Process data for chart
         piechart_data = {}
         for _, row in self.piechart_data.iterrows():
@@ -80,6 +109,7 @@ class EntityDistributionChart(QWidget):
         <head>
             <title>Entity Distribution</title>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+            <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
             <style>
                 * {{
                     margin: 0;
@@ -216,6 +246,27 @@ class EntityDistributionChart(QWidget):
                     font-size: 14px;
                     margin-right: 4px;
                 }}
+                .search-container {{
+                    margin: 20px 0;
+                    padding: 10px;
+                }}
+                .search-input {{
+                    width: 300px;
+                    padding: 10px;
+                    border: 2px solid #3498db;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                }}
+                .search-input:focus {{
+                    border-color: #2980b9;
+                }}
+                .no-results {{
+                        text-align: center;
+                        padding: 20px;
+                        color: #666;
+                        font-style: italic;
+                }}
 
             </style>
         </head>
@@ -227,6 +278,14 @@ class EntityDistributionChart(QWidget):
             
             <div class="table-container">
                 <div class="table-header">Complete Entity Frequency List</div>
+                <div class="search-container">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-input" 
+                           placeholder="Search Entities..."
+                           oninput="handleSearch()"
+                    >
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -249,12 +308,16 @@ class EntityDistributionChart(QWidget):
 
             
             <script>
+                new QWebChannel(qt.webChannelTransport, function(channel) {{
+                    window.pyqtBridge = channel.objects.pyqtBridge;
+                }});
                 const piechart_data = {json.dumps(piechart_data)};
                 const table_data = {json.dumps(table_data)};
                 const transactionsByEntity = {json.dumps(transactions_by_entity)};
                 let currentTransactionsPage = 1;
                 const transactionsPerPage = 10;
                 let currentEntityTransactions = [];
+                
 
 
                 const colors = [
@@ -330,74 +393,107 @@ class EntityDistributionChart(QWidget):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 const data = Object.entries(table_data).sort((a, b) => b[1] - a[1]);
-                const totalPages = Math.ceil(data.length / rowsPerPage);
+                let filteredData = [...data];
+
+                function handleSearch() {{
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    
+                    filteredData = data.filter(row => {{
+                        return (row[0] || '').toLowerCase().includes(searchTerm) ||
+                               (String(row[1]) || '').toLowerCase().includes(searchTerm);
+                    }});
+                    
+                    currentPage = 1;
+                    updateTable();
+                }}
 
                 function updateTable() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     const start = (currentPage - 1) * rowsPerPage;
                     const end = start + rowsPerPage;
-                    const pageData = data.slice(start, end);
+                    const pageData = filteredData.slice(start, end);
                     
                     const tableBody = document.getElementById('tableBody');
                     tableBody.innerHTML = '';
                     
-                    pageData.forEach(([entity, frequency]) => {{
-                        const row = `
-                            <tr class="tr-list" onclick="showTransactionTable('${{entity}}')">
-                                <td class="key">${{entity}}</td>
-                                <td>${{frequency}}</td>
+                    if (filteredData.length === 0) {{
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="2" class="no-results">No matching results found</td>
                             </tr>
                         `;
-                        tableBody.innerHTML += row;
-                    }});
+                    }}else{{
+                        pageData.forEach(([entity, frequency]) => {{
+                            const row = `
+                                <tr class="tr-list" onclick="showTransactionTable('${{entity}}')">
+                                    <td class="key">${{entity}}</td>
+                                    <td>${{frequency}}</td>
+                                </tr>
+                            `;
+                            tableBody.innerHTML += row;
+                        }});
+                    }}
+
                     
-                    document.getElementById('pageInfo').textContent = `Page ${{currentPage}} of ${{totalPages}}`;
+                    
+                    document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
                     document.getElementById('prevBtn').disabled = currentPage === 1;
-                    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                    document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
                 }}
 
+                let currentEntity = '';
+
                 function updateTransactionsTable(entity) {{
+                    const transactions = filteredEntityTransactions;
+    
                     const start = (currentTransactionsPage - 1) * transactionsPerPage;
                     const end = start + transactionsPerPage;
-                    const pageTransactions = currentEntityTransactions.slice(start, end);
-                    const totalTransactionsPages = Math.ceil(currentEntityTransactions.length / transactionsPerPage);
+                    const pageTransactions = transactions.slice(start, end);
+                    const totalTransactionsPages = Math.ceil(transactions.length / transactionsPerPage);
                     
-                    const transactionTableHtml = `
-                        <div class="table-container">
-                                <button class="close-button" onclick="closeTransactionTable()">Close</button>
-                            <div class="table-header-container">
-                                <div class="table-header">Transactions for ${{entity}}</div>
-                            </div>
-                            <table class="transaction-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Description</th>
-                                        <th>Debit</th>
-                                        <th>Credit</th>
-                                        <th>Category</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${{pageTransactions.map(t => `
-                                        <tr>
-                                            <td>${{t.date}}</td>
-                                            <td>${{t.description}}</td>
-                                            <td class="amount-cell debit">${{t.debit}}</td>
-                                            <td class="amount-cell credit">${{t.credit}}</td>
-                                            <td>${{t.category}}</td>
-                                        </tr>
-                                    `).join('')}}
-                                </tbody>
-                            </table>
-                            <div class="pagination">
-                                <button onclick="previousTransactionsPage('${{entity}}')" ${{currentTransactionsPage === 1 ? 'disabled' : ''}}>Previous</button>
-                                <span>Page ${{currentTransactionsPage}} of ${{totalTransactionsPages}}</span>
-                                <button onclick="nextTransactionsPage('${{entity}}')" ${{currentTransactionsPage === totalTransactionsPages ? 'disabled' : ''}}>Next</button>
-                            </div>
-                        </div>
-                    `;
+                    const transactionTableBody = document.getElementById('transactionTableBody');
+                    transactionTableBody.innerHTML = '';
+                    
+                    if (transactions.length === 0) {{
+                        transactionTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="no-results">No matching transactions found</td>
+                            </tr>
+                        `;
+                        
+                        // Disable pagination buttons
+                        document.getElementById('transactionPageInfo').textContent = '';
+                        document.getElementById('prevTransactionBtn').disabled = true;
+                        document.getElementById('nextTransactionBtn').disabled = true;
+                    }} else {{
+                        // Populate table with transactions
+                        pageTransactions.forEach(t => {{
+                            const row = `
+                                <tr>
+                                    <td>${{t.date}}</td>
+                                    <td>${{t.description}}</td>
+                                    <td class="amount-cell debit">${{t.debit}}</td>
+                                    <td class="amount-cell credit">${{t.credit}}</td>
+                                    <td>${{t.category}}</td>
+                                </tr>
+                            `;
+                            transactionTableBody.innerHTML += row;
+                        }});
+                        
+                        // Update pagination
+                        document.getElementById('transactionPageInfo').textContent = `Page ${{currentTransactionsPage}} of ${{totalTransactionsPages}}`;
+                        document.getElementById('prevTransactionBtn').disabled = currentTransactionsPage === 1;
+                        document.getElementById('nextTransactionBtn').disabled = currentTransactionsPage === totalTransactionsPages;
+                    }}
+                }}
 
-                    document.getElementById('table-container-nested').innerHTML = transactionTableHtml;
+                function adjustWebViewHeight() {{
+                    // This will communicate back to PyQt to adjust the height
+                    window.pyqtBridge.adjustHeight(2100);
+                }}
+                function adjustWebViewHeightClose() {{
+                    // This will communicate back to PyQt to adjust the height
+                    window.pyqtBridge.adjustHeight(1400);
                 }}
 
                 function showTransactionTable(entity) {{
@@ -405,7 +501,7 @@ class EntityDistributionChart(QWidget):
                     currentEntityTransactions = transactions;
                     currentTransactionsPage = 1;
                     
-                   if (transactions.length === 0) {{
+                    if (transactions.length === 0) {{
                         document.getElementById('table-container-nested').innerHTML = `
                             <div class="table-container">
                                 <div class="table-header-container">
@@ -417,6 +513,70 @@ class EntityDistributionChart(QWidget):
                         return;
                     }}
                     
+                    const transactionTableHtml = `
+                        <div class="table-container">
+                            <button class="close-button" onclick="closeTransactionTable()">Close</button>
+                            <div class="table-header-container">
+                                <div class="table-header">Transactions for ${entity}</div>
+                            </div>
+                            <div class="search-container">
+                                <input type="text" 
+                                    id="transactionSearchInput" 
+                                    class="search-input" 
+                                    placeholder="Search Transactions..."
+                                    oninput="handleTransactionSearch('${entity}')"
+                                >
+                            </div>
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Debit</th>
+                                        <th>Credit</th>
+                                        <th>Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody">
+                                </tbody>
+                            </table>
+                            <div class="pagination">
+                                <button id="prevTransactionBtn" onclick="previousTransactionsPage('${entity}')">Previous</button>
+                                <span id="transactionPageInfo"></span>
+                                <button id="nextTransactionBtn" onclick="nextTransactionsPage('${entity}')">Next</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('table-container-nested').innerHTML = transactionTableHtml;
+                    
+                    // Reset filtered transactions to all transactions
+                    filteredEntityTransactions = transactions;
+                    currentTransactionsPage = 1;
+                    updateTransactionsTable(entity);
+                    adjustWebViewHeight();
+                }}
+
+                let filteredEntityTransactions = [];
+
+                function handleTransactionSearch(entity) {{
+                    const searchTerm = document.getElementById('transactionSearchInput').value.toLowerCase();
+    
+                    // Filter transactions based on search term
+                    filteredEntityTransactions = currentEntityTransactions.filter(transaction => {{
+                        return (
+                            transaction.date.toLowerCase().includes(searchTerm) ||
+                            transaction.description.toLowerCase().includes(searchTerm) ||
+                            transaction.debit.toLowerCase().includes(searchTerm) ||
+                            transaction.credit.toLowerCase().includes(searchTerm) ||
+                            transaction.category.toLowerCase().includes(searchTerm)
+                        );
+                    }});
+                    
+                    // Reset to first page
+                    currentTransactionsPage = 1;
+                    
+                    // Update table with filtered results
                     updateTransactionsTable(entity);
                 }}
 
@@ -428,7 +588,9 @@ class EntityDistributionChart(QWidget):
                 }}
 
                 function nextTransactionsPage(entity) {{
-                    const totalPages = Math.ceil(currentEntityTransactions.length / transactionsPerPage);
+                    const transactions = filteredEntityTransactions.length > 0 ? filteredEntityTransactions : currentEntityTransactions;
+                    const totalPages = Math.ceil(transactions.length / transactionsPerPage);
+                    
                     if (currentTransactionsPage < totalPages) {{
                         currentTransactionsPage++;
                         updateTransactionsTable(entity);
@@ -437,10 +599,14 @@ class EntityDistributionChart(QWidget):
 
                 
                 function closeTransactionTable() {{
+                    adjustWebViewHeightClose();
                     document.getElementById('table-container-nested').innerHTML = '';
+                    filteredEntityTransactions = [];
+                    currentEntity = '';
                 }}
                 
                 function nextPage() {{
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
                     if (currentPage < totalPages) {{
                         currentPage++;
                         updateTable();
@@ -461,5 +627,5 @@ class EntityDistributionChart(QWidget):
         </html>
         '''
         
-        self.web.setMinimumHeight(2100)  # Set minimum height instead of fixed height
+        self.web.setMinimumHeight(1400)  # Set minimum height instead of fixed height
         self.web.setHtml(html_content)

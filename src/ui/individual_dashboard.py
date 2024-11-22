@@ -103,7 +103,7 @@ class IndividualDashboard(QMainWindow):
     def create_id(self):
         id = chr(ord('A') + self.row_id)
         id+=str(self.row_id)
-        print("ID - ",id)
+        # print("ID - ",id)
         return id
     
     def createSidebar(self):

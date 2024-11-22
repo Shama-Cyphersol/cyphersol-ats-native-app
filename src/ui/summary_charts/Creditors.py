@@ -25,7 +25,7 @@ class Creditors(QMainWindow):
         
         # Sort data by date
         self.data = data.sort_values(by="Value Date")
-        print(self.data.head())
+        # print(self.data.head())
 
         # Extract data from the DataFrame
         dates = self.data["Value Date"].dt.strftime("%d-%m-%Y").tolist()
