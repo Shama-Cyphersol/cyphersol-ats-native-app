@@ -190,6 +190,20 @@ class CABankStatement:
 
         return loan_value_df
 
+
+        # Custom Sorting Function Based on Unique 'Name' Order
+    def custom_sort(self, df):
+        # Get the unique 'Name' values and their first appearance index
+        unique_names = df.drop_duplicates(subset="Name", keep="first").set_index("Name")[
+            "Value Date"].sort_values().index
+
+        # Create a categorical type with the unique names in the desired order
+        df["Name"] = pd.Categorical(df["Name"], categories=unique_names, ordered=True)
+
+        # Sort by 'Name' first based on the unique order, then by 'Value Date'
+        sorted_df = df.sort_values(by=["Name", "Value Date"]).reset_index(drop=True)
+        return sorted_df
+    
     # @timer_decorator
     def start_extraction(self):
         CA_ID = self.CA_ID
@@ -221,7 +235,19 @@ class CABankStatement:
         print("|------------------------------|")
 
         single_df = self.atser.single_person_sheets(dfs, name_dfs)
-        cummalative_df = self.atser.cummalative_person_sheets(single_df)
+        cumulative_df = pd.concat(
+            [data["data"]["df"].assign(Name=data["name"]) for data in single_df.values()],
+            ignore_index=True
+        )
+        # Reorder columns to have 'name' at the front
+        cumulative_df = cumulative_df[
+            ["Name", "Value Date", "Description", "Debit", "Credit", "Balance", "Category", "Entity"]]
+        process_df = self.custom_sort(cumulative_df)
+        process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
+
+        #name_table
+        name_acc_df = self.get_unique_name_acc(single_df)
+        cummalative_df = self.atser.cummalative_person_sheets(process_df, name_acc_df)
         # print(cummalative_df)
 
         # TODO: Save the excel file
