@@ -190,7 +190,18 @@ class CABankStatement:
 
         return loan_value_df
 
+    def get_unique_name_acc(self, single_person_output):
+        # Create a list of dictionaries with 'Name' and 'Acc Number'
+        name_acc_list = [
+            {"Name": data["name"], "Acc Number": data["acc_number"]}
+            for data in single_person_output.values()
+        ]
 
+        # Convert to DataFrame and drop duplicates
+        name_acc_df = pd.DataFrame(name_acc_list).drop_duplicates(subset=["Name", "Acc Number"])
+
+        return name_acc_df
+        
         # Custom Sorting Function Based on Unique 'Name' Order
     def custom_sort(self, df):
         # Get the unique 'Name' values and their first appearance index
