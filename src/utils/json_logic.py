@@ -120,6 +120,6 @@ def save_ner_results(case_id, processed_results):
     return results_data
 
 
-# test = load_result("CA_ID_DAPKL770XWM8KN8T")
-# test = test["cummalative_df"]
-# print(test.keys())
+test = load_result("CA_ID_DAPKL770XWM8KN8T")
+test = test["cummalative_df"]["process_df"]
+print(test.keys())

@@ -92,7 +92,6 @@ def test_single_pdf(model_path: str, pdf_path: str) -> None:
     extractor = BankStatementExtractor(model_path)
     results = extractor.process_statement(pdf_path)
     results = results["entities"]
-    print("results from ner_model.py ", results)
     # Save results
     # output_file = Path(pdf_path).stem + "_extraction.json"
     # with open(output_file, 'w', encoding='utf-8') as f:

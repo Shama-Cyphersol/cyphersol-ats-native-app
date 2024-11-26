@@ -62,8 +62,6 @@ class ModernStyledTableWidget(QTableWidget):
 
         # Hover and selection effects
         self.setAlternatingRowColors(True)
-        self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
 
 
 class ReportsTab(QWidget):

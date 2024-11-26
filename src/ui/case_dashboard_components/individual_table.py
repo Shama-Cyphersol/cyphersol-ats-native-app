@@ -1,10 +1,13 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
-                             QDialog, QPushButton)
+                             QDialog, QPushButton,)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot
+from ui.individual_dashboard import IndividualDashboard
+from PyQt6.QtGui import QMovie
+
 
 class WebBridge(QObject):
     def __init__(self, parent=None):
@@ -325,9 +328,26 @@ class IndividualDashboardTable(QWidget):
         self.web_page.runJavaScript(js_code)
 
     def handle_row_click(self, name, account_number, row_id):
-        from ui.individual_dashboard import IndividualDashboard
+        # Show the loader
+        spinner_label = QLabel(self)
+        spinner_movie = QMovie("assets/spinner.gif")  # Ensure the file path is correct
+        spinner_label.setMovie(spinner_movie)
+        spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Style and size the spinner
+        spinner_label.setFixedSize(100, 100)  # Adjust size as needed
+        spinner_label.setStyleSheet("background-color: rgba(255, 255, 255, 200); border-radius: 10px;")
+
+        # Center the spinner in the parent widget
+        spinner_label.move(
+            (self.width() - spinner_label.width()) // 2,
+            (self.height() - spinner_label.height()) // 2,
+        )
+
+        spinner_label.show()
+        spinner_movie.start()
         
-        cash_flow_network = IndividualDashboard(
+        individual_dashboard = IndividualDashboard(
             case_id=self.case_id,
             name=name,
             row_id=row_id
@@ -342,6 +362,18 @@ class IndividualDashboardTable(QWidget):
         new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
         
         layout = QVBoxLayout()
-        layout.addWidget(cash_flow_network)
+        layout.addWidget(individual_dashboard)
         new_window.setLayout(layout)
+        # add a delay to show the spinner
+        QTimer.singleShot(0, lambda: self.show_individual_dashboard(new_window, spinner_label))
+        # new_window.show()
+
+        # # Hide the spinner
+        # spinner_label.movie().stop()
+        # spinner_label.hide()
+
+    def show_individual_dashboard(self, new_window, spinner_label):
         new_window.show()
+        spinner_label.movie().stop()
+        spinner_label.hide()
+        

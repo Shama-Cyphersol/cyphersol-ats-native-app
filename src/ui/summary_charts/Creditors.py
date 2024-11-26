@@ -35,7 +35,7 @@ class Creditors(QMainWindow):
         # Create and load the chart
         html_content = self.create_html(dates, debits, balances)
         self.browser.setHtml(html_content)
-        self.browser.setFixedHeight(600)
+        self.browser.setFixedHeight(500)
 
         layout.addWidget(self.browser)
         self.create_data_table_creditor(layout)

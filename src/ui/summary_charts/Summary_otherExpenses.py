@@ -33,7 +33,7 @@ class SummaryOtherExpenses(QMainWindow):
 
         # Create the web view
         self.web = QWebEngineView()
-        self.web.setFixedHeight(1000)
+        self.web.setFixedHeight(1400)
         layout.addWidget(self.web)
 
         if self.data:
@@ -376,7 +376,7 @@ class SummaryOtherExpenses(QMainWindow):
             '''
             
             self.web.setHtml(html_content)
-            self.web.setFixedHeight(1200)
+            # self.web.setFixedHeight(1200)
 
         except Exception as e:
             print(f"Error updating dashboard: {e}")

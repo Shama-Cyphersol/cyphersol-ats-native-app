@@ -32,9 +32,9 @@ class WebBridge(QObject):
         super().__init__(parent)
         self.parent_widget = parent
 
-    @pyqtSlot(int)
-    def adjustHeight(self, height):
-        self.parent_widget.web.setMinimumHeight(height)
+    # @pyqtSlot(int)
+    # def adjustHeight(self, height):
+    #     self.parent_widget.web.setMinimumHeight(height)
 
 
 class EntityDistributionChart(QWidget):
@@ -53,7 +53,8 @@ class EntityDistributionChart(QWidget):
         
         # Create web view
         self.web = QWebEngineView()
-        self.web.setMinimumHeight(1400)
+        # self.web.setMinimumHeight(1400)
+        self.web.setFixedHeight(670)
         layout.addWidget(self.web)
         
         # Create web channel
@@ -116,6 +117,7 @@ class EntityDistributionChart(QWidget):
                     padding: 0;
                     box-sizing: border-box;
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    scroll-behavior: smooth;
                 }}
                 .chart-container {{
                     background: white;
@@ -505,7 +507,7 @@ class EntityDistributionChart(QWidget):
                         document.getElementById('table-container-nested').innerHTML = `
                             <div class="table-container">
                                 <div class="table-header-container">
-                                    <div class="table-header">No transactions found for ${entity}</div>
+                                    <div class="table-header">No transactions found for ${{entity}}</div>
                                     <button class="close-button" onclick="closeTransactionTable()">Close</button>
                                 </div>
                             </div>
@@ -514,17 +516,17 @@ class EntityDistributionChart(QWidget):
                     }}
                     
                     const transactionTableHtml = `
-                        <div class="table-container">
+                        <div class="table-container" id="transaction-table-container">
                             <button class="close-button" onclick="closeTransactionTable()">Close</button>
                             <div class="table-header-container">
-                                <div class="table-header">Transactions for ${entity}</div>
+                                <div class="table-header">Transactions for ${{entity}}</div>
                             </div>
                             <div class="search-container">
                                 <input type="text" 
                                     id="transactionSearchInput" 
                                     class="search-input" 
                                     placeholder="Search Transactions..."
-                                    oninput="handleTransactionSearch('${entity}')"
+                                    oninput="handleTransactionSearch('${{entity}}')"
                                 >
                             </div>
                             <table class="transaction-table">
@@ -541,9 +543,9 @@ class EntityDistributionChart(QWidget):
                                 </tbody>
                             </table>
                             <div class="pagination">
-                                <button id="prevTransactionBtn" onclick="previousTransactionsPage('${entity}')">Previous</button>
+                                <button id="prevTransactionBtn" onclick="previousTransactionsPage('${{entity}}')">Previous</button>
                                 <span id="transactionPageInfo"></span>
-                                <button id="nextTransactionBtn" onclick="nextTransactionsPage('${entity}')">Next</button>
+                                <button id="nextTransactionBtn" onclick="nextTransactionsPage('${{entity}}')">Next</button>
                             </div>
                         </div>
                     `;
@@ -554,7 +556,11 @@ class EntityDistributionChart(QWidget):
                     filteredEntityTransactions = transactions;
                     currentTransactionsPage = 1;
                     updateTransactionsTable(entity);
-                    adjustWebViewHeight();
+                   // adjustWebViewHeight();
+                    
+                    setTimeout(() => {{
+                    document.getElementById('transaction-table-container').scrollIntoView();
+                }}, 200);
                 }}
 
                 let filteredEntityTransactions = [];
@@ -599,7 +605,7 @@ class EntityDistributionChart(QWidget):
 
                 
                 function closeTransactionTable() {{
-                    adjustWebViewHeightClose();
+                   // adjustWebViewHeightClose();
                     document.getElementById('table-container-nested').innerHTML = '';
                     filteredEntityTransactions = [];
                     currentEntity = '';
@@ -627,5 +633,5 @@ class EntityDistributionChart(QWidget):
         </html>
         '''
         
-        self.web.setMinimumHeight(1400)  # Set minimum height instead of fixed height
+        # self.web.setMinimumHeight(1400)  # Set minimum height instead of fixed height
         self.web.setHtml(html_content)

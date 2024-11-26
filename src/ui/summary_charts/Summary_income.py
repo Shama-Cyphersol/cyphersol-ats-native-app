@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import pandas as pd
 import json
@@ -28,7 +28,9 @@ class IncomeSummaryDashboard(QWidget):
         
         # Web view to render HTML content
         self.web = QWebEngineView()
-        self.web.setFixedHeight(1200)  # Increased height to accommodate table
+        self.web.setFixedHeight(1250) 
+        # self.web.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+
         layout.addWidget(self.web)
         
         # Initialize the dashboard with the first month that has data

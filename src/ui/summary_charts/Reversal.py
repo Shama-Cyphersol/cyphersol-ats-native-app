@@ -27,7 +27,7 @@ class Reversal(QMainWindow):
         self.df = pd.DataFrame(data)
         
         self.web_view = QWebEngineView()
-        self.web_view.setFixedHeight(600)
+        self.web_view.setFixedHeight(400)
         layout.addWidget(self.web_view)
         
         self.load_dashboard()
@@ -528,7 +528,7 @@ class Reversal(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setFixedHeight(800)  # Set minimum height for the table
+        web_view.setFixedHeight(1000)  # Set minimum height for the table
         layout.addWidget(web_view)
 
         

@@ -17,22 +17,18 @@ class SummaryParticular(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # Create tab widget for different views
-        tab_widget = QTabWidget()
-        layout.addWidget(tab_widget)
         
         # Create tabs for different chart types
-        self.create_transactions_tab(tab_widget, data)
+        self.create_transactions_tab(layout, data)
         # self.create_data_table_summaryParticular(layout, data)
         self.create_data_table_summaryParticular(layout, data)
         
-    def create_transactions_tab(self, tab_widget, data):
-        transactions_widget = QWidget()
-        layout = QVBoxLayout(transactions_widget)
+    def create_transactions_tab(self, layout, data):
+        # transactions_widget = QWidget()
+        # layout = QVBoxLayout(transactions_widget)
         
         web_view = QWebEngineView()
-        web_view.setFixedHeight(800)
-        layout.addWidget(web_view)
+        # layout.addWidget(web_view)
         
         # Extract the months and transaction data for the chart
         months = data.columns[1:-1].tolist()  # Exclude 'Particulars' and 'Total' columns
@@ -51,13 +47,17 @@ class SummaryParticular(QMainWindow):
         <head>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
             <style>
+               * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }}
                 body {{ background-color: #f5f5f5; }}
                 .chart-container {{ 
                     background-color: white;
                     border-radius: 8px;
                     padding: 20px;
-                    margin: 20px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }}
             </style>
         </head>
@@ -113,7 +113,8 @@ class SummaryParticular(QMainWindow):
         """
         
         web_view.setHtml(html_content)
-        tab_widget.addTab(transactions_widget, "Transactions")
+        web_view.setFixedHeight(550)
+        layout.addWidget(web_view)
 
     def create_data_table_summaryParticular(self, layout, data):
         # Extract months, credit data, and debit data

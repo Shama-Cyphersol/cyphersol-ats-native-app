@@ -29,7 +29,7 @@ class EODBalanceChart(QMainWindow):
         html_content = self.create_html_content(months_data)
         
         # Set HTML content in the QWebEngineView
-        self.web_view.setFixedHeight(1500)
+        self.web_view.setFixedHeight(1400)
         self.web_view.setHtml(html_content)
     
     def process_data(self):

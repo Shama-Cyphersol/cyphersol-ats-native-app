@@ -137,6 +137,7 @@ class DynamicDataTable(QMainWindow):
                     font-weight: bold;
                     margin-bottom: 15px;
                     border-bottom: 2px solid #eef2f7;
+                    visibility: {'hidden' if self.title=="" else 'visible'};
                 }}
                 table {{
                     width: 100%;

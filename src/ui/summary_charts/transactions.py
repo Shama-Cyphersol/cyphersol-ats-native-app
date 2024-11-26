@@ -505,5 +505,5 @@ class BankTransactionDashboard(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setFixedHeight(1200)
+        web_view.setFixedHeight(2300)
         layout.addWidget(web_view)

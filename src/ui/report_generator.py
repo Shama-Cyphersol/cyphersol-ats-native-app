@@ -15,6 +15,7 @@ from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
 from utils.ner_model import pdf_to_name
+from PyQt6.QtGui import QMovie
 
 
 class WebBridge(QObject):
@@ -24,7 +25,7 @@ class WebBridge(QObject):
 
     @pyqtSlot(str)
     def caseIdClicked(self, case_id):
-        self.parent.handle_case_id_clicked(case_id)
+        self.parent.handle_case_id(case_id)
 
     @pyqtSlot(str, str)
     def uploadPdf(self, row, case_id):
@@ -254,7 +255,7 @@ class ReportGeneratorTab(QWidget):
                 background-color: #2980b9;
             }
         """)
-        self.submit_button.clicked.connect(self.submit_form)
+        self.submit_button.clicked.connect(self.submit_form_spinner)
         # button_box_layout.addSpacing(20)  # Add space between form and button
         button_box_layout.addStretch()
         button_box_layout.addWidget(self.submit_button)
@@ -568,6 +569,7 @@ class ReportGeneratorTab(QWidget):
             
             # Load the HTML content
             self.web_view.setHtml(html_content)
+            self.web_view.minimumHeight = 1000
             
             # Wait for the page to load before updating table data
             def check_initialization():
@@ -578,7 +580,6 @@ class ReportGeneratorTab(QWidget):
             
             # Start checking for initialization
             QTimer.singleShot(100, check_initialization)
-            self.web_view.setFixedHeight(800)
             return self.web_view
 
     def update_table_data(self):
@@ -597,36 +598,87 @@ class ReportGeneratorTab(QWidget):
             }}
         """
         self.web_page.runJavaScript(js_code)
-
-    def handle_case_id_clicked(self, case_id):
-        print("Case ID clicked: ", case_id)
-        cash_flow_network = CaseDashboard(case_id=case_id)
+ 
+    def handle_case_id(self, case_id):
+        # Create and configure the spinner
+        # spinner_label = QLabel(self)
+        # spinner_movie = QMovie("assets/spinner.gif")
+        # spinner_label.setMovie(spinner_movie)
+        # spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Create a new dialog
+        # # Style and size the spinner
+        # spinner_label.setFixedSize(100, 100)
+        # spinner_label.setStyleSheet("""
+        #     QLabel {
+        #         background-color: rgba(255, 255, 255, 200);
+        #         border-radius: 10px;
+        #     }
+        # """)
+        
+        # # Center the spinner in the parent widget
+        # spinner_label.move(
+        #     (self.width() - spinner_label.width()) // 2,
+        #     (self.height() - spinner_label.height()) // 2
+        # )
+        
+        # # Show the spinner and start animation
+        # spinner_label.show()
+        # spinner_movie.start()
+        
+        # Create the dialog first but don't show it yet
         self.new_window = QDialog(self)
         self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
         self.new_window.setModal(False)
-        self.new_window.showMaximized()
-        
-        # Set window flags
         self.new_window.setWindowFlags(
             self.new_window.windowFlags() |
             Qt.WindowType.WindowMinimizeButtonHint |
             Qt.WindowType.WindowMaximizeButtonHint |
             Qt.WindowType.WindowCloseButtonHint
         )
-        
-        # Set minimum size
         self.new_window.setMinimumSize(1000, 800)
         
-        # Create layout and add widget
-        layout = QVBoxLayout()
-        layout.addWidget(cash_flow_network)
-        self.new_window.setLayout(layout)
-        
-        # Show the window
-        self.new_window.show()
-
+        try:
+            # Create a layout for the dialog
+            layout = QVBoxLayout()
+            self.new_window.setLayout(layout)
+            
+            # Create the case dashboard with a loading callback
+            case_dashboard = CaseDashboard(case_id=case_id)
+            layout.addWidget(case_dashboard)
+            self.new_window.showMaximized()
+            # # Add a method to the case dashboard to signal when loading is complete
+            # def on_dashboard_ready():
+            #     # Stop and cleanup the spinner
+            #     spinner_label.movie().stop()
+            #     spinner_label.hide()
+            #     spinner_label.deleteLater()
+                
+            #     # Show the window now that data is loaded
+            #     layout.addWidget(case_dashboard)
+            #     self.new_window.showMaximized()
+            
+            # # Connect the loading complete signal if CaseDashboard has one
+            # if hasattr(case_dashboard, 'loading_complete'):
+            #     case_dashboard.loading_complete.connect(on_dashboard_ready)
+            # else:
+            #     # If CaseDashboard doesn't have a loading signal, 
+            #     # we'll need to modify CaseDashboard to add it
+            #     print("Warning: CaseDashboard should implement loading_complete signal")
+            #     on_dashboard_ready()
+                
+        except Exception as e:
+            # Handle any errors and clean up
+            print(f"Error creating case dashboard: {str(e)}")
+            # spinner_label.movie().stop()
+            # spinner_label.hide()
+            # spinner_label.deleteLater()
+            self.new_window.deleteLater()
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to open case dashboard: {str(e)}"
+            )
+            
     def handle_upload_pdf(self, row, case_id):
         file_name, _ = QFileDialog.getOpenFileName(
             self,
@@ -647,6 +699,7 @@ class ReportGeneratorTab(QWidget):
                     "Success",
                     success_message
                 )
+                
             except Exception as e:
                 error_message = f"Failed to upload PDF: {str(e)}"
                 QMessageBox.critical(
@@ -673,74 +726,89 @@ class ReportGeneratorTab(QWidget):
             files_text = f"{len(files)} file(s) selected"
             self.file_display.setText(files_text)
 
-
-    def submit_form(self):
-        # Get the form data
-        CA_ID = self.ca_id
-        pdf_paths = self.selected_files  # List of selected file paths
-        password = self.password.text()
-        print("password",password)
-
-        password_provided = False
-        start_date_provided = False
-        end_date_provided = False
-
-        if password == "": 
-            password = [""]
-        else:
-            password_provided = True
-            password = [password]
-
-        start_date = self.start_date.date().toString("dd-MM-yyyy")
-        end_date = self.end_date.date().toString("dd-MM-yyyy")
-
-        # check if start_date is same as today
-        if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            start_date = [""]
-        else:
-            start_date_provided = True
-            start_date = [start_date]
-
-        if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            end_date = [""]
-        else:
-            end_date_provided = True
-            end_date = [end_date]
-        
-
-        bank_names = []
-        # for each path in pdf_paths, assign a unique name as A,B,C etc
-        for i in range(len(pdf_paths)):
-            bank_names.append(chr(65 + i))
-            if password_provided == False:
-                password.append("")
-            if start_date_provided == False:
-                start_date.append("")
-            if end_date_provided == False:
-                end_date.append("")
-
-        print ("CA_ID",CA_ID)
-        print ("pdf_paths",pdf_paths)
-        print ("passwords",password)
-        print ("start_date",start_date)
-        print ("end_date",end_date)
-        print ("bank_names",bank_names)
-
-
-        progress_data = {
-            'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
-            'current_progress': 10,
-            'total_progress': 100
-        }
-
-        print("progress_data",progress_data)
-
-        ner_results={
-                    "Name": [],
-                    "Acc Number": []
+    def submit_form_spinner(self):
+            # Create and configure spinner
+            self.spinner_label = QLabel(self)
+            self.spinner_movie = QMovie("assets/spinner.gif")
+            self.spinner_label.setMovie(self.spinner_movie)
+            self.spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.spinner_label.setFixedSize(100, 100)
+            self.spinner_label.setStyleSheet("""
+                QLabel {
+                    background-color: rgba(255, 255, 255, 200);
+                    border-radius: 10px;
                 }
+            """)
 
+            # Center the spinner in the parent widget
+            self.spinner_label.move(
+                (self.width() - self.spinner_label.width()) // 2,
+                (self.height() - self.spinner_label.height()) // 2,
+            )
+
+            # Show and start spinner
+            self.spinner_label.show()
+            self.spinner_movie.start()
+
+            # Create a QTimer to process the form in the next event loop iteration
+            QTimer.singleShot(100, self.process_form)
+    
+    def process_form(self):
         try:
+            # Get the form data
+            CA_ID = self.ca_id
+            pdf_paths = self.selected_files
+            password = self.password.text()
+            
+            password_provided = False
+            start_date_provided = False
+            end_date_provided = False
+
+            if password == "": 
+                password = [""]
+            else:
+                password_provided = True
+                password = [password]
+
+            start_date = self.start_date.date().toString("dd-MM-yyyy")
+            end_date = self.end_date.date().toString("dd-MM-yyyy")
+
+            # Check if start_date is same as today
+            if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+                start_date = [""]
+            else:
+                start_date_provided = True
+                start_date = [start_date]
+
+            if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+                end_date = [""]
+            else:
+                end_date_provided = True
+                end_date = [end_date]
+
+            bank_names = []
+            # For each path in pdf_paths, assign a unique name as A,B,C etc
+            for i in range(len(pdf_paths)):
+                bank_names.append(chr(65 + i))
+                if not password_provided:
+                    password.append("")
+                if not start_date_provided:
+                    start_date.append("")
+                if not end_date_provided:
+                    end_date.append("")
+
+            progress_data = {
+                'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
+                'current_progress': 10,
+                'total_progress': 100
+            }
+
+            ner_results = {
+                "Name": [],
+                "Acc Number": []
+            }
+
+            # Process PDFs with NER
             for pdf in pdf_paths:
                 result = pdf_to_name(pdf)
                 for entity in result:
@@ -748,38 +816,58 @@ class ReportGeneratorTab(QWidget):
                         ner_results["Name"].append(entity["text"])
                     elif entity["label"] == "ACC_NO":
                         ner_results["Acc Number"].append(entity["text"])
-            
-            print("NER Results final: ",ner_results)
-            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
-            # res = save_ner_results(CA_ID, processed_results)
-            # ner_results= res
+
+            # Process bank statements
+            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
+            result = converter.start_extraction()
+
+            # Save the results
+            save_case_data(CA_ID, pdf_paths, start_date, end_date, ner_results)
+            save_result(CA_ID, result)
+
+            # Update the table
+            self.create_recent_reports_table()
+
+            # For success message
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Success")
+            msg_box.setText("Form submitted and processed successfully!")
+            msg_box.setIcon(QMessageBox.Icon.Information)
+            msg_box.exec()
+
         except Exception as e:
-            print("Error processing PDFs: ", e)
-            pass
-        converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
-        result = converter.start_extraction()
+            # For error message
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Error")
+            msg_box.setText(f"An error occurred while processing: {str(e)}")
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+            msg_box.exec()
 
-        # single_df = result["single_df"]
-        # cummalative_df = result["cummalative_df"]
-
-        # # Saving all df as Excel
-        # for key,value in single_df["A0"]["data"].items():
-        #     try:
-        #         value.to_excel("src/data/"+key+".xlsx")
-        #     except:
-        #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
-        #         pass
-
-        # Check if NER model has extracted any entities
-        
-        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
-
-        print("ner_names last",ner_results)
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
-        save_result(CA_ID,result)
-        
-        print("Successfully saved case data and result")
-        self.create_recent_reports_table()
+        finally:
+            # Always clean up the spinner
+            if hasattr(self, 'spinner_movie'):
+                self.spinner_movie.stop()
+            if hasattr(self, 'spinner_label'):
+                self.spinner_label.hide()
+                self.spinner_label.deleteLater()
+            
+            self.update_table_data()
 
     def create_label(self, text):
         label = QLabel(text)

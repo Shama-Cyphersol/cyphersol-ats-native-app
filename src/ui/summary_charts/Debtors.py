@@ -36,7 +36,7 @@ class DebtorsChart(QMainWindow):
         
         # Load the HTML content into the QWebEngineView
         self.browser.setHtml(html_content)
-        self.browser.setFixedHeight(600)
+        self.browser.setFixedHeight(500)
         
         layout.addWidget(self.browser)
 
@@ -361,5 +361,5 @@ class DebtorsChart(QMainWindow):
         '''
         
         web_view.setHtml(html_content)
-        web_view.setMinimumHeight(800)  # Set minimum height for the table
+        web_view.setMinimumHeight(1050)  # Set minimum height for the table
         layout.addWidget(web_view)

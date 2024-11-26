@@ -58,44 +58,5 @@
             ]
         },
         "date": "06-11-2024"
-    },
-    {
-        "case_id": "CA_ID_4G3I9VNNUK6GV926",
-        "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
-            "C:/Users/qures/Downloads/hdfc poojan.pdf"
-        ],
-        "start_date": "-",
-        "end_date": "-",
-        "report_name": "Report_CA_ID_4G3I9VNNUK6GV926",
-        "individual_names": {
-            "Name": [
-                "AIYAZ ANWAR QURESHI",
-                "POOJAN MANISH VIG"
-            ],
-            "Acc Number": [
-                "50100575475699",
-                "50100575475700"
-            ]
-        },
-        "date": "14-11-2024"
-    },
-    {
-        "case_id": "CA_ID_8MZTDA215QNV87MS",
-        "file_names": [
-            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
-        ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_CA_ID_8MZTDA215QNV87MS",
-        "individual_names": {
-            "Name": [
-                "AIYAZ ANWAR QURESHI"
-            ],
-            "Acc Number": [
-                "77770106311893"
-            ]
-        },
-        "date": "22-11-2024"
     }
 ]
