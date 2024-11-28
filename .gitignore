@@ -167,9 +167,7 @@ cython_debug/
 .DS_Storegliner_medium-v2.1/
 .DS_Store
 gliner_medium-v2.1/
-/src/utils/del
 /src/utils/local_model
-/src/utils/
 /src/data/cummulative_data/*
 /src/data/json/*
 /src/data/results/*

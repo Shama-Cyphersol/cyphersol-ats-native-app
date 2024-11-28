@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from src.modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
 from .case_dashboard import CaseDashboard
 from src.utils.json_logic import *
-
+vv
 class DashboardTab(QWidget):
     def __init__(self):
         super().__init__()
