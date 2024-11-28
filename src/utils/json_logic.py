@@ -4,6 +4,13 @@ from datetime import datetime
 import json
 import os
 
+
+def ensure_result_directory_exists(directory_path):
+    # Check if the directory exists
+    if not os.path.exists(directory_path):
+        # Create the directory if it doesn't exist
+        os.makedirs(directory_path)
+
 def save_case_data(case_id, file_names, start_date, end_date,individual_names):
     today_date = datetime.now().strftime("%d-%m-%Y")
     case_data = {
@@ -55,8 +62,17 @@ def save_result(CA_ID,result):
         pickle.dump(result, f)
 
 def load_result(CA_ID):
-    with open("src/data/results/"+CA_ID+".pkl", 'rb') as f:
-        return pickle.load(f)
+    directory_path = "src/data/results"
+    
+    ensure_result_directory_exists(directory_path)
+    
+    try:
+        with open("src/data/results/"+CA_ID+".pkl", 'rb') as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        print("File not found.")
+        return {}
+    
     
 
 def check_and_add_date():
@@ -120,6 +136,6 @@ def save_ner_results(case_id, processed_results):
     return results_data
 
 
-test = load_result("CA_ID_DAPKL770XWM8KN8T")
-test = test["cummalative_df"]["process_df"]
-print(test.keys())
+# test = load_result("CA_ID_DAPKL770XWM8KN8T")
+# test = test["cummalative_df"]["process_df"]
+# print(test.keys())
