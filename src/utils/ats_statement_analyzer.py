@@ -246,67 +246,85 @@ class ATSFunctions:
 
         return df
 
-    # Custom Sorting Function Based on Unique 'Name' Order
-    def custom_sort(self, df):
-        # Get the unique 'Name' values and their first appearance index
-        unique_names = df.drop_duplicates(subset="Name", keep="first").set_index("Name")[
-            "Value Date"].sort_values().index
-
-        # Create a categorical type with the unique names in the desired order
-        df["Name"] = pd.Categorical(df["Name"], categories=unique_names, ordered=True)
-
-        # Sort by 'Name' first based on the unique order, then by 'Value Date'
-        sorted_df = df.sort_values(by=["Name", "Value Date"]).reset_index(drop=True)
-        return sorted_df
-
         # Daily FIFO Analysis Function
-    def fifo_allocation(self, df):
-        # Sort the DataFrame by Value Date to ensure chronological order
+    
+    def fifo_allocation(self, df, period = 'week', category_wise = 'no', entities_of_interest = []):
+        imp_categories = ["UPI-Cr", "UPI-Dr", "Debtors", "Creditors", "Donation", "Loan", "Loan given", "Rent Paid"]
+
+        if category_wise == 'yes':
+            df = df[df['Category'].isin(imp_categories)]
+
+        # Convert Value Date to datetime format and sort chronologically
         df['Value Date'] = pd.to_datetime(df['Value Date'])
         df = df.sort_values(by='Value Date').reset_index(drop=True)
-    
-        # Define the people involved
-        people = df['Name'].unique()
-    
-        # Initialize a dictionary to store results
+
+        # Define time period mapping
+        period_map = {
+            "week": pd.Timedelta(weeks=1),  
+            "month": pd.Timedelta(days=30),
+            "half_year": pd.Timedelta(days=182),
+            "year": pd.Timedelta(days=365)
+        }
+
+        # Get the period duration based on the user input
+        duration = period_map.get(period.lower(), pd.Timedelta(weeks=1))  # Default to "week" if invalid
+
+        # Define the unique people/entities involved
+        # Create the `people` list dynamically based on whether `entities_of_interest` is provided
+        people = list(df['Name'].unique()) if entities_of_interest is None else list(set(df['Name'].unique()) | set(entities_of_interest))
+
+        # Initialize a dictionary to store the results
         utilization_dict = {}
-    
-        # Iterate through each person and find their relevant transactions
+
+        # Iterate through each person to find relevant credit transactions
         for person in people:
-            # Filter out the credit transactions where the person is receiving money from either Alpha, Beta, Gamma, Delta, or Epsilon
+            # Filter out credit transactions where the person is receiving money from others in the 'people' list
             person_df = df[(df['Name'] == person) & (df['Credit'] > 0) & (df['Entity'].isin(people))]
-    
-            # Iterate through each credit transaction for the person
+
+            # Process each credit transaction for the person
             for idx, credit_row in person_df.iterrows():
                 credit_date = credit_row['Value Date']
                 credit_amount = credit_row['Credit']
                 credit_entity = credit_row['Entity']
-    
-                # Filter transactions within a week of the credit transaction date for the same person
-                subsequent_transactions = df[(df['Name'] == person) &
-                                             (df['Value Date'] > credit_date) &
-                                             (df['Value Date'] <= credit_date + pd.Timedelta(weeks=1))]
-    
+
+                # Find the sender's transactions from a week before the credit transaction
+                sender_history = df[
+                    (df['Name'] == credit_entity) &
+                    (df['Value Date'] >= credit_date - pd.Timedelta(weeks=1)) &
+                    (df['Value Date'] < credit_date)
+                ].reset_index(drop=True)
+
+                # Filter the recipient's transactions within a week after the credit transaction
+                subsequent_transactions = df[
+                    (df['Name'] == person) &
+                    (df['Value Date'] > credit_date) &
+                    (df['Value Date'] <= credit_date + pd.Timedelta(weeks=1))
+                ].reset_index(drop=True)
+
                 # Add utilized and remaining credit columns to the DataFrame
-                utilization_df = pd.concat([credit_row.to_frame().T, subsequent_transactions])
+                utilization_df = pd.concat([credit_row.to_frame().T, subsequent_transactions]).reset_index(drop=True)
                 utilization_df['Utilized Credit'] = 0
                 utilization_df['Remaining Credit'] = credit_amount
-    
-                # Iterate through subsequent transactions and update utilized and remaining credit accordingly
-                for i, row in utilization_df.iterrows():
+
+                # Track utilized and remaining credit for each subsequent transaction
+                for i in range(1, len(utilization_df)):
+                    row = utilization_df.iloc[i]
                     if row['Debit'] > 0:
                         utilization_df.at[i, 'Utilized Credit'] = utilization_df.at[i - 1, 'Utilized Credit'] + row['Debit']
                         utilization_df.at[i, 'Remaining Credit'] = credit_amount - utilization_df.at[i, 'Utilized Credit']
-                    elif row['Credit'] > 0 and i != credit_row.name:
-                        # If there is another credit transaction, reset the remaining credit
+                    elif row['Credit'] > 0 and i != 0:
+                        # If another credit transaction occurs, update the remaining credit
                         credit_amount += row['Credit']
                         utilization_df.at[i, 'Remaining Credit'] = credit_amount
-    
-                # Create the key for the dictionary
-                key = f"Utilization of Credit ({credit_amount}) received by {person} from {credit_entity} on {credit_date.date()}:"
-    
-                # Add the DataFrame to the dictionary
-                utilization_dict[key] = utilization_df[['Value Date', 'Name', 'Description', 'Debit', 'Credit', 'Entity', 'Utilized Credit', 'Remaining Credit']]
+
+                # Create a key for the utilization dictionary entry
+                key = f"Utilization of Credit ({credit_row['Credit']}) received by {person} from {credit_entity} on {credit_date.date()}:"
+
+                # Store both sender's history and utilization data in the dictionary
+                utilization_dict[key] = {
+                    'LIFO': sender_history[['Value Date', 'Name', 'Description', 'Debit', 'Credit','Category', 'Entity']],
+                    'FIFO': utilization_df[['Value Date', 'Name', 'Description', 'Debit', 'Credit', 'Category', 'Entity', 'Utilized Credit', 'Remaining Credit']]
+                }
     
         return utilization_dict
 
@@ -327,92 +345,106 @@ class ATSFunctions:
             return df.resample(freq, on='Value Date').agg(
                 {'Debit': 'sum', 'Credit': 'sum', 'Balance': 'last'}).reset_index()
 
-    def cumulative_bidirectional_analysis(self, df):
-        # Sort the DataFrame by Value Date
+    def cumulative_bidirectional_analysis(self, df, entities_of_interest=[]):
+
+        # Convert 'Value Date' to datetime
         df['Value Date'] = pd.to_datetime(df['Value Date'])
-        # df = df.sort_values(by='Value Date').reset_index(drop=True)
-        # Define unique people
+
+        # Extract unique names from the 'Name' column
         people = df['Name'].unique()
+
         # Set to keep track of already processed pairs
         processed_pairs = set()
+
         # List to store bidirectional analysis results
         bidirectional_results = []
-    
-        # Iterate through each pair of people
+
+        # Helper function to analyze a pair
+        def analyze_pair(temp_df, pair):
+            # Start and end dates for the analysis
+            start_date = temp_df['Value Date'].iloc[0]
+            end_date = temp_df['Value Date'].iloc[-1]
+
+            # Calculate totals and net flow
+            total_credit_amount = temp_df[temp_df['Credit'] > 0]['Credit'].sum()
+            total_debit_amount = temp_df[temp_df['Debit'] > 0]['Debit'].sum()
+            total_credit_transactions = len(temp_df[temp_df['Credit'] > 0])
+            total_debit_transactions = len(temp_df[temp_df['Debit'] > 0])
+            net_exchange = total_credit_amount - total_debit_amount
+
+            # Calculate average amount exchanged
+            total_transactions = total_credit_transactions + total_debit_transactions
+            average_amount_exchanged = (total_credit_amount + total_debit_amount) / total_transactions if total_transactions > 0 else 0
+
+            # Calculate median and standard deviation of transaction amounts
+            all_transactions = temp_df[['Credit', 'Debit']].stack().reset_index(drop=True)
+            median_amount_exchanged = all_transactions.median() if not all_transactions.empty else 0
+            std_dev_amount_exchanged = all_transactions.std() if not all_transactions.empty else 0
+
+            # Determine highest amount exchanged and its type
+            highest_credit = temp_df['Credit'].max() if not temp_df['Credit'].isna().all() else 0
+            highest_debit = temp_df['Debit'].max() if not temp_df['Debit'].isna().all() else 0
+            if highest_credit >= highest_debit:
+                highest_amount_exchanged = highest_credit
+                highest_amount_type = 'Credit'
+            else:
+                highest_amount_exchanged = highest_debit
+                highest_amount_type = 'Debit'
+
+            # Construct the result dictionary
+            return {
+                'Entity One': pair[0],
+                'Entity Two': pair[1],
+                'Total Credit Transactions': total_credit_transactions,
+                'Total Debit Transactions': total_debit_transactions,
+                'Total Credit Amount': total_credit_amount,
+                'Total Debit Amount': total_debit_amount,
+                'Net Exchange (Credit - Debit)': net_exchange,
+                'Average Amount Exchanged': average_amount_exchanged,
+                'Median Amount Exchanged': median_amount_exchanged,
+                'Standard Deviation of Amount Exchanged': std_dev_amount_exchanged,
+                'Highest Amount Exchanged': highest_amount_exchanged,
+                'Highest Amount Type': highest_amount_type,
+                'First Transaction Date': start_date,
+                'Last Transaction Date': end_date
+            }
+
+        # Original analysis: Iterate through unique pairs of people
         for i, person in enumerate(people):
             for j in range(i + 1, len(people)):
                 entity = people[j]
-                # Create a sorted tuple to represent the pair
                 pair = tuple(sorted([person, entity]))
-                # Skip if this pair has already been processed
                 if pair in processed_pairs:
                     continue
-                # Mark this pair as processed
                 processed_pairs.add(pair)
-                # Filter transactions involving the pair (both directions: person as Name and entity as Entity or vice versa)
-                temp_df = df[((df['Name'] == person) & (df['Entity'] == entity)) | ((df['Name'] == entity) & (df['Entity'] == person))]
-                # Print temp_df for inspection
-                # print(f"Temp DataFrame for {person} and {entity}:")
-                # print(temp_df)
-                # print("@" * 30)
+                temp_df = df[((df['Name'] == person) & (df['Entity'] == entity)) | 
+                            ((df['Name'] == entity) & (df['Entity'] == person))]
                 if temp_df.empty:
                     continue
-                # The first row of Value Date column in temp_df is the start date for the analysis
-                start_date = temp_df['Value Date'].iloc[0]
-                end_date = temp_df['Value Date'].iloc[-1]
-    
-                # Calculate totals and net flow
-                total_credit_amount = temp_df[temp_df['Credit'] > 0]['Credit'].sum()
-                total_debit_amount = temp_df[temp_df['Debit'] > 0]['Debit'].sum()
-                total_credit_transactions = len(temp_df[temp_df['Credit'] > 0])
-                total_debit_transactions = len(temp_df[temp_df['Debit'] > 0])
-                net_exchange = total_credit_amount - total_debit_amount
-    
-                # Calculate average amount exchanged
-                total_transactions = total_credit_transactions + total_debit_transactions
-                if total_transactions > 0:
-                    average_amount_exchanged = (total_credit_amount + total_debit_amount) / total_transactions
-                else:
-                    average_amount_exchanged = 0
-    
-                # Calculate median and standard deviation of transaction amounts
-                all_transactions = temp_df[['Credit', 'Debit']].stack().reset_index(drop=True)
-                median_amount_exchanged = all_transactions.median() if not all_transactions.empty else 0
-                std_dev_amount_exchanged = all_transactions.std() if not all_transactions.empty else 0
-    
-                # Determine highest amount exchanged and its type
-                highest_credit = temp_df['Credit'].max() if not temp_df['Credit'].isna().all() else 0
-                highest_debit = temp_df['Debit'].max() if not temp_df['Debit'].isna().all() else 0
-                if highest_credit >= highest_debit:
-                    highest_amount_exchanged = highest_credit
-                    highest_amount_type = 'Credit'
-                else:
-                    highest_amount_exchanged = highest_debit
-                    highest_amount_type = 'Debit'
-    
-                # Determine first and last transaction dates
-                first_transaction_date = start_date
-                last_transaction_date = end_date
-    
-                # Append the result to the list
-                bidirectional_results.append({
-                    'Entity One': pair[0],
-                    'Entity Two': pair[1],
-                    'Total Credit Transactions': total_credit_transactions,
-                    'Total Debit Transactions': total_debit_transactions,
-                    'Total Credit Amount': total_credit_amount,
-                    'Total Debit Amount': total_debit_amount,
-                    'Net Exchange (Credit - Debit)': net_exchange,
-                    'Average Amount Exchanged': average_amount_exchanged,
-                    'Median Amount Exchanged': median_amount_exchanged,
-                    'Highest Amount Exchanged': highest_amount_exchanged,
-                    'First Transaction Date': first_transaction_date,
-                    'Last Transaction Date': last_transaction_date
-                })
-        
-        # Convert the list to a DataFrame
+                # Perform analysis and append results
+                bidirectional_results.append(analyze_pair(temp_df, pair))
+
+        # Additional analysis for entities_of_interest
+        if entities_of_interest:
+            for person in people:
+                for entity in entities_of_interest:
+                    # Skip pairs that have already been processed
+                    pair = tuple(sorted([person, entity]))
+                    if pair in processed_pairs:
+                        continue
+                    processed_pairs.add(pair)
+
+                    # Filter transactions between the person and entity_of_interest
+                    temp_df = df[((df['Name'] == person) & (df['Entity'] == entity))]
+                    if temp_df.empty:
+                        continue
+
+                    # Perform analysis and append results
+                    bidirectional_results.append(analyze_pair(temp_df, pair))
+
+        # Convert results to DataFrame
         bidirectional_results_df = pd.DataFrame(bidirectional_results)
-        return bidirectional_results_df
+        return bidirectional_results_df 
     
 
     def get_unique_name_acc(self, single_person_output):
@@ -507,29 +539,118 @@ class ATSFunctions:
         entity_freq_df.columns = ['Entity', 'Frequency (total no of times entity occurred in process_df)']
 
         return entity_freq_df
+
     
+    def extract_unique_names_and_entities(self, df):
+        # Get unique values from 'Name' column
+        unique_names = df['Name'].dropna().unique()
+        
+        # Get unique values from 'Entity' column
+        unique_entities = df['Entity'].dropna().unique()
+        
+        # Combine both lists and remove duplicates
+        unique_combined = list(set(unique_names) | set(unique_entities))
+        
+        return unique_combined
 
-    def cummalative_person_sheets(self, single_person_output):
-        # Extract the 'new_tran_df' from each entry in the output
-        # new_tran_dfs = (dataframes[1] for _, _, dataframes in single_person_output.values())
-        cumulative_df = pd.concat(
-            [data["data"]["df"].assign(Name=data["name"]) for data in single_person_output.values()],
-            ignore_index=True
-        )
 
-        # Reorder columns to have 'name' at the front
-        cumulative_df = cumulative_df[
-            ["Name", "Value Date", "Description", "Debit", "Credit", "Balance", "Category", "Entity"]]
+    def group_similar_entities(self, entities, low=0.52, high=1.0, weight_semantic=0.6, weight_string=0.4):
+        structure_model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"./matching_names_model")
 
-        process_df = self.custom_sort(cumulative_df)
-        process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
+        n = len(entities)
+        grouped = defaultdict(list)
+        visited = set()
 
-        #name_table
-        name_acc_df = self.get_unique_name_acc(single_person_output)
+        # Precompute embeddings for semantic similarity
+        embeddings = model.encode(entities, convert_to_tensor=True)
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Calculate semantic similarity
+                semantic_score = util.cos_sim(embeddings[i], embeddings[j]).item()
+
+                # Calculate string similarity
+                string_score = fuzz.ratio(entities[i].lower(), entities[j].lower()) / 100
+
+                # Combine the scores
+                combined_score = (weight_semantic * semantic_score) + (weight_string * string_score)
+
+                if low <= combined_score < high and (entities[i], entities[j]) not in visited:
+                    grouped[entities[i]].append(entities[j])
+                    visited.add((entities[i], entities[j]))
+                    visited.add((entities[j], entities[i]))
+
+        # Consolidate groups into lists
+        result = []
+        for key, value in grouped.items():
+            result.append([key] + value)
+
+        # Merge overlapping groups
+        merged = []
+        while result:
+            first, *rest = result
+            first = set(first)
+            overlapping = [g for g in rest if first & set(g)]
+            for g in overlapping:
+                first |= set(g)
+            rest = [g for g in rest if not (first & set(g))]
+            merged.append(list(first))
+            result = rest
+
+        return merged
+
+
+    def replace_entities(self, df, lists_of_names):
+        """
+        Efficiently replaces values in the 'Entity' column based on a list of lists of names.
+        """
+        # Create a set of unique names in the 'Name' column for fast lookup
+        name_set = set(df['Name'].dropna())
+
+        # Precompute the most frequent value for each group in 'Entity'
+        entity_counts = df['Entity'].value_counts()
+
+        # Iterate over each group in the list of lists
+        replacements = {}
+        for name_group in lists_of_names:
+            # Check if any name in the group exists in the 'Name' column
+            anchor_name = next((name for name in name_group if name in name_set), None)
+
+            if anchor_name:
+                # Use the anchor name for replacements
+                replacements.update({name: anchor_name for name in name_group})
+            else:
+                # Find the most frequent name in 'Entity' from the group
+                most_frequent_name = (
+                    entity_counts[entity_counts.index.isin(name_group)].idxmax()
+                    if not entity_counts[entity_counts.index.isin(name_group)].empty
+                    else name_group[0]  # Default to the first name
+                )
+                replacements.update({name: most_frequent_name for name in name_group})
+
+        # Apply the replacements to the 'Entity' column
+        df['Entity'] = df['Entity'].replace(replacements)
+
+        return df
+
+    def cummalative_person_sheets(self, process_df, name_acc_df):
 
         del_folder_path = os.path.join(BASE_DIR, "del")
         if not os.path.exists(del_folder_path):
             os.makedirs(del_folder_path)
+
+
+
+        #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+        #unique_values = self.extract_unique_names_and_entities(process_df)
+
+        #group_of_similar_entities = self.group_similar_entities(unique_values)
+
+        #new_df = self.replace_entities(process_df, group_of_similar_entities)
+
+        #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
         # save the process_df to excel file in del folder of current directory make sure to include base dir
         process_df.to_excel(BASE_DIR + "/del/process_df.xlsx", index=False)
@@ -550,8 +671,8 @@ class ATSFunctions:
         unique_names = link_analysis_df['Name'].unique()
         link_analysis_df.loc[link_analysis_df['Entity'].isin(unique_names), 'highlight'] = 1
 
-        #fifo analysis
-        fifo_dictionary = self.fifo_allocation(process_df)
+        #fifo analysis {utizialion sentence: {lifo: lifo_df, fifo: fifo_df}}
+        fifo_dictionary = self.lifo_fifo(process_df)
 
         # fifo_daily.to_excel(BASE_DIR + f"/del/fifo_daily.xlsx", index=False)
         # fifo_weekly.to_excel(BASE_DIR + f"/del/fifo_weekly.xlsx", index=False)
@@ -561,14 +682,14 @@ class ATSFunctions:
 
 
         #fund flow/money trail
-        ff_daily_analysis = self.analyze_period(process_df, 'D')
-        ff_weekly_analysis = self.analyze_period(process_df, 'W')
-        ff_monthly_analysis = self.analyze_period(process_df, 'M')
-        ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
-        ff_yearly_analysis = self.analyze_period(process_df, 'Y')
-        ff_monthly_analysis.to_excel(BASE_DIR + f"/del/ff_monthly_analysis.xlsx", index=False)
-        ff_half_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_half_yearly_analysis.xlsx", index=False)
-        ff_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_yearly_analysis.xlsx", index=False)
+        # ff_daily_analysis = self.analyze_period(process_df, 'D')
+        # ff_weekly_analysis = self.analyze_period(process_df, 'W')
+        # ff_monthly_analysis = self.analyze_period(process_df, 'M')
+        # ff_half_yearly_analysis = self.analyze_period(process_df, '6M')
+        # ff_yearly_analysis = self.analyze_period(process_df, 'Y')
+        # ff_monthly_analysis.to_excel(BASE_DIR + f"/del/ff_monthly_analysis.xlsx", index=False)
+        # ff_half_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_half_yearly_analysis.xlsx", index=False)
+        # ff_yearly_analysis.to_excel(BASE_DIR + f"/del/ff_yearly_analysis.xlsx", index=False)
 
         #bidirectional_analysis
         bda_all_analysis = self.cumulative_bidirectional_analysis(process_df)
@@ -582,12 +703,5 @@ class ATSFunctions:
             "entity_df":entity_df,
             "link_analysis_df": link_analysis_df,
             "fifo": fifo_dictionary,
-            "fund_flow":{
-                "ff_daily_analysis":ff_daily_analysis,
-                "ff_weekly_analysis":ff_weekly_analysis,
-                "ff_monthly_analysis":ff_monthly_analysis,
-                "ff_half_yearly_analysis":ff_half_yearly_analysis,
-                "ff_yearly_analysis":ff_yearly_analysis,
-            },
             "bidirectional_analysis": bda_all_analysis
         }
