@@ -4,7 +4,8 @@ from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt,QSize
 from .dashboard import DashboardTab
 from .file_opener import FileOpenerTab
-from .report_generator import ReportGeneratorTab
+# Temporarily removing report generator until implemented
+# from .report_generator import ReportGeneratorTab
 from .cash_flow import CashFlowNetwork
 from .settings import SettingsTab
 import pandas as pd
@@ -20,10 +21,12 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         self.setStyleSheet("""
                            
+
             QMainWindow {
                 background-color: #f0f0f0;
             }
                            
+
             QPushButton {
                 background-color: #ffffff;
                 color: #2c3e50;
@@ -60,7 +63,7 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Add footer label
-        footer_label = QLabel("© Copyright 2024 CypherSOL Fintech India Pvt Ltd.\nAll Rights Reserved")
+        footer_label = QLabel(" CypherSOL Fintech India Pvt Ltd.\nAll Rights Reserved")
         footer_label.setStyleSheet("""
             QLabel {
                 color: #666666;
@@ -96,7 +99,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons = []
         button_icons = [
             ("Dashboard", "dashboard.png"),
-            ("Generate Report", "generate_report.png"),
+            # ("Generate Report", "generate_report.png"),
             ("Settings", "settings.png"),
             # ("Cash Flow Network", "cash-flow.png"),
         ]
@@ -123,7 +126,7 @@ class MainWindow(QMainWindow):
 
         self.content_area = QStackedWidget()
         self.content_area.addWidget(DashboardTab())
-        self.content_area.addWidget(ReportGeneratorTab())
+        # self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
@@ -152,5 +155,3 @@ class MainWindow(QMainWindow):
         self.content_area.setCurrentIndex(index)
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
-
- 

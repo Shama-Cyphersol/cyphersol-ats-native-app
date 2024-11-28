@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout, QFrame,
                              QTableWidget, QTableWidgetItem,QDialog, QHeaderView, QGraphicsDropShadowEffect)
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
-from modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
+from src.modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
 from .case_dashboard import CaseDashboard
-from utils.json_logic import *
+from src.utils.json_logic import *
 
 class DashboardTab(QWidget):
     def __init__(self):

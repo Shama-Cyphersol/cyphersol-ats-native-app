@@ -1,5 +1,5 @@
 # from findaddy.decorators import timer_decorator
-from django.conf import settings
+# from django.conf import settings
 import shutil
 import os
 import pandas as pd
