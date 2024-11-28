@@ -10,39 +10,49 @@ from PyQt6.QtCharts import QChart, QChartView
 from functools import partial
 
 # Import your existing chart classes
-from utils.summary_charts.transactions import BankTransactionDashboard
-from utils.summary_charts.Creditors import Creditors
-from utils.summary_charts.EOD_balance import EODBalanceChart
-from utils.summary_charts.Debtors import DebtorsChart
-from utils.summary_charts.Cash_withdrawal import CashWithdrawalChart
-from utils.summary_charts.Cash_Deposit import CashDeposit
-from utils.summary_charts.Reversal import Reversal
-from utils.summary_charts.Suspense_debit import SuspenseDebit
-from utils.summary_charts.Suspense_Credit import SuspenseCredit
-# from utils.summary_charts.Summary import SummaryWindow
+from .summary_charts.transactions import BankTransactionDashboard
+from .summary_charts.Creditors import Creditors
+from .summary_charts.EOD_balance import EODBalanceChart
+from .summary_charts.Debtors import DebtorsChart
+from .summary_charts.Cash_withdrawal import CashWithdrawalChart
+from .summary_charts.Cash_Deposit import CashDeposit
+from .summary_charts.Reversal import Reversal
+from .summary_charts.Suspense_debit import SuspenseDebit
+from .summary_charts.Suspense_Credit import SuspenseCredit
+from .summary_charts.Summary import SummaryWindow
 from utils.json_logic import load_result
-# from utils.summary_charts.Investment import InvestmentChart
-# from utils.summary_charts.EMI import EMITransactionChart
+from .summary_charts.Investment import InvestmentChart
+from .summary_charts.EMI import EMITransactionChart
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
         self.setCheckable(True)
-        self.setFixedHeight(40)
+        self.setFixedHeight(50)
         self.setStyleSheet("""
             QPushButton {
-                border: none;
+                background-color: #ffffff;
+                color: #252525;
+                font-weight: 400;
+                border: none;  
+                padding: 12px 20px;
                 text-align: left;
-                padding: 8px 15px;
-                border-radius: 5px;
+                font-size: 18px;
                 margin: 2px 10px;
+                outline: none;
+                border-left: 3px solid transparent;
+                border-radius: 5px;
+     
+            }
+            QPushButton:hover {
+                background-color: #f8f9fa;
+                color: #3498db;
+
             }
             QPushButton:checked {
                 background-color: #e0e7ff;
-                color: #4338ca;
-            }
-            QPushButton:hover:!checked {
-                background-color: #f3f4f6;
+                color: #3498db;
+                border-left: 3px solid #3498db;
             }
         """)
 
@@ -83,7 +93,7 @@ class IndividualDashboard(QMainWindow):
         splitter.setStretchFactor(splitter.indexOf(content_area), 1)
         splitter.setStretchFactor(0, 0)  # Sidebar gets minimal stretch
         splitter.setStretchFactor(1, 1)  # Content area stretches with the window
-        splitter.setSizes([250, 1150])  # Initial sizes
+        splitter.setSizes([350, 1150])  # Initial sizes
             
         main_layout.addWidget(splitter,stretch=1)
 
@@ -93,7 +103,7 @@ class IndividualDashboard(QMainWindow):
     def create_id(self):
         id = chr(ord('A') + self.row_id)
         id+=str(self.row_id)
-        print("ID - ",id)
+        # print("ID - ",id)
         return id
     
     def createSidebar(self):
@@ -118,7 +128,9 @@ class IndividualDashboard(QMainWindow):
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
         sidebar_layout.addWidget(header)
-        
+        sidebar.setStyleSheet("""
+            background-color: white;  
+        """)
         # Navigation buttons with their corresponding widget classes
         # self.categories = {
         #     "Summary": {
@@ -275,7 +287,7 @@ class IndividualDashboard(QMainWindow):
         if widget_class == SummaryWindow:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["summary_df_list"])
         elif widget_class == BankTransactionDashboard:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["transaction_sheet_df"])
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["df"])
         elif widget_class == EODBalanceChart:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["eod_sheet_df"])
         elif widget_class == Creditors:
@@ -287,9 +299,15 @@ class IndividualDashboard(QMainWindow):
         elif widget_class == CashDeposit:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["cash_deposit_df"])
         elif widget_class == SuspenseDebit:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_debit_df"], total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0])
+                widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_debit_df"], 
+                                      total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0],
+                                      total_debit_txn=len(self.single_df[self.create_id()]["data"]["transaction_sheet_df"][
+                                        self.single_df[self.create_id()]["data"]["transaction_sheet_df"]["Debit"] > 0]))
         elif widget_class == SuspenseCredit:
-            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_credit_df"], total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0])
+            widget = widget_class(data=self.single_df[self.create_id()]["data"]["suspense_credit_df"], 
+                                  total_transactions=self.single_df[self.create_id()]["data"]["transaction_sheet_df"].shape[0],
+                                  total_credit_txn=len(self.single_df[self.create_id()]["data"]["transaction_sheet_df"][
+                                    self.single_df[self.create_id()]["data"]["transaction_sheet_df"]["Credit"] > 0]))
         elif widget_class == Reversal:
             widget = widget_class(data=self.single_df[self.create_id()]["data"]["refund"])
         elif widget_class == InvestmentChart:

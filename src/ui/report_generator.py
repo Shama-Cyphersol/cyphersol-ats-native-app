@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
+from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
 from apps.report.controllers import *
@@ -10,8 +10,37 @@ from utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
-# from utils.pdf_processor import PDFProcessor
-# from utils.ner_model import pdf_to_name
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
+from utils.ner_model import pdf_to_name
+from PyQt6.QtGui import QMovie
+
+
+class WebBridge(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+
+    @pyqtSlot(str)
+    def caseIdClicked(self, case_id):
+        self.parent.handle_case_id(case_id)
+
+    @pyqtSlot(str, str)
+    def uploadPdf(self, row, case_id):
+        self.parent.handle_upload_pdf(row, case_id)
+
+    @pyqtSlot(str)
+    def log(self, message):
+        print("JavaScript Log:", message)
+
+class CustomWebPage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        # print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+        print(f"JS Console conntected")
+
+
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
@@ -226,7 +255,7 @@ class ReportGeneratorTab(QWidget):
                 background-color: #2980b9;
             }
         """)
-        self.submit_button.clicked.connect(self.submit_form)
+        self.submit_button.clicked.connect(self.submit_form_spinner)
         # button_box_layout.addSpacing(20)  # Add space between form and button
         button_box_layout.addStretch()
         button_box_layout.addWidget(self.submit_button)
@@ -263,99 +292,421 @@ class ReportGeneratorTab(QWidget):
         return section_title
     
     def create_recent_reports_table(self):
+        if not hasattr(self, 'web_view'):
+            # Create web view and custom page
+            self.web_view = QWebEngineView()
+            self.web_page = CustomWebPage(self.web_view)
+            self.web_view.setPage(self.web_page)
             
-        # Create the table widget with 3 columns
-        if not hasattr(self, 'table'):
+            # Create and set up web channel
+            self.channel = QWebChannel()
+            self.web_page.setWebChannel(self.channel)
+            
+            # Create bridge and register it with the channel
+            self.bridge = WebBridge(self)
+            self.channel.registerObject('bridge', self.bridge)
 
-            self.table = QTableWidget()
-            self.table.setColumnCount(4)
-            self.table.verticalHeader().setVisible(False)
+            # HTML content with modern styling and QWebChannel integration
+            html_content = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        background-color: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }
+                    th {
+                        background-color: #3498db;
+                        color: white;
+                        font-weight: bold;
+                        padding: 12px;
+                        text-align: center;
+                    }
+                    td {
+                        padding: 10px;
+                        text-align: center;
+                        border-bottom: 1px solid #eee;
+                    }
+                    tr:hover {
+                        background-color: #f5f5f5;
+                    }
+                    .upload-btn {
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 12px;
+                    }
+                    .upload-btn:hover {
+                        background-color: #2980b9;
+                    }
+                    .case-id {
+                        color: blue;
+                        cursor: pointer;
+                        text-decoration: underline;
+                    }
+                    .search-container {
+                        margin: 20px 0;
+                        padding: 10px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .search-input {
+                        width: 300px;
+                        padding: 10px;
+                        border: 2px solid #3498db;
+                        border-radius: 5px;
+                        font-size: 14px;
+                        outline: none;
+                        transition: border-color 0.3s;
+                    }
+                    .search-input:focus {
+                        border-color: #2980b9;
+                    }
+                    .pagination {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin-top: 20px;
+                        gap: 10px;
+                    }
+                    .pagination button {
+                        padding: 8px 16px;
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    }
+                    .pagination button:disabled {
+                        background-color: #bdc3c7;
+                        cursor: not-allowed;
+                    }
+                    .pagination span {
+                        font-weight: bold;
+                        color: #333333;
+                    }
+                    .no-results {
+                        text-align: center;
+                        padding: 20px;
+                        color: #666;
+                        font-style: italic;
+                    }
+                </style>
+                <script>
+                    let bridge = null;
+                    let initialized = false;
+                    let filteredData = [];
+                    const rowsPerPage = 10;
+                    let currentPage = 1;
 
-            self.table.setHorizontalHeaderLabels(["Sr no.","Date","Case ID", "Report Name"])
-            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            self.table.setStyleSheet("""
-                QTableWidget {
-                    background-color: white;
-                    border-radius: 10px;
-                }
-                QHeaderView::section {
-                    background-color: #3498db;
-                    color: white;
-                    font-weight: bold;
-                    border: none;
-                    padding: 8px;
-                }
-                QCheckBox {
-                    margin-left: 5px;
-                }
-                QTableWidget::setItem {
-                    text-align: center;  /* Center text in cells */
-                }
-                QTableWidget::item {
-                    color: black;
-                    padding: 5px;
-                }
-            """)
-            self.table.cellClicked.connect(self.case_id_clicked)
+                    function initWebChannel() {
+                        return new Promise((resolve) => {
+                            if (typeof qt !== 'undefined') {
+                                new QWebChannel(qt.webChannelTransport, function(channel) {
+                                    bridge = channel.objects.bridge;
+                                    bridge.log("WebChannel initialized");
+                                    resolve();
+                                });
+                            } else {
+                                setTimeout(initWebChannel, 100);
+                            }
+                        });
+                    }
 
+                    function caseIdClicked(caseId) {
+                        if (bridge) {
+                            bridge.log("Clicking case ID: " + caseId);
+                            bridge.caseIdClicked(caseId);
+                        }
+                    }
+                    
+                    function uploadPdf(row, caseId) {
+                        if (bridge) {
+                            bridge.log("Uploading PDF for case: " + caseId);
+                            bridge.uploadPdf(row, caseId);
+                        }
+                    }
+                    
+                    function handleSearch() {
+                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                        
+                        filteredData = window.tableData.filter(report => {
+                            return report.date.toLowerCase().includes(searchTerm) ||
+                                report.case_id.toLowerCase().includes(searchTerm) ||
+                                report.report_name.toLowerCase().includes(searchTerm);
+                        });
+                        currentPage = 1;
+                        updateTable();
+                    }
+
+                    function updateTable(data) {
+                        if (!initialized) {
+                            bridge.log("Table update called before initialization");
+                            return;
+                        }
+
+                        if (data) {
+                            window.tableData = data;
+                            filteredData = [...data];
+                        }
+                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                        const start = (currentPage - 1) * rowsPerPage;
+                        const end = start + rowsPerPage;
+                        const pageData = filteredData.slice(start, end);
+                        
+                        const tbody = document.getElementById('tableBody');
+                        tbody.innerHTML = '';
+
+                        if (filteredData.length === 0) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" class="no-results">No matching results found</td>
+                                </tr>
+                            `;
+                        } else {
+                            pageData.forEach((report, index) => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${start +index + 1}</td>
+                                    <td>${report.date}</td>
+                                    <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
+                                    <td>${report.report_name}</td>
+                                    <td>
+                                        <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
+                                            Add PDF
+                                        </button>
+                                    </td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+                        document.getElementById('pageInfo').textContent = filteredData.length > 0 ? 
+                            `Page ${currentPage} of ${totalPages}` : '';
+                        document.getElementById('prevBtn').disabled = currentPage === 1;
+                        document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
+                    }
+                    function nextPage() {
+                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            updateTable();
+                        }
+                    }
+
+                    function previousPage() {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            updateTable();
+                        }
+                    }
+                    document.addEventListener('DOMContentLoaded', async function() {
+                        try {
+                            await initWebChannel();
+                            initialized = true;
+                            bridge.log("Page fully initialized");
+                            window.updateTableData && window.updateTableData();
+                        } catch (error) {
+                            console.error("Initialization error:", error);
+                        }
+                    });
+                    function updateTableData(data) {
+                        if (!initialized) {
+                            bridge.log("Table update called before initialization");
+                            return;
+                        }
+                        bridge.log("Updating table with data: " + JSON.stringify(data));
+                        tableData = data;
+                        filteredData = [...tableData];
+                        updateTable();
+                    }
+
+                </script>
+            </head>
+            <body>
+                <div class="search-container">
+                    <input type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Search..."
+                        oninput="handleSearch()">
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sr no.</th>
+                            <th>Date</th>
+                            <th>Case ID</th>
+                            <th>Report Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button id="prevBtn" onclick="previousPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button id="nextBtn" onclick="nextPage()">Next</button>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Load the HTML content
+            self.web_view.setHtml(html_content)
+            self.web_view.minimumHeight = 1000
+            
+            # Wait for the page to load before updating table data
+            def check_initialization():
+                self.web_page.runJavaScript(
+                    'typeof initialized !== "undefined" && initialized',
+                    lambda result: self.update_table_data() if result else QTimer.singleShot(100, check_initialization)
+                )
+            
+            # Start checking for initialization
+            QTimer.singleShot(100, check_initialization)
+            return self.web_view
+
+    def update_table_data(self):
         recent_reports = load_all_case_data()
-        self.table.setRowCount(len(recent_reports))
-        # Populate the table with data
-        for row, report in enumerate(recent_reports):
-
-            # Serial Number column
-            serial_number_item = QTableWidgetItem(str(row + 1))
-            serial_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            serial_number_item.setFlags(serial_number_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 0, serial_number_item)
-
-            # Date column
-            date_item = QTableWidgetItem(report['date'])
-            date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            date_item.setFlags(date_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 1, date_item)
-
-            # Case ID column
-            case_id_item = QTableWidgetItem(str(report['case_id']))
-            case_id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            case_id_item.setFlags(case_id_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 2, case_id_item)
-
-            # Report Name column
-            report_name_item = QTableWidgetItem(report['report_name'])
-            report_name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            report_name_item.setFlags(report_name_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-            self.table.setItem(row, 3, report_name_item)
-
-
-        return self.table
-    
-    
-    def case_id_clicked(self, row, column):
-        # if column == 2:
+        json_data = json.dumps(recent_reports)
         
-        case_id = self.table.item(row, 2).text() # getting 2nd col as it contains the case_id
-        print("Case ID clicked: ", case_id)
-        cash_flow_network = CaseDashboard(case_id=case_id)
-            # Create a new dialog and set the CashFlowNetwork widget as its central widget
+        # Store data in JavaScript and call updateTable
+        js_code = f"""
+            window.tableData = {json_data};
+            if (typeof updateTable === 'function') {{
+                updateTable(window.tableData);
+            }} else {{
+                window.updateTableData = function() {{
+                    updateTable(window.tableData);
+                }};
+            }}
+        """
+        self.web_page.runJavaScript(js_code)
+ 
+    def handle_case_id(self, case_id):
+        # Create and configure the spinner
+        # spinner_label = QLabel(self)
+        # spinner_movie = QMovie("assets/spinner.gif")
+        # spinner_label.setMovie(spinner_movie)
+        # spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # # Style and size the spinner
+        # spinner_label.setFixedSize(100, 100)
+        # spinner_label.setStyleSheet("""
+        #     QLabel {
+        #         background-color: rgba(255, 255, 255, 200);
+        #         border-radius: 10px;
+        #     }
+        # """)
+        
+        # # Center the spinner in the parent widget
+        # spinner_label.move(
+        #     (self.width() - spinner_label.width()) // 2,
+        #     (self.height() - spinner_label.height()) // 2
+        # )
+        
+        # # Show the spinner and start animation
+        # spinner_label.show()
+        # spinner_movie.start()
+        
+        # Create the dialog first but don't show it yet
         self.new_window = QDialog(self)
         self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
-        self.new_window.setModal(False)  # Set the dialog as non-modal
-        self.new_window.showMaximized()
-        self.new_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint)
-        self.new_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint)
-        self.new_window.setWindowFlag(Qt.WindowType.WindowCloseButtonHint)
-
-        # Set the minimum size of the dialog
-        self.new_window.setMinimumSize(1000, 800)  # Set the minimum width and height
-
-        # Create a layout for the dialog and add the CashFlowNetwork widget
-        layout = QVBoxLayout()
-        layout.addWidget(cash_flow_network)
-        self.new_window.setLayout(layout)
-
-        # Show the new window
-        self.new_window.show()
+        self.new_window.setModal(False)
+        self.new_window.setWindowFlags(
+            self.new_window.windowFlags() |
+            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMaximizeButtonHint |
+            Qt.WindowType.WindowCloseButtonHint
+        )
+        self.new_window.setMinimumSize(1000, 800)
+        
+        try:
+            # Create a layout for the dialog
+            layout = QVBoxLayout()
+            self.new_window.setLayout(layout)
+            
+            # Create the case dashboard with a loading callback
+            case_dashboard = CaseDashboard(case_id=case_id)
+            layout.addWidget(case_dashboard)
+            self.new_window.showMaximized()
+            # # Add a method to the case dashboard to signal when loading is complete
+            # def on_dashboard_ready():
+            #     # Stop and cleanup the spinner
+            #     spinner_label.movie().stop()
+            #     spinner_label.hide()
+            #     spinner_label.deleteLater()
+                
+            #     # Show the window now that data is loaded
+            #     layout.addWidget(case_dashboard)
+            #     self.new_window.showMaximized()
+            
+            # # Connect the loading complete signal if CaseDashboard has one
+            # if hasattr(case_dashboard, 'loading_complete'):
+            #     case_dashboard.loading_complete.connect(on_dashboard_ready)
+            # else:
+            #     # If CaseDashboard doesn't have a loading signal, 
+            #     # we'll need to modify CaseDashboard to add it
+            #     print("Warning: CaseDashboard should implement loading_complete signal")
+            #     on_dashboard_ready()
+                
+        except Exception as e:
+            # Handle any errors and clean up
+            print(f"Error creating case dashboard: {str(e)}")
+            # spinner_label.movie().stop()
+            # spinner_label.hide()
+            # spinner_label.deleteLater()
+            self.new_window.deleteLater()
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to open case dashboard: {str(e)}"
+            )
+            
+    def handle_upload_pdf(self, row, case_id):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Upload PDF Report",
+            "",
+            "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
+        )
+        
+        if file_name:
+            try:
+                # Add your file handling logic here
+                print(f"Uploading PDF for Case ID: {case_id}")
+                print(f"Selected file: {file_name}")
+                
+                success_message = f'<p style="color: black;">PDF successfully uploaded for Case ID: {case_id}</p>'
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    success_message
+                )
+                
+            except Exception as e:
+                error_message = f"Failed to upload PDF: {str(e)}"
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    error_message
+                )
 
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
@@ -375,73 +726,89 @@ class ReportGeneratorTab(QWidget):
             files_text = f"{len(files)} file(s) selected"
             self.file_display.setText(files_text)
 
-    def submit_form(self):
-        # Get the form data
-        CA_ID = self.ca_id
-        pdf_paths = self.selected_files  # List of selected file paths
-        password = self.password.text()
-        print("password",password)
-
-        password_provided = False
-        start_date_provided = False
-        end_date_provided = False
-
-        if password == "": 
-            password = [""]
-        else:
-            password_provided = True
-            password = [password]
-
-        start_date = self.start_date.date().toString("dd-MM-yyyy")
-        end_date = self.end_date.date().toString("dd-MM-yyyy")
-
-        # check if start_date is same as today
-        if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            start_date = [""]
-        else:
-            start_date_provided = True
-            start_date = [start_date]
-
-        if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
-            end_date = [""]
-        else:
-            end_date_provided = True
-            end_date = [end_date]
-        
-
-        bank_names = []
-        # for each path in pdf_paths, assign a unique name as A,B,C etc
-        for i in range(len(pdf_paths)):
-            bank_names.append(chr(65 + i))
-            if password_provided == False:
-                password.append("")
-            if start_date_provided == False:
-                start_date.append("")
-            if end_date_provided == False:
-                end_date.append("")
-
-        print ("CA_ID",CA_ID)
-        print ("pdf_paths",pdf_paths)
-        print ("passwords",password)
-        print ("start_date",start_date)
-        print ("end_date",end_date)
-        print ("bank_names",bank_names)
-
-
-        progress_data = {
-            'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
-            'current_progress': 10,
-            'total_progress': 100
-        }
-
-        print("progress_data",progress_data)
-
-        ner_results={
-                    "Name": [],
-                    "Acc Number": []
+    def submit_form_spinner(self):
+            # Create and configure spinner
+            self.spinner_label = QLabel(self)
+            self.spinner_movie = QMovie("assets/spinner.gif")
+            self.spinner_label.setMovie(self.spinner_movie)
+            self.spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.spinner_label.setFixedSize(100, 100)
+            self.spinner_label.setStyleSheet("""
+                QLabel {
+                    background-color: rgba(255, 255, 255, 200);
+                    border-radius: 10px;
                 }
+            """)
 
+            # Center the spinner in the parent widget
+            self.spinner_label.move(
+                (self.width() - self.spinner_label.width()) // 2,
+                (self.height() - self.spinner_label.height()) // 2,
+            )
+
+            # Show and start spinner
+            self.spinner_label.show()
+            self.spinner_movie.start()
+
+            # Create a QTimer to process the form in the next event loop iteration
+            QTimer.singleShot(100, self.process_form)
+    
+    def process_form(self):
         try:
+            # Get the form data
+            CA_ID = self.ca_id
+            pdf_paths = self.selected_files
+            password = self.password.text()
+            
+            password_provided = False
+            start_date_provided = False
+            end_date_provided = False
+
+            if password == "": 
+                password = [""]
+            else:
+                password_provided = True
+                password = [password]
+
+            start_date = self.start_date.date().toString("dd-MM-yyyy")
+            end_date = self.end_date.date().toString("dd-MM-yyyy")
+
+            # Check if start_date is same as today
+            if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+                start_date = [""]
+            else:
+                start_date_provided = True
+                start_date = [start_date]
+
+            if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+                end_date = [""]
+            else:
+                end_date_provided = True
+                end_date = [end_date]
+
+            bank_names = []
+            # For each path in pdf_paths, assign a unique name as A,B,C etc
+            for i in range(len(pdf_paths)):
+                bank_names.append(chr(65 + i))
+                if not password_provided:
+                    password.append("")
+                if not start_date_provided:
+                    start_date.append("")
+                if not end_date_provided:
+                    end_date.append("")
+
+            progress_data = {
+                'progress_func': lambda current, total, info: print(f"{info} ({current}/{total})"),
+                'current_progress': 10,
+                'total_progress': 100
+            }
+
+            ner_results = {
+                "Name": [],
+                "Acc Number": []
+            }
+
+            # Process PDFs with NER
             for pdf in pdf_paths:
                 result = pdf_to_name(pdf)
                 for entity in result:
@@ -449,115 +816,59 @@ class ReportGeneratorTab(QWidget):
                         ner_results["Name"].append(entity["text"])
                     elif entity["label"] == "ACC_NO":
                         ner_results["Acc Number"].append(entity["text"])
-            
-            print("NER Results final: ",ner_results)
-            # processed_results = self.pdf_processor(pdf_paths=pdf_paths)
-            # res = save_ner_results(CA_ID, processed_results)
-            # ner_results= res
+
+            # Process bank statements
+            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
+            result = converter.start_extraction()
+
+            # Save the results
+            save_case_data(CA_ID, pdf_paths, start_date, end_date, ner_results)
+            save_result(CA_ID, result)
+
+            # Update the table
+            self.create_recent_reports_table()
+
+            # For success message
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Success")
+            msg_box.setText("Form submitted and processed successfully!")
+            msg_box.setIcon(QMessageBox.Icon.Information)
+            msg_box.exec()
+
         except Exception as e:
-            print("Error processing PDFs: ", e)
-            pass
-        converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
-        result = converter.start_extraction()
+            # For error message
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Error")
+            msg_box.setText(f"An error occurred while processing: {str(e)}")
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+            msg_box.exec()
 
-        # single_df = result["single_df"]
-        # cummalative_df = result["cummalative_df"]
-
-        # # Saving all df as Excel
-        # for key,value in single_df["A0"]["data"].items():
-        #     try:
-        #         value.to_excel("src/data/"+key+".xlsx")
-        #     except:
-        #         print("Was not able to save excel for as it may not be a df - ",key,"Type =  ",type(value))
-        #         pass
-
-        # Check if NER model has extracted any entities
-        
-        names_from_cummalative_data = result["cummalative_df"]["name_acc_df"].to_dict("list")
-
-        # ner_names = {
-        #     "Name": [],
-        #     "Acc Number": []
-        # }
-
-        # if ner_results != {}:
-        #     for doc in ner_results["documents"]:
-        #         got_name = False
-        #         got_acc_no = False
-        #         for ent in doc["entities"]:
-        #             if ent["label"] == "PER" and not got_name:
-        #                 ner_names["Name"].append(ent["text"])
-        #                 got_name = True
-        #             elif ent["label"] == "ACC NO" and not got_acc_no:
-        #                 ner_names["Acc Number"].append(ent["text"])
-        #                 got_acc_no = True
-                
-        #         if not got_name:
-        #             ner_names["Name"].append(None)
-        #         if not got_acc_no:
-        #             ner_names["Acc Number"].append(None)
-
-        print("names_from_cummalative_data",names_from_cummalative_data)
-        print("ner_results",ner_results)
-
-        # check ner_names and names_from_cummalative_data and for any null values in ner_names, replace with names_from_cummalative_data
-        # Combining results of sanchay and manish logic for names, acc no
-        for i in range(len(ner_results["Name"])):
-            if ner_results["Name"][i] == None:
-                ner_results["Name"][i] = names_from_cummalative_data["Name"][i]
-            if ner_results["Acc Number"][i] == None:
-                ner_results["Acc Number"][i] = names_from_cummalative_data["Acc Number"][i]
-
-        
-        print("ner_names last",ner_results)
-
-        save_case_data(CA_ID, pdf_paths, start_date, end_date,ner_results)
-        save_result(CA_ID,result)
-        
-        print("Successfully saved case data and result")
-        self.create_recent_reports_table()
-
-    def pdf_processor(self,pdf_paths):
-        
-        print("\n1. Initializing PDF Processor...")
-        processor = PDFProcessor(model_path="src/models/output_ner_model")
-        processed_results = []
-        entities_data = {"Name": [], "Acc Number": []}
-        # Process each PDF file
-        for pdf_path in pdf_paths:
-            print(f"\n2. Processing file: {pdf_path}")
-            result = processor.process_single_pdf(pdf_path)
-            processed_results.append(result)
-            print(f"3. Processing result: {result}")
+        finally:
+            # Always clean up the spinner
+            if hasattr(self, 'spinner_movie'):
+                self.spinner_movie.stop()
+            if hasattr(self, 'spinner_label'):
+                self.spinner_label.hide()
+                self.spinner_label.deleteLater()
             
-            if not result.error:
-                print("4. Extracted entities:")
-                for entity in result.entities:
-                    print(f"   - {entity.label}: {entity.text}")
-                    # Changed PER to PERSON for consistency
-                    if entity.label == "PER":  # or entity.label == "PERSON":
-                        if entity.text not in entities_data["Name"]:
-                            entities_data["Name"].append(entity.text)
-                            print(f"     Added person: {entity.text}")
-                    elif entity.label == "ACC NO":  # or entity.label == "ACCOUNT_NUMBER":
-                        if entity.text not in entities_data["Acc Number"]:
-                            entities_data["Acc Number"].append(entity.text)
-                            print(f"     Added account: {entity.text}")
-            else:
-                print(f"   Error processing file: {result.error}")
+            self.update_table_data()
 
-        # If no entities found, add default values
-        if not entities_data["Name"]:
-            entities_data["Name"] = ["Unknown"]
-        if not entities_data["Acc Number"]:
-            entities_data["Acc Number"] = ["Not Found"]
-
-        print("\n5. Final extracted entities:")
-        print(f"   Names: {entities_data['Name']}")
-        print(f"   Accounts: {entities_data['Acc Number']}")
-
-        return processed_results
-        
     def create_label(self, text):
         label = QLabel(text)
         label.setFont(QFont("Arial", 14))
