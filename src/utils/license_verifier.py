@@ -1,5 +1,4 @@
 import requests
-import wmi
 import uuid
 import datetime
 import hashlib
@@ -13,6 +12,8 @@ from pathlib import Path
 import socket
 import platform
 from functools import lru_cache
+from abc import ABC, abstractmethod
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -25,46 +26,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class LicenseVerificationError(Exception):
-    """Custom exception for license verification errors"""
-    pass
 
-class LicenseVerifier:
-    # Test credentials
-    TEST_LICENSE_KEY = "SOMEX4Y4ZLicenseKEY1732686454"
-    TEST_USERNAME = "1-bd7c6c56"
-    
-    def __init__(self, config_path: Optional[str] = None):
-        """
-        Initialize the license verifier.
+class SystemInfoExtractorInterface(ABC):
+    @abstractmethod
+    def get_machine_id(self):
+        pass
         
-        Args:
-            config_path: Optional path to config file containing endpoint URL
-        """
-        self.config = self._load_config(config_path)
-        self.offline_endpoint = "http://43.204.61.215/validate-offline-license/"
-        self._init_wmi()
-        
-    def _init_wmi(self):
+
+class WindowsSystemInfoExtractor(SystemInfoExtractorInterface):
+    def __init__(self):
         """Initialize WMI with proper error handling"""
+        self.c = None
         try:
-            self.c = wmi.WMI(timeout=30)  # 30 seconds timeout
+            if sys.platform == "win32":
+                import wmi
+                self.c = wmi.WMI(timeout=30)
         except Exception as e:
             logger.error(f"Failed to initialize WMI: {str(e)}")
             self.c = None
-            
-    def _load_config(self, config_path: Optional[str]) -> Dict:
-        """Load configuration from file or use defaults"""
-        if config_path and os.path.exists(config_path):
-            try:
-                with open(config_path, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.error(f"Error loading config file: {str(e)}")
-        return {}
 
-    @lru_cache(maxsize=1)
-    def get_machine_id(self) -> str:
+    def get_machine_id(self):
         """
         Generate a unique machine identifier using multiple hardware components.
         Cached to avoid repeated hardware queries.
@@ -125,6 +106,51 @@ class LicenseVerifier:
             # Fallback to basic system info
             fallback_id = f"{platform.node()}:{uuid.getnode()}"
             return hashlib.sha256(fallback_id.encode()).hexdigest()
+        
+
+class MacOSSystemInfoExtractor(SystemInfoExtractorInterface):
+
+    def __init__(self):
+        pass
+
+    def get_machine_id(self):
+        return uuid.getnode()
+
+    
+class LicenseVerificationError(Exception):
+    """Custom exception for license verification errors"""
+    pass
+
+class LicenseVerifier:
+    # Test credentials
+    TEST_LICENSE_KEY = "SOMEX4Y4ZLicenseKEY1732686454"
+    TEST_USERNAME = "1-bd7c6c56"
+    
+    def __init__(self, config_path: Optional[str] = None, system_info_extractor: Optional[SystemInfoExtractorInterface] = None):
+        """
+        Initialize the license verifier.
+        
+        Args:
+            config_path: Optional path to config file containing endpoint URL
+        """
+        self.config = self._load_config(config_path)
+        self.offline_endpoint = "http://43.204.61.215/validate-offline-license/"
+        self.system_info_extractor = system_info_extractor
+            
+    def _load_config(self, config_path: Optional[str]) -> Dict:
+        """Load configuration from file or use defaults"""
+        if config_path and os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading config file: {str(e)}")
+        return {}
+
+    @lru_cache(maxsize=1)
+    def get_machine_id(self) -> str:
+        return self.system_info_extractor.get_machine_id()
+   
 
     def verify_license(self, username: str, first_name: str, 
                       last_name: str, license_key: str) -> Dict:
@@ -237,32 +263,32 @@ def show_dashboard():
     print("User authenticated successfully!")
     print("You now have access to all features.")
 
-def main():
-    parser = argparse.ArgumentParser(description='License Verification Tool')
-    parser.add_argument('--test', action='store_true', help='Run in test mode')
-    args = parser.parse_args()
+# def main():
+#     parser = argparse.ArgumentParser(description='License Verification Tool')
+#     parser.add_argument('--test', action='store_true', help='Run in test mode')
+#     args = parser.parse_args()
 
-    verifier = LicenseVerifier()
+#     verifier = LicenseVerifier()
     
-    if args.test:
-        # Using the exact working credentials
-        license_key = "SOMEX4Y4ZLicenseKEY1732686454"
-        username = "1-bd7c6c56"
+#     if args.test:
+#         # Using the exact working credentials
+#         license_key = "SOMEX4Y4ZLicenseKEY1732686454"
+#         username = "1-bd7c6c56"
         
-        print("\nTesting license validation with:")
-        print(f"License Key: {license_key}")
-        print(f"Username: {username}")
+#         print("\nTesting license validation with:")
+#         print(f"License Key: {license_key}")
+#         print(f"Username: {username}")
         
-        result = verifier.validate_offline_license(license_key, username)
+#         result = verifier.validate_offline_license(license_key, username)
         
-        if result["verified"]:
-            print("\nTest validation successful!")
-            show_dashboard()
-        else:
-            print("\nTest validation failed!")
-            print(f"Error: {result['message']}")
-    else:
-        print("Please run with --test flag to test the license verification")
+#         if result["verified"]:
+#             print("\nTest validation successful!")
+#             show_dashboard()
+#         else:
+#             print("\nTest validation failed!")
+#             print(f"Error: {result['message']}")
+#     else:
+#         print("Please run with --test flag to test the license verification")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
