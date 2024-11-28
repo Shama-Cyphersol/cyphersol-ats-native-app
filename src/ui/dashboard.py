@@ -1,10 +1,38 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout, QFrame,
-                             QTableWidget, QTableWidgetItem,QDialog, QHeaderView, QGraphicsDropShadowEffect)
-from PyQt6.QtGui import QFont, QColor
-from PyQt6.QtCore import Qt
-from modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from ..modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
+import json
+from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from .case_dashboard import CaseDashboard
-from utils.json_logic import *
+from PyQt6.QtCore import QDate, Qt
+from datetime import datetime, timedelta
+from PyQt6.QtCore import QObject, pyqtSlot, QTimer
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebChannel import QWebChannel
+from ..utils.json_logic import *
+
+
+class WebBridge(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+
+    @pyqtSlot(str)
+    def caseIdClicked(self, case_id):
+        self.parent.handle_case_id_clicked(case_id)
+
+    @pyqtSlot(str, str)
+    def uploadPdf(self, row, case_id):
+        self.parent.handle_upload_pdf(row, case_id)
+
+    @pyqtSlot(str)
+    def log(self, message):
+        print("JavaScript Log:", message)
+
+class CustomWebPage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        # print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+        print(f"JS Console conntected")
 
 class DashboardTab(QWidget):
     def __init__(self):

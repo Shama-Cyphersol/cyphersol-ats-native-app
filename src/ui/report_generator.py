@@ -3,15 +3,44 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
-from apps.report.controllers import *
+from ..apps.report.controllers import *
 import sys
-from utils.CA_Statement_Analyzer import CABankStatement
-from utils.json_logic import *
+from ..utils.CA_Statement_Analyzer import CABankStatement
+from ..utils.json_logic import *
 import random
 import string
 from .case_dashboard import CaseDashboard
-# from utils.pdf_processor import PDFProcessor
-# from utils.ner_model import pdf_to_name
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
+from ..utils.ner_model import pdf_to_name
+from PyQt6.QtGui import QMovie
+
+
+class WebBridge(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+
+    @pyqtSlot(str)
+    def caseIdClicked(self, case_id):
+        self.parent.handle_case_id(case_id)
+
+    @pyqtSlot(str, str)
+    def uploadPdf(self, row, case_id):
+        self.parent.handle_upload_pdf(row, case_id)
+
+    @pyqtSlot(str)
+    def log(self, message):
+        print("JavaScript Log:", message)
+
+class CustomWebPage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        # print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
+        print(f"JS Console conntected")
+
+
 
 # Report Generator
 class ReportGeneratorTab(QWidget):

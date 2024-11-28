@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QLabel
-from modules.license_manager import get_license_info
+from ..modules.license_manager import get_license_info
 
 class SettingsTab(QWidget):
     def __init__(self):

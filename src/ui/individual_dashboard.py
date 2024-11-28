@@ -10,19 +10,19 @@ from PyQt6.QtCharts import QChart, QChartView
 from functools import partial
 
 # Import your existing chart classes
-from utils.summary_charts.transactions import BankTransactionDashboard
-from utils.summary_charts.Creditors import Creditors
-from utils.summary_charts.EOD_balance import EODBalanceChart
-from utils.summary_charts.Debtors import DebtorsChart
-from utils.summary_charts.Cash_withdrawal import CashWithdrawalChart
-from utils.summary_charts.Cash_Deposit import CashDeposit
-from utils.summary_charts.Reversal import Reversal
-from utils.summary_charts.Suspense_debit import SuspenseDebit
-from utils.summary_charts.Suspense_Credit import SuspenseCredit
-# from utils.summary_charts.Summary import SummaryWindow
-from utils.json_logic import load_result
-# from utils.summary_charts.Investment import InvestmentChart
-# from utils.summary_charts.EMI import EMITransactionChart
+from .summary_charts.transactions import BankTransactionDashboard
+from .summary_charts.Creditors import Creditors
+from .summary_charts.EOD_balance import EODBalanceChart
+from .summary_charts.Debtors import DebtorsChart
+from .summary_charts.Cash_withdrawal import CashWithdrawalChart
+from .summary_charts.Cash_Deposit import CashDeposit
+from .summary_charts.Reversal import Reversal
+from .summary_charts.Suspense_debit import SuspenseDebit
+from .summary_charts.Suspense_Credit import SuspenseCredit
+from .summary_charts.Summary import SummaryWindow
+from ..utils.json_logic import load_result
+from .summary_charts.Investment import InvestmentChart
+from .summary_charts.EMI import EMITransactionChart
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):

@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QTableWidget, QF
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 import pandas as pd
-from modules.excel_handler import read_excel
+from ..modules.excel_handler import read_excel
 
 class FileOpenerTab(QWidget):
     def __init__(self):

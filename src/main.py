@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication
-from ui.main_window import MainWindow
+from .ui.main_window import MainWindow
+from .ui.license_dialog import LicenseDialog
 from PyQt6 import QtGui
 import os
 
