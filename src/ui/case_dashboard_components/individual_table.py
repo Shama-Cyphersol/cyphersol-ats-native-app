@@ -5,7 +5,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot
-from ui.individual_dashboard import IndividualDashboard
+from ...ui.individual_dashboard import IndividualDashboard
 from PyQt6.QtGui import QMovie
 
 

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
                              QScrollArea, QDialog,QPushButton,QSplitter,QSizePolicy)
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
-from utils.json_logic import *
+from ..utils.json_logic import *
 from functools import partial
 from .case_dashboard_components.network import create_network_graph
 from .case_dashboard_components.entity import create_entity_distribution_chart

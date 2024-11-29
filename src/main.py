@@ -1,8 +1,8 @@
 import sys
 import argparse
 from PyQt6.QtWidgets import QApplication
-from .ui.main_window import MainWindow
-from .ui.license_dialog import LicenseDialog
+from src.ui.main_window import MainWindow
+from src.ui.license_dialog import LicenseDialog
 from PyQt6 import QtGui
 import os
 
@@ -27,10 +27,10 @@ def main():
     app.setWindowIcon(QtGui.QIcon(os.path.join(parent_dir, 'assets/icon.png')))
     
     # Show license verification dialog
-    license_dialog = LicenseDialog(test_mode=args.test)
-    if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
-        print("License verification failed or cancelled.")
-        sys.exit(1)
+    # license_dialog = LicenseDialog(test_mode=args.test)
+    # if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
+    #     print("License verification failed or cancelled.")
+    #     sys.exit(1)
     
     # Only show main window if license is verified
     window = MainWindow()

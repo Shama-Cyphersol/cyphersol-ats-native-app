@@ -1,4 +1,4 @@
-from utils.dynamic_table import DynamicDataTable
+from ...utils.dynamic_table import DynamicDataTable
 import pickle
 def create_bidirectional_analysis(result):
 

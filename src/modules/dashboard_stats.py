@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timedelta
-from utils.json_logic import *
+from ..utils.json_logic import *
 
 def get_report_count():
     cases = load_all_case_data()

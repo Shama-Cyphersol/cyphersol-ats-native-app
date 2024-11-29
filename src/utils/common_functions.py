@@ -44,8 +44,8 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #from old_bank_extractions import CustomStatement
-from utils.code_for_extraction import ExtractionOnly
-from utils.model_loader import model
+from ..utils.code_for_extraction import ExtractionOnly
+from ..utils.model_loader import model_loader
 
 
 class CommonFunctions:
@@ -62,6 +62,7 @@ class CommonFunctions:
         self.file_name = None
         self.CA_ID = CA_ID
         self.extractor = ExtractionOnly(bank_names, pdf_paths, pdf_passwords, CA_ID)
+        self._model = model_loader.get_model()
 
     ##EXTRACTION PROCESS
     def extract_text_from_file(self, file_path):
@@ -1075,7 +1076,7 @@ class CommonFunctions:
                 return pd.Series({'Entity': '', 'Category': row['Category']})
 
             # Predict entities using the model
-            entities = model.predict_entities(text, labels)
+            entities = self._model.predict_entities(text, labels)
 
             # Filter entities based on confidence threshold
             filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]

@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QMessageBox
-from utils.dynamic_table import DynamicDataTable
+from ...utils.dynamic_table import DynamicDataTable
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, QObject, pyqtSlot

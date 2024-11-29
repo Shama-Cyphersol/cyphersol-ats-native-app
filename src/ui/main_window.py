@@ -9,7 +9,7 @@ from .reports import ReportsTab
 from .name_manager import NameManagerTab
 from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 import pandas as pd
-from core.db import Database
+from ..core.db import Database
 from sqlalchemy.sql import text  # Import the text function
 
 class AnimatedToggle(QPushButton):

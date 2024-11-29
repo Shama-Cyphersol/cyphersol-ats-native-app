@@ -43,8 +43,8 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-from utils.common_functions import CommonFunctions
-from utils.model_loader import model
+from ..utils.common_functions import CommonFunctions
+from ..utils.model_loader import model_loader
 from collections import deque
 
 class ATSFunctions:
@@ -63,6 +63,7 @@ class ATSFunctions:
         self.commoner = CommonFunctions(
             bank_names, pdf_paths, pdf_passwords, start_date, end_date, CASE_ID
         )
+        self._model = model_loader.get_model()
 
     def single_name_entity_addition(self, df):
         df['Entity'] = df['Entity']
@@ -562,7 +563,7 @@ class ATSFunctions:
         visited = set()
 
         # Precompute embeddings for semantic similarity
-        embeddings = model.encode(entities, convert_to_tensor=True)
+        embeddings = self._model.encode(entities, convert_to_tensor=True)
 
         for i in range(n):
             for j in range(i + 1, n):

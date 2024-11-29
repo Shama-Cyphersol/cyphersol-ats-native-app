@@ -16,9 +16,9 @@ pd.set_option("display.width", None)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from utils.common_functions import CommonFunctions
-from utils.ats_statement_analyzer import ATSFunctions
-from utils.model_loader import model
+from ..utils.common_functions import CommonFunctions
+from ..utils.ats_statement_analyzer import ATSFunctions
+# from ..utils.model_loader import model
 
 
 class CABankStatement:

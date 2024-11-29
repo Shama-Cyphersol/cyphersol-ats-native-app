@@ -3,6 +3,7 @@ import pickle
 from datetime import datetime
 import json
 import os
+import sys
 
 
 def ensure_result_directory_exists(directory_path):
@@ -46,7 +47,28 @@ def save_case_data(case_id, file_names, start_date, end_date,individual_names):
         json.dump(existing_data, f, indent=4)
 
 def load_all_case_data():
-    with open("src/data/json/cases.json", "r") as f:
+
+    if getattr(sys, 'frozen', False):
+        # We're running in a PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:
+        # We're running in the development environment
+        base_path = os.path.abspath(".")
+
+
+    # Ensure that we're joining the paths correctly
+    file_path = os.path.join(base_path, "src", "data", "json", "cases.json")
+    
+    # Check if the file exists, if not create an empty one
+    if not os.path.exists(file_path):
+        # If the file doesn't exist, create it with an empty list or default data
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)  # Ensure the directory exists before creating the file
+        with open(file_path, "w") as f:
+            json.dump([], f)
+            
+    with open(file_path, "r") as f:
         return json.load(f)
     
 def load_case_data(case_id):
