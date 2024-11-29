@@ -756,9 +756,10 @@ class ExtractionOnly:
                 )
 
                 # Define output path for the cropped page
+                adf = pdf_path.replace("saved_pdf\\", "").replace(".pdf", "")
                 output_page_path = os.path.join(
                     os.path.dirname(pdf_path),
-                    f"{ca_id}_page_{selected_page_num + 1}_crop.pdf"
+                    f"{ca_id}_{adf}_{selected_page_num + 1}_crop.pdf"
                 )
 
                 # Save only the selected page as a new PDF
