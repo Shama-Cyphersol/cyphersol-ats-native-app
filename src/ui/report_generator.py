@@ -816,7 +816,8 @@ class ReportGeneratorTab(QWidget):
                         ner_results["Name"].append(entity["text"])
                     elif entity["label"] == "ACC_NO":
                         ner_results["Acc Number"].append(entity["text"])
-
+                        
+            print("Ner results", ner_results)
             # Process bank statements
             converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
             result = converter.start_extraction()

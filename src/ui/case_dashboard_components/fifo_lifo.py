@@ -2,8 +2,11 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebChannel import QWebChannel
 import pandas as pd
 import sys
+import json
+
 
 dummy_data = {
     'Utilization of Credit (10000) received by Gamma from Alpha on 2024-04-03': {
@@ -108,25 +111,282 @@ dummy_data = {
     }
     }
 
-class FIFO_LFIO(QWidget):
-    def __init__(self, data):
+class FIFO_LFIO_Analysis(QWidget):
+    def __init__(self, result):
         super().__init__()
+        self.result = result
+        # self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
+        self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_area.setWidget(scroll_widget)
 
-        for key, value in data.items():
+        self.create_dropdowns()
+        
+
+        for key, value in self.lifo_fifo_analysis_data.items():
             accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
             scroll_layout.addWidget(accordion_item)
         
         scroll_layout.addStretch(1)
         scroll_area.setMinimumHeight(1200)
-        layout.addWidget(scroll_area)
-        self.setLayout(layout)
+        self.layout.addWidget(scroll_area)
+        self.setLayout(self.layout)
+
+        
+    def create_dropdowns(self):
+        class Handler(QObject):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.widget = parent
+
+            @pyqtSlot(str)
+            def handleFilters(self, filters_json):
+                filters = json.loads(filters_json)
+                self.widget.apply_filters(filters)
+                
+        self.web_view = QWebEngineView()
+        self.channel = QWebChannel(self.web_view.page())
+        self.handler = Handler(self)
+        self.channel.registerObject('handler', self.handler)
+        self.web_view.page().setWebChannel(self.channel)
+
+        entities = sorted(self.result["cummalative_df"]["entity_df"]['Entity'].dropna().unique())
+
+        entity_options = '\n'.join([f'<option value="{entity}">{entity}</option>' for entity in entities])
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Link Analysis Filters</title>
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+            <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+            <style>
+                :root {{
+                    --primary-blue: #3498db;
+                    --accent-red: #b82214;
+                    --border-color: #e2e8f0;
+                    --text-color: #1e293b;
+                    --background: #f8fafc;
+                }}
+
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: var(--background);
+                    height: 100vh;
+                }}
+
+                .filters-container {{
+                    padding: 1.5rem;
+                    background: white;
+                    border-bottom: 1px solid var(--border-color);
+                    position: relative;
+                    z-index: 1;
+                    margin:0 0.5rem;
+                }}
+
+                .filter-group {{
+                    margin-bottom: 0.5rem;
+                    position: relative;
+                }}
+
+                .filter-group:last-child {{
+                    margin-bottom: 0.5rem;
+                }}
+
+                label {{
+                    display: block;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    color: var(--text-color);
+                    margin-bottom: 0.5rem;
+                }}
+
+                /* Select2 Customization */
+                .select2-container {{
+                    width: 100% !important;
+                    margin-bottom: 0.5rem;
+                }}
+
+                .select2-container--default .select2-selection--multiple {{
+                    border: 1px solid var(--border-color);
+                    border-radius: 0.375rem;
+                    min-height: 2.5rem;
+                    padding: 0.25rem;
+                }}
+
+                .select2-container--default.select2-container--focus .select2-selection--multiple {{
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+                }}
+
+                .select2-container--default .select2-selection--multiple .select2-selection__choice {{
+                    background-color: var(--primary-blue);
+                    color: white;
+                    border: none;
+                    border-radius: 0.25rem;
+                    padding: 0.25rem 0.5rem;
+                    margin: 0.25rem;
+                }}
+
+                .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {{
+                    color: white;
+                    margin-right: 0.5rem;
+                }}
+
+                .select2-dropdown {{
+                    border-color: var(--border-color);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    z-index: 9999;
+                }}
+
+                .select2-container--open .select2-dropdown {{
+                    position: absolute;
+                    z-index: 100000 !important;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }}
+
+                .select2-container {{
+                    position: relative;
+                    z-index: 10000;
+                }}
+
+                .select2-results {{
+                    max-height: 300px;
+                    overflow-y: auto;
+                }}
+
+                /* Ensure the dropdown container is above other elements */
+                .filters-container {{
+                    position: relative;
+                    z-index: 1000;
+                    background: white;
+                }}
+                .select2-results__option {{
+                    padding: 0.5rem;
+                }}
+
+                .select2-container--default .select2-results__option--highlighted[aria-selected] {{
+                    background-color: var(--primary-blue);
+                }}
+
+                .buttons-container {{
+                    display: flex;
+                    gap: 1rem;
+                    margin-top: 0.5rem;
+                }}
+
+                .button {{
+                    flex: 1;
+                    padding: 0.75rem 1rem;
+                    border: none;
+                    border-radius: 0.375rem;
+                    font-weight: 500;
+                    font-size: 0.875rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }}
+
+                .apply-btn {{
+                    background: var(--primary-blue);
+                    color: white;
+                }}
+
+                .apply-btn:hover {{
+                    background: #3498db;
+                }}
+
+                .reset-btn {{
+                    background: var(--accent-red);
+                    color: white;
+                }}
+
+                .reset-btn:hover {{
+                    background: #991b1b;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="entity-dropdown">Interest Entities</label>
+                    <select id="entity-dropdown" multiple="multiple">
+                        {entity_options}
+                    </select>
+                </div>
+                <div class="buttons-container">
+                    <button class="button apply-btn" onclick="applyFilters()">Apply Filters</button>
+                    <button class="button reset-btn" onclick="resetFilters()">Reset</button>
+                </div>
+            </div>
+            <script>
+                let qtChannel = null;
+                function initWebChannel() {{
+                    new QWebChannel(qt.webChannelTransport, function(channel) {{
+                        qtChannel = channel;
+                    }});
+                }}
+
+                function initSelects() {{
+                    $('#entity-dropdown').select2({{
+                        placeholder: 'Select interested entities...',
+                        allowClear: true,
+                        closeOnSelect: false,
+                        width: '100%',
+                        dropdownParent: $('body')
+                    }});
+                }}
+
+                function applyFilters() {{
+                    if (!qtChannel) return;
+                    
+                    const selectedEntities = $('#entity-dropdown').val() || [];
+                    
+                    qtChannel.objects.handler.handleFilters(
+                        JSON.stringify({{
+                            entities: selectedEntities,
+                        }})
+                    );
+                }}
+
+                function resetFilters() {{
+                    $('#entity-dropdown').val(null).trigger('change');
+                    
+                    if (qtChannel) {{
+                        qtChannel.objects.handler.handleFilters(
+                            JSON.stringify({{
+                                names: [],
+                                entities: [],
+                            }})
+                        );
+                    }}
+                }}
+
+                $(document).ready(function() {{
+                    initWebChannel();
+                    initSelects();
+                }});
+            </script>
+        </body>
+        </html>
+        """
+
+        self.web_view.setHtml(html_content)
+        self.web_view.setFixedHeight(250)  # Increased height to accommodate dropdowns
+        self.layout.addWidget(self.web_view)
 
 
 class AccordionItem(QFrame):
@@ -259,12 +519,10 @@ class AccordionItem(QFrame):
         else:
             self.toggle_button.setText(f"+ {self.toggle_button.text()[2:]}")
 
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = FIFO_LFIO(dummy_data)
     window.show()
     sys.exit(app.exec())
-
-
-def create_fifo_lifo_analysis(result):
-    return FIFO_LFIO(dummy_data)
