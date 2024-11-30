@@ -819,6 +819,29 @@ class ReportGeneratorTab(QWidget):
                         
             print("Ner results", ner_results)
             # Process bank statements
+
+            # Check by account number that the bank statement is already processed or not
+            # get all the account numbers from the json
+            cases = load_all_case_data()
+            for case in cases:
+                acc_numbers = case["individual_names"]["Acc Number"]
+                for acc_number in acc_numbers:
+                    if acc_number in ner_results["Acc Number"]:
+                        print("Bank statement with account number", acc_number, "is already processed, refer case ID - ", case["case_id"])
+                        # For error message
+                        msg_box = QMessageBox(self)
+                        msg_box.setStyleSheet("""
+                         
+                            QMessageBox QLabel {
+                                color: black;
+                            }
+                        """)
+                        msg_box.setWindowTitle("Warning")
+                        case_id = case["case_id"]
+                        msg_box.setText(f"Bank statement with account number {acc_number} is already processed earlier, please refer case ID - {case_id}")
+                        msg_box.setIcon(QMessageBox.Icon.Warning)
+                        msg_box.exec()
+
             converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
             result = converter.start_extraction()
 

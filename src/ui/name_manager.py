@@ -110,12 +110,20 @@ class NameManagerTab(QWidget):
             label = QLabel(f'<a href="#">View Groups</a>')
             label.setStyleSheet("a { color: #3498db; } a:hover { color: #2980b9; }")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setOpenExternalLinks(False)  # Disable opening links in browser
-            label.mousePressEvent = lambda event, r=row: self.show_similar_names_groups(row)  # Attach row click handler
+            label.setOpenExternalLinks(False)
+            
+            # Create a closure to capture the correct row
+            def create_click_handler(current_row):
+                def handler(event):
+                    self.show_similar_names_groups(current_row)
+                return handler
+            
+            label.mousePressEvent = create_click_handler(row)
             self.reports_table.setCellWidget(row, 4, label)
 
     def show_similar_names_groups(self, row):
         """Open GroupSelector for the specific case ID in full screen"""
+
         # Ensure the dialog is stored as an instance attribute
         case_id = self.reports_table.item(row, 2).text()
         print("case_id name manager",case_id)
@@ -135,6 +143,6 @@ class NameManagerTab(QWidget):
 # Example usage
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    reports_tab = ReportsTab()
+    reports_tab = NameManagerTab()
     reports_tab.show()
     sys.exit(app.exec())

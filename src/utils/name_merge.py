@@ -67,15 +67,15 @@ def group_similar_entities(entities, low=0.62, high=1.0, weight_semantic=0.6, we
     return merged
 
 
-def replace_entities(self, df, lists_of_names):
+def replace_entities(process_df, lists_of_names):
     """
     Efficiently replaces values in the 'Entity' column based on a list of lists of names.
     """
     # Create a set of unique names in the 'Name' column for fast lookup
-    name_set = set(df['Name'].dropna())
+    name_set = set(process_df['Name'].dropna())
 
     # Precompute the most frequent value for each group in 'Entity'
-    entity_counts = df['Entity'].value_counts()
+    entity_counts = process_df['Entity'].value_counts()
 
     # Iterate over each group in the list of lists
     replacements = {}
@@ -96,6 +96,6 @@ def replace_entities(self, df, lists_of_names):
             replacements.update({name: most_frequent_name for name in name_group})
 
     # Apply the replacements to the 'Entity' column
-    df['Entity'] = df['Entity'].replace(replacements)
+    process_df['Entity'] = process_df['Entity'].replace(replacements)
 
-    return df
+    return process_df

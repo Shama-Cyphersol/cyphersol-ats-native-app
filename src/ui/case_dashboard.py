@@ -124,8 +124,8 @@ class CaseDashboard(QWidget):
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
             "Link Analysis": LinkAnalysisWidget(self.case_result),
-            "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result),
-            "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result),
+            "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
+            "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
         }
     
         # Create buttons for each category

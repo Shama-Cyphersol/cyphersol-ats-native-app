@@ -5,25 +5,56 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot
 import json
-
+from PyQt6.QtCore import Qt
+import pandas as pd
 
 class BiDirectionalAnalysisWidget(QWidget):
-    def __init__(self, result, parent=None):
+    def __init__(self, result,case_id, parent=None):
         super().__init__(parent),
         self.result = result
-        # self.bidirectional_analysis_data = result["cummalative_df"]["bidirectional_analysis"]
-        with open("src/data/dummy/bidirectional.pkl", 'rb') as f:
-            dummy_data= pickle.load(f)
-            self.bidirectional_analysis_data = dummy_data
-            
+        self.case_id = case_id
+        self.bidirectional_analysis_data = result["cummalative_df"]["bidirectional_analysis"]
+        # self.bidirectional_analysis_data = None
+        # with open("src/data/dummy/bidirectional.pkl", 'rb') as f:
+        #     dummy_data= pickle.load(f)
+        #     self.bidirectional_analysis_data = dummy_data
+        
+        # print("self.bidirectional_analysis_data ",self.bidirectional_analysis_data)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.create_dropdowns()
-
-        self.create_table()
+        # Check if bidirectional analysis data is empty
+        # check if the data is dict or dataframe
+        is_dict = isinstance(self.bidirectional_analysis_data, dict)
+        is_df = isinstance(self.bidirectional_analysis_data, pd.DataFrame)
+        if is_dict:
+            if not self.bidirectional_analysis_data["bda_weekly_analysis"]:
+                self.show_no_data_message()
+            else:
+                self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
+                self.create_dropdowns()
+                self.create_table()
+        elif is_df:
+            if self.bidirectional_analysis_data.empty:
+                self.show_no_data_message()
+            else:
+                self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
+                self.create_dropdowns()
+                self.create_table()
+        
         self.setLayout(self.layout)
-
+    def show_no_data_message(self):
+            # Create a QLabel with a message directing user to Name Manager
+            no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
+            no_data_label.setStyleSheet("""
+                color: #555;
+                font-size: 16px;
+                padding: 20px;
+                text-align: center;
+            """)
+            no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_data_label.setWordWrap(True)
+            self.layout.addWidget(no_data_label)
     def create_table(self):
         self.bidirectional_analysis_table = DynamicDataTable(
             # df=self.bidirectional_analysis_data,

@@ -73,7 +73,7 @@ class ReportsTab(QWidget):
         layout = QVBoxLayout()
         
         # Title with shadow effect
-        title = QLabel("Case Reports")
+        title = QLabel("Select a Case to download reports")
         title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
         

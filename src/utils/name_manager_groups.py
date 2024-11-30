@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
                              QListWidget, QListWidgetItem, QPushButton, QWidget, 
                              QMessageBox, QLabel, QGroupBox, QCheckBox, QTabWidget, 
-                             QTableWidget, QTableWidgetItem, QInputDialog,  QMessageBox, QScrollArea, QGridLayout)
+                             QTableWidget, QTableWidgetItem, QInputDialog,  QMessageBox, QScrollArea, QGridLayout, QHeaderView)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette, QColor, QFont
 from PyQt6.QtWidgets import QSizePolicy
@@ -212,6 +212,7 @@ class GroupSelector(QMainWindow):
         
         # Add title label
         title_label = QLabel("Select names to merge")
+        count_label = QLabel("Total groups: " + str(len(self.similar_names_groups)))
         title_label.setStyleSheet(f"""
             QLabel {{
                 color: {TEXT_COLOR};
@@ -220,7 +221,17 @@ class GroupSelector(QMainWindow):
                 margin-bottom: 10px;
             }}
         """)
+
+        count_label.setStyleSheet(f"""
+            QLabel {{
+                color: {TEXT_COLOR};
+                font-size: 14px;
+                margin-bottom: 10px;
+            }}
+        """)
+
         similar_names_layout.addWidget(title_label)
+        similar_names_layout.addWidget(count_label)
 
          # Create scroll area for similar names groups
         scroll_area = QScrollArea()
@@ -275,27 +286,39 @@ class GroupSelector(QMainWindow):
         self.merged_history_table = QTableWidget()
         self.merged_history_table.setColumnCount(2)
         self.merged_history_table.setHorizontalHeaderLabels(["Original Names", "Actions"])
-        self.merged_history_table.horizontalHeader().setStretchLastSection(True)
         self.merged_history_table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)
-        
-        # Set column widths
-        table_width = self.width()
+        self.merged_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        table_width = self.merged_history_table.width()
         self.merged_history_table.setColumnWidth(0, int(table_width * 0.5))
         self.merged_history_table.setColumnWidth(1, int(table_width * 0.5))
         
+        # Button container with improved spacing
+        final_button_container = QHBoxLayout()
+        final_button_container.addStretch()
+
+        # Final submit button for merge history page
+        final_merge_btn = StyledPushButton("Merge All Groups")
+        final_merge_btn.clicked.connect(self.final_merge_all_groups)
+        final_button_container.addWidget(final_merge_btn)
+        final_button_container.addStretch()
+
+
         merged_history_layout.addWidget(self.merged_history_table)
+        merged_history_layout.addLayout(final_button_container)
+
         
         # Button container with improved spacing
-        button_container = QHBoxLayout()
-        button_container.addStretch()
+        single_button_container = QHBoxLayout()
+        single_button_container.addStretch()
         
         # Merge button
-        merge_btn = StyledPushButton("Merge Selected Names")
-        merge_btn.clicked.connect(self.merge_selected_names)
-        button_container.addWidget(merge_btn)
-        button_container.addStretch()
+        single_merge_btn = StyledPushButton("Merge Selected Names")
+        single_merge_btn.clicked.connect(self.merge_selected_names)
+        single_button_container.addWidget(single_merge_btn)
+        single_button_container.addStretch()
         
-        similar_names_layout.addLayout(button_container)
+        similar_names_layout.addLayout(single_button_container)
         
         # Populate similar names groups
         self.create_similar_names_groups()
@@ -305,6 +328,9 @@ class GroupSelector(QMainWindow):
         print("case_id name manager groups",self.case_id)
         data = load_result(self.case_id)
 
+
+        group_of_similar_entities = None
+
         if "similar_entities" not in data["cummalative_df"]:
             process_df = None
             try:
@@ -313,18 +339,57 @@ class GroupSelector(QMainWindow):
                 process_df = data["cummalative_df"]["df"]
 
             unique_values = extract_unique_names_and_entities(process_df)
-            print("Extracting similar entities")
             group_of_similar_entities = group_similar_entities(unique_values)
-            print("group_of_similar_entities ",group_of_similar_entities)
             data["cummalative_df"]["similar_entities"] = group_of_similar_entities
             save_result(self.case_id,data)
             print("Saved similar entities in pkl")
         else:
             group_of_similar_entities = data["cummalative_df"]["similar_entities"]
 
-
         # Call the function which takes in process df and returns similar names
         return group_of_similar_entities
+
+    def final_merge_all_groups(self):
+
+        if self.similar_names_groups:
+            # Show error message if there are still groups to merge
+            self.show_error_message(f"Please merge all {len(self.similar_names_groups)} remaining name groups before final submission.")
+            return
+        
+        # Show confirmation dialog
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("Confirm Merge")
+        msg.setText("Are you sure you want to merge all groups?")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setStyleSheet(f"""
+            QMessageBox {{
+                background-color: {WHITE_COLOR};
+            }}
+            QLabel {{
+                color: {TEXT_COLOR};
+                font-size: 14px;
+                padding: 10px;
+            }}
+            QPushButton {{
+                background-color: {BLUE_COLOR};
+                color: {WHITE_COLOR};
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {HOVER_BLUE};
+            }}
+        """)
+
+        reply = msg.exec()
+
+        if reply == QMessageBox.StandardButton.Yes:
+            for group in self.similar_names_groups:
+                self.process_merge(group, group)
+            self.tab_widget.setCurrentIndex(1)
 
 
     def create_similar_names_groups(self):
@@ -349,17 +414,18 @@ class GroupSelector(QMainWindow):
             self.similar_groups_container.setAlignment(Qt.AlignmentFlag.AlignCenter)
             return
         
-
-        
         for i, group in enumerate(self.similar_names_groups):
             group_box = QGroupBox(f"Similar Names Group {i + 1}")
             group_layout = QVBoxLayout()
             group_layout.setSpacing(8)
-            
+            group_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Align names to the top
+
             name_radios = []
             radio_group = QWidget()
             radio_group_layout = QVBoxLayout()
             radio_group_layout.setSpacing(8)
+            radio_group_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Align names to the top
+
             radio_group.setLayout(radio_group_layout)
             
             for name in group:
@@ -367,7 +433,9 @@ class GroupSelector(QMainWindow):
                 radio_group_layout.addWidget(radio)
                 name_radios.append(radio)
                 radio.stateChanged.connect(self.handle_radio_state)
-            
+
+            radio_group_layout.addStretch(1)
+
             group_layout.addWidget(radio_group)
             group_box.setLayout(group_layout)
             group_box.name_radios = name_radios
@@ -404,8 +472,7 @@ class GroupSelector(QMainWindow):
 
     def merge_selected_names(self):
         """Handle merging of selected names"""
-        unselected_groups = []
-        selected_groups = []
+        selected_group = None
 
         for i in range(self.similar_groups_container.count()):
             item = self.similar_groups_container.itemAt(i)
@@ -418,58 +485,22 @@ class GroupSelector(QMainWindow):
             selected_names = [radio.text() for radio in name_radios if radio.isChecked()]
             original_group = [radio.text() for radio in name_radios]
             
-            if not selected_names:
-                unselected_groups.append(group_box.title())
-            else:
-                selected_groups.append((original_group, selected_names))
-        
-        # If not all groups have a selection, show a dialog
-        if unselected_groups:
-            # Create a custom dialog for group selection
-            dialog = QMessageBox(self)
-            dialog.setIcon(QMessageBox.Icon.Warning)
-            dialog.setWindowTitle("Select All Groups")
-            
-            # Prepare the message
-            unselected_message = "\n".join(unselected_groups)
-            dialog.setText(f"Please select a name from each group:\n\n{unselected_message}")
-            
-            dialog.setStyleSheet(f"""
-                QMessageBox {{
-                    background-color: {WHITE_COLOR};
-                }}
-                QLabel {{
-                    color: {TEXT_COLOR};
-                    font-size: 14px;
-                    padding: 10px;
-                }}
-                QPushButton {{
-                    background-color: {BLUE_COLOR};
-                    color: {WHITE_COLOR};
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background-color: {HOVER_BLUE};
-                }}
-            """)
-            
-            dialog.exec()
-            return
-        
-        
-        if not selected_groups:
+            if selected_names:
+                if selected_group is not None:
+                    self.show_error_message("Please select only one group to merge at a time")
+                    return
+                selected_group = (original_group, selected_names)
+        if not selected_group:
             self.show_error_message("No names selected for merging")
             return
         
-        
+        original_group, selected_names = selected_group
+
         # Show confirmation dialog
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Question)
         msg.setWindowTitle("Confirm Merge")
-        msg.setText(f"Are you sure you want to merge these names?\n\n")
+        msg.setText(f"Are you sure you want to merge these names?\n\n{', '.join(selected_names)}")
         msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg.setStyleSheet(f"""
             QMessageBox {{
@@ -498,10 +529,8 @@ class GroupSelector(QMainWindow):
         
         if reply == QMessageBox.StandardButton.Yes:
             # Use the first selected name as the merged name
-            for group in selected_groups:
-                original_group, selected_names = group
-                self.process_merge(selected_names, original_group)
-                self.tab_widget.setCurrentIndex(1)
+            self.process_merge(selected_names, original_group)
+            self.tab_widget.setCurrentIndex(1)
 
     def show_error_message(self, message):
         """Show styled error message"""
@@ -670,9 +699,7 @@ class GroupSelector(QMainWindow):
         
         if reply == QMessageBox.StandardButton.Yes:
             merged_entry = self.merged_history[row]
-            print("merged_entry ",merged_entry)
             original_group = merged_entry['original_group']
-            print("original_group ",original_group)
 
             self.similar_names_groups.append(original_group)
             self.create_similar_names_groups()

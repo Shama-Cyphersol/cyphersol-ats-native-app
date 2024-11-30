@@ -112,11 +112,13 @@ dummy_data = {
     }
 
 class FIFO_LFIO_Analysis(QWidget):
-    def __init__(self, result):
+    def __init__(self, result,case_id):
         super().__init__()
         self.result = result
-        # self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
-        self.lifo_fifo_analysis_data = dummy_data
+        self.case_id = case_id
+        self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
+        self.lifo_fifo_analysis_data = None
+        # self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
         self.layout = QVBoxLayout()
         scroll_area = QScrollArea()
@@ -125,15 +127,29 @@ class FIFO_LFIO_Analysis(QWidget):
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_area.setWidget(scroll_widget)
 
-        self.create_dropdowns()
-        
+        # Check if lifo_fifo_analysis_data is empty
+        if not self.lifo_fifo_analysis_data:
+            no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
+            no_data_label.setStyleSheet("""
+                color: #555;
+                font-size: 16px;
+                padding: 20px;
+                text-align: center;
+            """)
+            no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            scroll_layout.addWidget(no_data_label)
+            scroll_area.setMinimumHeight(500)
 
-        for key, value in self.lifo_fifo_analysis_data.items():
-            accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
-            scroll_layout.addWidget(accordion_item)
-        
-        scroll_layout.addStretch(1)
-        scroll_area.setMinimumHeight(1200)
+        else:
+            self.create_dropdowns()
+            self.lifo_fifo_analysis_data=self.lifo_fifo_analysis_data["fifo_weekly"]
+            for key, value in self.lifo_fifo_analysis_data.items():
+                accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
+                scroll_layout.addWidget(accordion_item)
+            
+            scroll_area.setMinimumHeight(1200)
+            scroll_layout.addStretch(1)
+            
         self.layout.addWidget(scroll_area)
         self.setLayout(self.layout)
 

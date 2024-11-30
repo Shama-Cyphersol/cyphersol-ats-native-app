@@ -135,7 +135,19 @@ def save_ner_results(case_id, processed_results):
     
     return results_data
 
+# test = load_result("CA_ID_A959N80RWMY3FOOZ")
+# cummalative_df =  test["cummalative_df"]
+# print(cummalative_df.keys())
 
 # test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
-# test = test["cummalative_df"]["entity_df"]["Entity"]
-# print(test)
+# test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
+# print(test.keys())
+
+
+# fifo = test["cummalative_df"]["fifo"]["fifo_weekly"]
+# # test = test["cummalative_df"]["fifo"]["bda_weekly_analysis"]
+# print(fifo)
+
+# cases = load_all_case_data()
+# for case in cases:
+#     acc_numbers = case["individual_names"]["Acc Number"]
