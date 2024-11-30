@@ -464,6 +464,21 @@ class ATSFunctions:
         name_acc_df = pd.DataFrame(name_acc_list).drop_duplicates(subset=["Name", "Acc Number"])
 
         return name_acc_df
+    
+    def categorywise_distribution(self, df):
+        # Hardcoded categories of interest
+        categories = ['Bank Charges', 'Bounce', 'Cash Deposits', 'Cash Withdrawal', 'Forex', 'Donation', 'Gold Loan', 'Refund/Reversal']
+        
+        # Filter, group, and calculate Debit, Credit, and Net
+        filtered_df = (
+            df[df['Category'].isin(categories)]
+            .groupby('Category', as_index=False)
+            .agg(Debit=('Debit', 'sum'), Credit=('Credit', 'sum'))
+            .assign(Net=lambda x: x['Credit'] - x['Debit'])
+            .rename(columns={'Category': 'Categorywise Distribution'})
+        )
+        
+        return filtered_df
 
     def single_person_sheets(self, dfs, name_dfs):
         result = {}
@@ -493,7 +508,9 @@ class ATSFunctions:
 
             #summary_df_list is a list of dataframes [df1: Paticulars, df2: Income/Receipts, df3: Important Expenses/Payments, df4: Other Expenses/Payments]
             summary_df_list = self.commoner.summary_sheet(df, opening_bal, closing_bal, new_tran_df)
-            
+
+
+            categorywise_distribution_df = self.categorywise_distribution(new_tran_df)
             investment_df = self.commoner.total_investment(new_tran_df)
             creditor_df = self.commoner.creditor_list(transaction_sheet_df)
             debtor_df = self.commoner.debtor_list(transaction_sheet_df)
@@ -516,6 +533,7 @@ class ATSFunctions:
                     "df":df,
                     "new_tran_df":new_tran_df,
                     'summary_df_list': summary_df_list,
+                    'categorywise_distribution_df': categorywise_distribution_df,
                     # "fifo":fifo,
                     # "money_trail":money_trail,
                     "entity_analysis":entity_analysis,
