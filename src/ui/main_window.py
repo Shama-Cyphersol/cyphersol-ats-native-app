@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         self.setStyleSheet("""
                            
+
             QMainWindow {
                 background-color: #f0f0f0;
             }
@@ -73,7 +74,7 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Add footer label
-        footer_label = QLabel("© Copyright 2024 CypherSOL Fintech India Pvt Ltd.\nAll Rights Reserved")
+        footer_label = QLabel(" CypherSOL Fintech India Pvt Ltd.\nAll Rights Reserved")
         footer_label.setStyleSheet("""
             QLabel {
                 color: #666666;

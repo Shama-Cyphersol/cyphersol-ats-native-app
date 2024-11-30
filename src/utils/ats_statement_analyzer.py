@@ -254,7 +254,7 @@ class ATSFunctions:
 
         # Daily FIFO Analysis Function
     
-    def fifo_allocation(self, df, period = 'week', category_wise = 'no', entities_of_interest = []):
+    def lifo_fifo(self, df, period = 'week', category_wise = 'no', entities_of_interest = []):
         imp_categories = ["UPI-Cr", "UPI-Dr", "Debtors", "Creditors", "Donation", "Loan", "Loan given", "Rent Paid"]
 
         if category_wise == 'yes':

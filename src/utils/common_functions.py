@@ -1,6 +1,6 @@
 import os
 from dateutil import parser
-from django.conf import settings
+# from django.conf import settings
 from openpyxl.styles import Font
 from pypdf import PdfReader
 import shutil
