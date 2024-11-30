@@ -725,7 +725,7 @@ class ATSFunctions:
             "process_df":process_df,
             "name_acc_df":name_acc_df,
             "entity_df":entity_df,
-            "link_analysis_df": link_analysis_df,
-            "fifo": fifo_dictionary,
-            "bidirectional_analysis": bda_all_analysis
+            "link_analysis_df": pd.DataFrame(),
+            "fifo": pd.DataFrame(),
+            "bidirectional_analysis": pd.DataFrame()        
         }
