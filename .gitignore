@@ -180,4 +180,4 @@ gliner_medium-v2.1/
 venv.zip
 saved_pdf
 alembic.ini
-
+/src/utils/matching_names_model/*
