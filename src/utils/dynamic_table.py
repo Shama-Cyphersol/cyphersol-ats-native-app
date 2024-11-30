@@ -85,10 +85,10 @@ class DynamicDataTable(QMainWindow):
                 else:
                     row_dict[column] = str(value)
             
-            if self.table_for == "link_analysis":
-                row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 or i in [2,5] else ''
-            else:
-                row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 else ''
+            # if self.table_for == "link_analysis":
+            #     row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 or i in [2,5] else ''
+            # else:
+            row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 else ''
             table_data.append(row_dict)
                 
         

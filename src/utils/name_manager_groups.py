@@ -7,8 +7,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette, QColor, QFont
 from PyQt6.QtWidgets import QSizePolicy
 from PyQt6.QtGui import QBrush
-from utils.json_logic import load_result, save_result
+from utils.json_logic import *
 from utils.name_merge import *
+import time
 
 # Enhanced color scheme with better contrast
 BLUE_COLOR = "#3498db"  
@@ -72,11 +73,16 @@ class ClickableLabel(QLabel):
 class GroupSelector(QMainWindow):
     def __init__(self,case_id, parent, similar_names_groups=sample_similar_names):
         super().__init__()
-        self.setWindowTitle("Similar Names Merger")
+        self.setWindowTitle(f"Similar Names Merger for Case Id - {case_id}")
         self.setGeometry(100, 100, 1000, 800)
         self.case_id = case_id
-        similar_names_groups = self.get_similar_names()
         
+        start = time.time()
+        similar_names_groups = self.get_similar_names()
+        end = time.time()
+
+        print("Time taken to get similar names in seconds - ",end-start)
+
         # Enhanced window styling
         self.setStyleSheet(f"""
             *{{
@@ -326,25 +332,40 @@ class GroupSelector(QMainWindow):
     def get_similar_names(self):
         """Get similar names groups for a given case ID"""
         print("case_id name manager groups",self.case_id)
+        merged_names_object = find_merge_name_object(self.case_id)
         data = load_result(self.case_id)
-
 
         group_of_similar_entities = None
 
-        if "similar_entities" not in data["cummalative_df"]:
-            process_df = None
-            try:
-                process_df = data["cummalative_df"]["process_df"] 
-            except:
-                process_df = data["cummalative_df"]["df"]
+        # if "similar_entities" not in data["cummalative_df"]:
+        #     process_df = None
+        #     try:
+        #         process_df = data["cummalative_df"]["process_df"] 
+        #     except:
+        #         process_df = data["cummalative_df"]["df"]
 
+        #     unique_values = extract_unique_names_and_entities(process_df)
+        #     group_of_similar_entities = group_similar_entities(unique_values)
+        #     # data["cummalative_df"]["similar_entities"] = group_of_similar_entities
+        #     # save_result(self.case_id,data)
+        #     print("Saved similar entities in pkl")
+        # else:
+        #     group_of_similar_entities = data["cummalative_df"]["similar_entities"]
+
+        if merged_names_object == None:
+            process_df = data["cummalative_df"]["process_df"]
             unique_values = extract_unique_names_and_entities(process_df)
             group_of_similar_entities = group_similar_entities(unique_values)
-            data["cummalative_df"]["similar_entities"] = group_of_similar_entities
-            save_result(self.case_id,data)
-            print("Saved similar entities in pkl")
-        else:
-            group_of_similar_entities = data["cummalative_df"]["similar_entities"]
+
+            obj = {
+                "case_id":self.case_id,
+                "original_groups":group_of_similar_entities,
+                "selected_groups":None,
+                "unselected_groups":None
+            }
+
+            create_name_merge_object(obj)
+
 
         # Call the function which takes in process df and returns similar names
         return group_of_similar_entities

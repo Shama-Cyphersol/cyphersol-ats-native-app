@@ -123,7 +123,7 @@ class CaseDashboard(QWidget):
             "Fund Flow Network Graph": create_network_graph(self.case_result),
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
-            "Link Analysis": LinkAnalysisWidget(self.case_result),
+            "Link Analysis": LinkAnalysisWidget(self.case_result,self.case_id),
             "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
             "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
         }

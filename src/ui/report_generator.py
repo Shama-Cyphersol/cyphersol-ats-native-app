@@ -16,6 +16,7 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
 from utils.ner_model import pdf_to_name
 from PyQt6.QtGui import QMovie
+import time
 
 
 class WebBridge(QObject):
@@ -751,9 +752,13 @@ class ReportGeneratorTab(QWidget):
             self.spinner_movie.start()
 
             # Create a QTimer to process the form in the next event loop iteration
+            # start the timer
             QTimer.singleShot(100, self.process_form)
+            
     
     def process_form(self):
+        start = time.time()
+
         try:
             # Get the form data
             CA_ID = self.ca_id
@@ -890,7 +895,19 @@ class ReportGeneratorTab(QWidget):
             if hasattr(self, 'spinner_label'):
                 self.spinner_label.hide()
                 self.spinner_label.deleteLater()
-            
+                
+            # make the form empty
+            self.selected_files = []
+            self.file_display.setText("")
+            self.password.setText("")
+            self.start_date.setDate(QDate.currentDate())
+            self.end_date.setDate(QDate.currentDate())
+            self.ca_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+            self.case_id.setText(str(self.ca_id))
+
+            end = time.time()
+            print("Time taken to process the form", end-start)
+
             self.update_table_data()
 
     def create_label(self, text):

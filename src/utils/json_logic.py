@@ -135,9 +135,24 @@ def save_ner_results(case_id, processed_results):
     
     return results_data
 
-# test = load_result("CA_ID_A959N80RWMY3FOOZ")
-# cummalative_df =  test["cummalative_df"]
-# print(cummalative_df.keys())
+def create_name_merge_object(obj):
+    # open name_merge.json which is an array and append this obj
+     
+     
+        
+
+def find_merge_name_object(case_id):
+
+    with open(f"src/data/json/merged_names.json","r") as f:
+        data = json.load(f)
+        for obj in data:
+            if obj["case_id"] == case_id:
+                return obj
+        return None
+
+# test = load_result("CA_ID_BCZV8JZ9A7KNP7W2")
+# cummalative_df =  test["cummalative_df"]["link_analysis_df"]
+# print(cummalative_df)
 
 # test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
 # test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]

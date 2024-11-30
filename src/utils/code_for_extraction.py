@@ -293,6 +293,7 @@ class ExtractionOnly:
 
         df["Debit"] = pd.to_numeric(df["Debit"], errors="coerce")
         df["Credit"] = pd.to_numeric(df["Credit"], errors="coerce")
+        print("DONE")
         df["Balance"] = pd.to_numeric(df["Balance"], errors="coerce")
         # this is the code to merge lines that have been cut by separators
         # Iterate through the DataFrame and combine descriptions

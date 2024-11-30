@@ -137,8 +137,8 @@ class FIFO_LFIO_Analysis(QWidget):
                 text-align: center;
             """)
             no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            scroll_layout.addWidget(no_data_label)
-            scroll_area.setMinimumHeight(500)
+            self.layout.addWidget.addWidget(no_data_label)
+            # scroll_area.setMinimumHeight(500)
 
         else:
             self.create_dropdowns()

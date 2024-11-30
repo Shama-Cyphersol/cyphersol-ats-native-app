@@ -23,24 +23,13 @@ class BiDirectionalAnalysisWidget(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        # Check if bidirectional analysis data is empty
-        # check if the data is dict or dataframe
-        is_dict = isinstance(self.bidirectional_analysis_data, dict)
-        is_df = isinstance(self.bidirectional_analysis_data, pd.DataFrame)
-        if is_dict:
-            if not self.bidirectional_analysis_data["bda_weekly_analysis"]:
-                self.show_no_data_message()
-            else:
-                self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
-                self.create_dropdowns()
-                self.create_table()
-        elif is_df:
-            if self.bidirectional_analysis_data.empty:
-                self.show_no_data_message()
-            else:
-                self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
-                self.create_dropdowns()
-                self.create_table()
+
+        if self.bidirectional_analysis_data.empty:
+            self.show_no_data_message()
+        else:
+            self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
+            self.create_dropdowns()
+            self.create_table()
         
         self.setLayout(self.layout)
     def show_no_data_message(self):
