@@ -479,10 +479,10 @@ class ATSFunctions:
             df['Value Date'] = pd.to_datetime(df['Value Date'], format='%d-%m-%Y', errors='coerce')
             new_tran_df = self.commoner.another_method(df) 
 
-            fifo = self.single_fifo_analysis(new_tran_df)
-            money_trail = self.single_money_trail_analysis(new_tran_df)
+            # fifo = self.single_fifo_analysis(new_tran_df)
+            # money_trail = self.single_money_trail_analysis(new_tran_df)
             entity_analysis = self.single_analyze_entities(new_tran_df)
-            bidirectional_analysis = self.single_bidirectional_analysis(new_tran_df)
+            # bidirectional_analysis = self.single_bidirectional_analysis(new_tran_df)
 
             transaction_sheet_df = self.commoner.transaction_sheet(df)
             # transaction_sheet_df['Value Date'] = pd.to_datetime(transaction_sheet_df['Value Date']).dt.strftime('%d-%m-%Y')
@@ -516,10 +516,10 @@ class ATSFunctions:
                     "df":df,
                     "new_tran_df":new_tran_df,
                     'summary_df_list': summary_df_list,
-                    "fifo":fifo,
-                    "money_trail":money_trail,
+                    # "fifo":fifo,
+                    # "money_trail":money_trail,
                     "entity_analysis":entity_analysis,
-                    "bidirectional_analysis":bidirectional_analysis,
+                    # "bidirectional_analysis":bidirectional_analysis,
                     "transaction_sheet_df":transaction_sheet_df,
                     "eod_sheet_df":eod_sheet_df,
                     "investment_df":investment_df,
