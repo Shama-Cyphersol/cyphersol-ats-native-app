@@ -5061,6 +5061,7 @@ def add_pdf_extraction(bank_names, pdf_paths, pdf_passwords, start_date, end_dat
     dfs = {}
     name_dfs = {}
     i = 0
+    account_number = ""
 
     for bank in bank_names:
         bank = str(f"{bank}{i}")
@@ -5083,16 +5084,16 @@ def add_pdf_extraction(bank_names, pdf_paths, pdf_passwords, start_date, end_dat
     print("|------------------------------|")
 
     single_df = single_person_sheets(dfs, name_dfs)
-    cumulative_df = pd.concat(
+    cummalative_df = pd.concat(
         [data["data"]["df"].assign(Name=data["name"]) for data in single_df.values()],
         ignore_index=True
     )
     # Reorder columns to have 'name' at the front
-    cumulative_df = cumulative_df[
+    cummalative_df = cummalative_df[
         ["Name", "Value Date", "Description", "Debit", "Credit", "Balance", "Category", "Entity"]]
     process_df = pd.concat([old_process_df, cummalative_df], ignore_index=True)
     process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
-    new_process_df = custom_sort(new_process_df)
+    new_process_df = custom_sort(process_df)
     #name_table
     name_acc_df = get_unique_name_acc(single_df)
     cummalative_df = cummalative_person_sheets(new_process_df, name_acc_df)

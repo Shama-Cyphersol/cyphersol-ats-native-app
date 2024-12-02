@@ -1,9 +1,11 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QMainWindow, QApplication, QWidget, QVBoxLayout,QLabel
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 import pandas as pd
 import json
+from PyQt6.QtCore import Qt
+
 
 class Reversal(QMainWindow):
     def __init__(self,data):
@@ -25,13 +27,35 @@ class Reversal(QMainWindow):
         # }
         
         self.df = pd.DataFrame(data)
-        
+        if self.df.empty:
+            self.handle_empty_data(layout)
+            return
         self.web_view = QWebEngineView()
         self.web_view.setFixedHeight(400)
+
+
         layout.addWidget(self.web_view)
         
         self.load_dashboard()
         self.create_data_table_reversal(layout)
+
+    def handle_empty_data(self, layout):
+            """Handle case when DataFrame is empty"""
+            # Create and style message for empty data
+            empty_message = QLabel("No data available to display")
+            empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_message.setStyleSheet("""
+                QLabel {
+                    font-size: 16px;
+                    color: #666;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    margin: 20px;
+                }
+            """)
+            layout.addWidget(empty_message)
 
     def load_dashboard(self):
         html_content = f"""

@@ -1,8 +1,11 @@
 import sys
 import json
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSizePolicy
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSizePolicy,QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import pandas as pd
+from PyQt6.QtCore import Qt
+
+
 
 class CashWithdrawalChart(QMainWindow):
     def __init__(self, data):
@@ -13,6 +16,16 @@ class CashWithdrawalChart(QMainWindow):
         self.data = data
         # print(self.data.head())
 
+        # Create central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+
+        if self.data.empty:
+            self.handle_empty_data(layout)
+            return
+        
         # Process data for monthly aggregation
         self.data['Month-Year'] = self.data['Value Date'].dt.to_period('M')
         monthly_withdrawals = self.data.groupby('Month-Year')['Debit'].sum().reset_index()
@@ -24,11 +37,7 @@ class CashWithdrawalChart(QMainWindow):
         self.months = monthly_withdrawals['Month-Year'].tolist()
         self.monthly_totals = monthly_withdrawals['Debit'].tolist()
 
-        # Create central widget and layout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        
 
         # Create and configure QWebEngineView
         self.browser = QWebEngineView()
@@ -39,6 +48,25 @@ class CashWithdrawalChart(QMainWindow):
         self.show_charts()
         
         self.create_data_table_cashWithdrawal(layout)
+    
+    
+    def handle_empty_data(self, layout):
+                """Handle case when DataFrame is empty"""
+                # Create and style message for empty data
+                empty_message = QLabel("No data available to display")
+                empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                empty_message.setStyleSheet("""
+                    QLabel {
+                        font-size: 16px;
+                        color: #666;
+                        padding: 20px;
+                        background-color: #f8f9fa;
+                        border: 1px solid #dee2e6;
+                        border-radius: 5px;
+                        margin: 20px;
+                    }
+                """)
+                layout.addWidget(empty_message)
 
     def show_charts(self):
         html_content = self.create_charts_html(self.dates, self.withdrawals, self.months, self.monthly_totals)

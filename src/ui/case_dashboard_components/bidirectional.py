@@ -27,8 +27,7 @@ class BiDirectionalAnalysisWidget(QWidget):
         if self.bidirectional_analysis_data.empty:
             self.show_no_data_message()
         else:
-            self.bidirectional_analysis_data = self.bidirectional_analysis_data["bda_weekly_analysis"]
-            self.create_dropdowns()
+            # self.create_dropdowns()
             self.create_table()
         
         self.setLayout(self.layout)

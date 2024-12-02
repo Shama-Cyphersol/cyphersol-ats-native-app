@@ -16,6 +16,7 @@ class SuspenseDebit(QWidget):
         layout = QVBoxLayout(self)
 
         df = pd.DataFrame(data)
+
         
         # Calculate suspense debit transactions
         suspense_debit_count = len(df)

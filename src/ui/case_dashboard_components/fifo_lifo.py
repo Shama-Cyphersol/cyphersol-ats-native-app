@@ -117,7 +117,6 @@ class FIFO_LFIO_Analysis(QWidget):
         self.result = result
         self.case_id = case_id
         self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
-        self.lifo_fifo_analysis_data = None
         # self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
         self.layout = QVBoxLayout()
@@ -137,20 +136,21 @@ class FIFO_LFIO_Analysis(QWidget):
                 text-align: center;
             """)
             no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.layout.addWidget.addWidget(no_data_label)
+            self.layout.addWidget(no_data_label)
             # scroll_area.setMinimumHeight(500)
 
         else:
-            self.create_dropdowns()
-            self.lifo_fifo_analysis_data=self.lifo_fifo_analysis_data["fifo_weekly"]
+            # self.create_dropdowns()
             for key, value in self.lifo_fifo_analysis_data.items():
                 accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
                 scroll_layout.addWidget(accordion_item)
             
-            scroll_area.setMinimumHeight(1200)
+            # scroll_area.setMinimumHeight(2500)
+            # set scroll_area hieght such that to fit all content
+            scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
             scroll_layout.addStretch(1)
+            self.layout.addWidget(scroll_area)
             
-        self.layout.addWidget(scroll_area)
         self.setLayout(self.layout)
 
         
@@ -449,6 +449,7 @@ class AccordionItem(QFrame):
 
         # LIFO HTML Table
         self.lifo_table_view = QWebEngineView()
+        # print("lifo_data ",lifo_data.head(2))
         self.lifo_table_view.setHtml(self.create_html_table(lifo_data))
         self.lifo_table_view.setVisible(False)
         layout.addWidget(self.lifo_table_view)
@@ -460,6 +461,7 @@ class AccordionItem(QFrame):
 
         # FIFO HTML Table
         self.fifo_table_view = QWebEngineView()
+        # print("fifo_data ",fifo_data.head(2))  
         self.fifo_table_view.setHtml(self.create_html_table(fifo_data))
         self.fifo_table_view.setVisible(False)
         layout.addWidget(self.fifo_table_view)
