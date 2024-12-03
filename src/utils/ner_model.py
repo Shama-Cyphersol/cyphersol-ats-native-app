@@ -103,6 +103,7 @@ def test_single_pdf(model_path: str, pdf_path: str) -> None:
 def pdf_to_name(pdf_path: str):
     model_path = "src/utils/trained_model"
     print("pdf_path ", pdf_path)
+    
     result = test_single_pdf(model_path, pdf_path)
     return result
 
