@@ -79,6 +79,42 @@ def load_case_data(case_id):
                 return case
         return None
 
+def update_case_data(case_id, new_case_data):
+    """
+    Updates an existing case's data in the JSON file.
+    
+    :param case_id: The ID of the case to update
+    :param new_case_data: A dictionary containing the new case data
+    :return: True if updated successfully, False otherwise
+    """
+    try:
+        # Load existing data
+        with open("src/data/json/cases.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print("Error: Case data file not found.")
+        return False
+
+    case_found = False
+
+    # Update the case if it exists
+    for i, case in enumerate(data):
+        if case["case_id"] == case_id:
+            # Replace the old case data with the new one
+            data[i] = {**case, **new_case_data}  # Merge existing data with new data
+            case_found = True
+            break
+
+    if not case_found:
+        print(f"Error: Case with ID {case_id} not found.")
+        return False
+
+    # Write the updated data back to the file
+    with open("src/data/json/cases.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+    return True
+
 def save_result(CA_ID,result):
     with open("src/data/results/"+CA_ID+".pkl", 'wb') as f:
         pickle.dump(result, f)
@@ -157,7 +193,76 @@ def save_ner_results(case_id, processed_results):
     
     return results_data
 
+def update_name_merge_object(case_id, new_obj):
+    # Open the NER results JSON file
+    with open(f"src/data/json/merged_names.json", "r") as f:
+        data = json.load(f)
+    
+    # Find the index of the object with the matching case_id
+    for index, item in enumerate(data):
+        if item.get('case_id') == case_id:
+            # Update the existing object with the new object
+            data[index] = new_obj
+            break
+    else:
+        # If no matching case_id is found, you might want to append the new object
+        # or raise an exception, depending on your requirements
+        raise ValueError(f"No NER result found for case_id: {case_id}")
+    
+    # Write the updated data back to the file
+    with open(f"src/data/json/merged_names.json", "w") as f:
+        json.dump(data, f, indent=4)
 
-# test = load_result("CA_ID_DAPKL770XWM8KN8T")
-# test = test["cummalative_df"]["process_df"]
+
+def create_name_merge_object(obj):
+    # open name_merge.json which is an array and append this obj
+    with open(f"src/data/json/merged_names.json","r") as f:
+        data = json.load(f)
+        data.append(obj)
+    with open(f"src/data/json/merged_names.json","w") as f:
+        json.dump(data,f,indent=4)
+        
+
+def find_merge_name_object(case_id):
+
+    with open(f"src/data/json/merged_names.json","r") as f:
+        data = json.load(f)
+        for obj in data:
+            if obj["case_id"] == case_id:
+                return obj
+        return None
+
+def get_process_df(case_id):
+    data = load_result(case_id)
+    return data["cummalative_df"]["process_df"]
+
+def update_process_df(case_id,new_process_df):
+    # rerun refresh function with new process_df
+    try:
+        data = load_result(case_id)
+        name_acc_df = data["cummalative_df"]["name_acc_df"]
+        new_cummalative_df = cummalative_person_sheets(new_process_df,name_acc_df)
+        
+        data["cummalative_df"] = new_cummalative_df
+        save_result(case_id,data)
+        return True
+    except:
+        print("Error updating process_df")
+        return False
+
+# test = load_result("CA_ID_JG5DYO7CDVYWQB46")
+# cummalative_df =  test["single_df"]["C2"]
+# print(cummalative_df)
+
+# test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
+# test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
 # print(test.keys())
+
+
+# fifo = test["cummalative_df"]["fifo"]["fifo_weekly"]
+# # test = test["cummalative_df"]["fifo"]["bda_weekly_analysis"]
+# print(fifo)
+
+# cases = load_all_case_data()
+# for case in cases:
+#     acc_numbers = case["individual_names"]["Acc Number"]

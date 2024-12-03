@@ -16,7 +16,9 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
 from ..utils.ner_model import pdf_to_name
 from PyQt6.QtGui import QMovie
-
+import time
+from utils.refresh import add_pdf_extraction
+from utils.json_logic import get_process_df
 
 class WebBridge(QObject):
     def __init__(self, parent=None):
@@ -28,8 +30,8 @@ class WebBridge(QObject):
         self.parent.handle_case_id(case_id)
 
     @pyqtSlot(str, str)
-    def uploadPdf(self, row, case_id):
-        self.parent.handle_upload_pdf(row, case_id)
+    def uploadAdditionalPdf(self, row, case_id):
+        self.parent.handle_upload_additional_pdf(row, case_id)
 
     @pyqtSlot(str)
     def log(self, message):
@@ -47,7 +49,7 @@ class ReportGeneratorTab(QWidget):
     def __init__(self):
         super().__init__()
         self.selected_files = []  # Store selected files
-        self.ca_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+        self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
         self.tab_widget = QWidget()
         self.init_ui()
 
@@ -79,11 +81,11 @@ class ReportGeneratorTab(QWidget):
         case_id_label = self.create_label("Case ID:")
         case_id_layout.addWidget(case_id_label)
         
-        self.case_id = QLineEdit()
-        self.case_id.setText(str(self.ca_id))
-        self.case_id.setReadOnly(True)
-        self.case_id.setPlaceholderText("Auto-generate ID")
-        self.case_id.setStyleSheet("""
+        self.case_id_widget = QLineEdit()
+        self.case_id_widget.setText(str(self.case_id))
+        self.case_id_widget.setReadOnly(True)
+        self.case_id_widget.setPlaceholderText("Auto-generate ID")
+        self.case_id_widget.setStyleSheet("""
             QLineEdit {
                 padding: 10px;
                 font-size: 16px;
@@ -99,7 +101,7 @@ class ReportGeneratorTab(QWidget):
                 font-style: italic;  /* Optional: make placeholder italic */
             }
         """)
-        case_id_layout.addWidget(self.case_id)
+        case_id_layout.addWidget(self.case_id_widget)
         form_layout.addRow(case_id_layout)
 
         # Bank Statement and Password in one row (horizontal layout)
@@ -435,10 +437,10 @@ class ReportGeneratorTab(QWidget):
                         }
                     }
                     
-                    function uploadPdf(row, caseId) {
+                    function uploadAdditionalPdf(row, caseId) {
                         if (bridge) {
                             bridge.log("Uploading PDF for case: " + caseId);
-                            bridge.uploadPdf(row, caseId);
+                            bridge.uploadAdditionalPdf(row, caseId);
                         }
                     }
                     
@@ -487,7 +489,7 @@ class ReportGeneratorTab(QWidget):
                                     <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
                                     <td>${report.report_name}</td>
                                     <td>
-                                        <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
+                                        <button class="upload-btn" onclick="uploadAdditionalPdf(${index}, '${report.case_id}')">
                                             Add PDF
                                         </button>
                                     </td>
@@ -668,30 +670,109 @@ class ReportGeneratorTab(QWidget):
                 
         except Exception as e:
             # Handle any errors and clean up
+            print(e)
             print(f"Error creating case dashboard: {str(e)}")
             # spinner_label.movie().stop()
             # spinner_label.hide()
             # spinner_label.deleteLater()
             self.new_window.deleteLater()
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"Failed to open case dashboard: {str(e)}"
-            )
+            # QMessageBox.critical(
+            #     self,
+            #     "Error",
+            #     f"Failed to open case dashboard: {str(e)}",
+            # )
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Warning")
+            msg_box.setText(f"Failed to open case dashboard: {str(e)}")
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+            msg_box.exec()
             
-    def handle_upload_pdf(self, row, case_id):
-        file_name, _ = QFileDialog.getOpenFileName(
+    def handle_upload_additional_pdf(self, row, case_id):
+        file_names, _ = QFileDialog.getOpenFileNames(
             self,
             "Upload PDF Report",
             "",
             "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
         )
         
-        if file_name:
+        if file_names:
             try:
                 # Add your file handling logic here
                 print(f"Uploading PDF for Case ID: {case_id}")
-                print(f"Selected file: {file_name}")
+                print(f"Selected file: {file_names}")
+
+                pdf_paths = file_names
+                passwords = [""]
+                start_date = [""]
+                end_date = [""]
+            
+                bank_names = []
+                # For each path in pdf_paths, assign a unique name as A,B,C etc
+                for i in range(len(pdf_paths)):
+                    bank_names.append(chr(65 + i))
+                    # if not password_provided:
+                    #     password.append("")
+                    # if not start_date_provided:
+                    #     start_date.append("")
+                    # if not end_date_provided:
+                    #     end_date.append("")
+
+                process_df = get_process_df(case_id)
+
+
+                ner_results = {
+                    "Name": [],
+                    "Acc Number": []
+                }
+
+                # Process PDFs with NER
+                for pdf in pdf_paths:
+                    result = pdf_to_name(pdf)
+                    for entity in result:
+                        if entity["label"] == "PER":
+                            ner_results["Name"].append(entity["text"])
+                        elif entity["label"] == "ACC_NO":
+                            ner_results["Acc Number"].append(entity["text"])
+                            
+                print("Ner results after additional pdf ", ner_results)
+                case_data = load_case_data(case_id)
+
+                # case_data["file_names"] =+ pdf_paths
+                
+                for file in pdf_paths:
+                    case_data["file_names"].append(file)
+
+                # Add new data to the existing dictionary
+                for key, value in ner_results.items():
+                    if key in case_data["individual_names"]:
+                        case_data["individual_names"][key].extend(value)  # Append the new list to the existing list
+                    else:
+                        case_data["individual_names"][key] = value  # Add the new key-value pair if the key doesn't exist                print("case data",case_data)
+
+                response = add_pdf_extraction(bank_names,pdf_paths,passwords,start_date,end_date,case_id,process_df)
+                data = load_result(case_id)
+                existing_keys = list(data["single_df"].keys())
+                
+                print("response_single_df ", response["single_df"])
+
+                for key,value in response["single_df"].items():
+                   
+                    next_letter = chr(65 + len(existing_keys)) 
+                    next_key = f"{next_letter}{len(existing_keys)}"
+                    print("next key - ",next_key)
+                    data["single_df"][next_key] = value
+                
+                data["cummalative_df"] = response["cummalative_df"]
+
+               
+                save_result(case_id,data)
+                update_case_data(case_id, case_data)
                 
                 success_message = f'<p style="color: black;">PDF successfully uploaded for Case ID: {case_id}</p>'
                 QMessageBox.information(
@@ -701,12 +782,18 @@ class ReportGeneratorTab(QWidget):
                 )
                 
             except Exception as e:
-                error_message = f"Failed to upload PDF: {str(e)}"
-                QMessageBox.critical(
-                    self,
-                    "Error",
-                    error_message
-                )
+                print(e)
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Warning")
+                msg_box.setText(f"Failed to upload PDF: {str(e)}")
+                msg_box.setIcon(QMessageBox.Icon.Critical)
+                msg_box.exec()
 
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
@@ -751,12 +838,16 @@ class ReportGeneratorTab(QWidget):
             self.spinner_movie.start()
 
             # Create a QTimer to process the form in the next event loop iteration
+            # start the timer
             QTimer.singleShot(100, self.process_form)
+            
     
     def process_form(self):
+        start = time.time()
+
         try:
             # Get the form data
-            CA_ID = self.ca_id
+            CA_ID = self.case_id
             pdf_paths = self.selected_files
             password = self.password.text()
             
@@ -816,8 +907,32 @@ class ReportGeneratorTab(QWidget):
                         ner_results["Name"].append(entity["text"])
                     elif entity["label"] == "ACC_NO":
                         ner_results["Acc Number"].append(entity["text"])
-
+                        
+            print("Ner results", ner_results)
             # Process bank statements
+
+            # Check by account number that the bank statement is already processed or not
+            # get all the account numbers from the json
+            cases = load_all_case_data()
+            for case in cases:
+                acc_numbers = case["individual_names"]["Acc Number"]
+                for acc_number in acc_numbers:
+                    if acc_number in ner_results["Acc Number"]:
+                        print("Bank statement with account number", acc_number, "is already processed, refer case ID - ", case["case_id"])
+                        # For error message
+                        msg_box = QMessageBox(self)
+                        msg_box.setStyleSheet("""
+                         
+                            QMessageBox QLabel {
+                                color: black;
+                            }
+                        """)
+                        msg_box.setWindowTitle("Warning")
+                        case_id = case["case_id"]
+                        msg_box.setText(f"Bank statement with account number {acc_number} is already processed earlier, please refer case ID - {case_id}")
+                        msg_box.setIcon(QMessageBox.Icon.Warning)
+                        msg_box.exec()
+
             converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
             result = converter.start_extraction()
 
@@ -840,7 +955,7 @@ class ReportGeneratorTab(QWidget):
             """)
             msg_box.setWindowTitle("Success")
             msg_box.setText("Form submitted and processed successfully!")
-            msg_box.setIcon(QMessageBox.Icon.Information)
+            msg_box.setIcon(QMessageBox.Icon.NoIcon)
             msg_box.exec()
 
         except Exception as e:
@@ -866,7 +981,19 @@ class ReportGeneratorTab(QWidget):
             if hasattr(self, 'spinner_label'):
                 self.spinner_label.hide()
                 self.spinner_label.deleteLater()
-            
+                
+            # make the form empty
+            self.selected_files = []
+            self.file_display.setText("")
+            self.password.setText("")
+            self.start_date.setDate(QDate.currentDate())
+            self.end_date.setDate(QDate.currentDate())
+            self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+            self.case_id.setText(str(self.case_id))
+
+            end = time.time()
+            print("Time taken to process the form", end-start)
+
             self.update_table_data()
 
     def create_label(self, text):

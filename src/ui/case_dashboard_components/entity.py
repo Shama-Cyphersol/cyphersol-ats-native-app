@@ -44,6 +44,7 @@ class EntityDistributionChart(QWidget):
         self.table_data = data["table_data"]
         self.all_transactions = data["all_transactions"]  # Store transactions DataFrame
 
+        
         self.current_page = 1
         self.rows_per_page = 10
         self.init_ui()

@@ -85,10 +85,10 @@ class DynamicDataTable(QMainWindow):
                 else:
                     row_dict[column] = str(value)
             
-            if self.table_for == "link_analysis":
-                row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 or i in [2,5] else ''
-            else:
-                row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 else ''
+            # if self.table_for == "link_analysis":
+            #     row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 or i in [2,5] else ''
+            # else:
+            row_dict['_class'] = 'highlighted' if 'highlight' in self.filtered_df.columns and row['highlight'] == 1 else ''
             table_data.append(row_dict)
                 
         
@@ -243,7 +243,7 @@ class DynamicDataTable(QMainWindow):
                         <button id="nextBtn" onclick="nextPage()">Next</button>
                     </div>
                 </div>
-           <script>
+            <script>
                 const rowsPerPage = {self.rows_per_page};
                 let currentPage = 1;
                 const data = {json.dumps(table_data)};
@@ -314,7 +314,6 @@ class DynamicDataTable(QMainWindow):
         
         self.web_view.setHtml(html_content)
         self.web_view.setFixedHeight(800)
-
 
 # # Example usage (assuming you have a DataFrame named df with 'Entity' and 'Name' columns):
 # app = QApplication([])

@@ -181,3 +181,5 @@ venv.zip
 saved_pdf
 alembic.ini
 app_runner.py
+/src/utils/matching_names_model/*
+/src/data/json/*

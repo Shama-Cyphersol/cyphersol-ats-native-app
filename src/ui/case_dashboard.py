@@ -8,8 +8,8 @@ from .case_dashboard_components.network import create_network_graph
 from .case_dashboard_components.entity import create_entity_distribution_chart
 from .case_dashboard_components.individual_table import create_individual_dashboard_table
 from .case_dashboard_components.link_analysis import LinkAnalysisWidget
-from .case_dashboard_components.bidirectional import create_bidirectional_analysis
-from .case_dashboard_components.fifo_lifo import create_fifo_lifo_analysis
+from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
+from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -77,6 +77,8 @@ class CaseDashboard(QWidget):
         splitter.setStretchFactor(0, 0)  # Sidebar gets minimal stretch
         splitter.setStretchFactor(1, 1)  # Content area stretches with the window
         splitter.setSizes([350, 1150])  # Initial sizes
+        splitter.setHandleWidth(0)  # Make sidebar non-resizable
+
             
         main_layout.addWidget(splitter, stretch=1)
 
@@ -91,7 +93,7 @@ class CaseDashboard(QWidget):
         sidebar.setMaximumWidth(300)
         sidebar.setMinimumWidth(200)
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setContentsMargins(10, 10, 10, 10)  # Add some padding to the sidebar
         sidebar_layout.setSpacing(5)
         
         # Sidebar background and border style
@@ -121,9 +123,9 @@ class CaseDashboard(QWidget):
             "Fund Flow Network Graph": create_network_graph(self.case_result),
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
-            "Link Analysis": LinkAnalysisWidget(self.case_result),
-            "Bi-Directional Analysis": create_bidirectional_analysis(self.case_result),
-            "FIFO LIFO": create_fifo_lifo_analysis(self.case_result),
+            "Link Analysis": LinkAnalysisWidget(self.case_result,self.case_id),
+            "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
+            "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
         }
     
         # Create buttons for each category
@@ -141,7 +143,7 @@ class CaseDashboard(QWidget):
     def createContentArea(self):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setContentsMargins(20, 20, 20, 20)  # Add some padding to the content area
 
         # Header bar
         header = QWidget()
@@ -197,7 +199,7 @@ class CaseDashboard(QWidget):
 
         self.content_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout = QVBoxLayout(self.content_container)
-        self.content_layout.setContentsMargins(30, 30, 30, 30)
+        self.content_layout.setContentsMargins(0,0,0,0)
         self.content_layout.setSpacing(30)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 

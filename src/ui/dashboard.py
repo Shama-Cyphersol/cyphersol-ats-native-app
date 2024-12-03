@@ -678,7 +678,7 @@ class DashboardTab(QWidget):
 
     def handle_case_id_clicked(self, case_id):
         print("Case ID clicked: ", case_id)
-        cash_flow_network = CaseDashboard(case_id=case_id)
+        case_dashboard = CaseDashboard(case_id=case_id)
         
         # Create a new dialog
         self.new_window = QDialog(self)
@@ -699,7 +699,7 @@ class DashboardTab(QWidget):
         
         # Create layout and add widget
         layout = QVBoxLayout()
-        layout.addWidget(cash_flow_network)
+        layout.addWidget(case_dashboard)
         self.new_window.setLayout(layout)
         
         self.new_window.showMaximized()

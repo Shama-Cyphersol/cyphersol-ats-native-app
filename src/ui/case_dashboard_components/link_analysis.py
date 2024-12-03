@@ -4,20 +4,36 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, QObject, pyqtSlot
 import json
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel
+
 
 class LinkAnalysisWidget(QWidget):
-    def __init__(self, result, parent=None):
+    def __init__(self, result,case_id,parent=None):
         super().__init__(parent)
         self.result = result
+        self.case_id = case_id
         self.link_analysis_data = self.filter_valid_transactions(result["cummalative_df"]["link_analysis_df"])
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        self.create_dropdowns()
-        self.create_table()
-        self.setLayout(self.layout)
+         # Check if lifo_fifo_analysis_data is empty
+        if self.link_analysis_data.empty:
+            no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
+            no_data_label.setStyleSheet("""
+                color: #555;
+                font-size: 16px;
+                padding: 20px;
+                text-align: center;
+            """)
+            no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.layout.addWidget(no_data_label)
+        else:
+            self.create_dropdowns()
+            self.create_table()
+            self.setLayout(self.layout)
 
     def filter_valid_transactions(self, df):
         if df.empty:

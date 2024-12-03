@@ -10,19 +10,20 @@ from PyQt6.QtCharts import QChart, QChartView
 from functools import partial
 
 # Import your existing chart classes
-from .summary_charts.transactions import BankTransactionDashboard
-from .summary_charts.Creditors import Creditors
-from .summary_charts.EOD_balance import EODBalanceChart
-from .summary_charts.Debtors import DebtorsChart
-from .summary_charts.Cash_withdrawal import CashWithdrawalChart
-from .summary_charts.Cash_Deposit import CashDeposit
-from .summary_charts.Reversal import Reversal
-from .summary_charts.Suspense_debit import SuspenseDebit
-from .summary_charts.Suspense_Credit import SuspenseCredit
-from .summary_charts.Summary import SummaryWindow
-from ..utils.json_logic import load_result
-from .summary_charts.Investment import InvestmentChart
-from .summary_charts.EMI import EMITransactionChart
+from .individual_dashboard_components.transactions import BankTransactionDashboard
+from .individual_dashboard_components.Creditors import Creditors
+from .individual_dashboard_components.EOD_balance import EODBalanceChart
+from .individual_dashboard_components.Debtors import DebtorsChart
+from .individual_dashboard_components.Cash_withdrawal import CashWithdrawalChart
+from .individual_dashboard_components.Cash_Deposit import CashDeposit
+from .individual_dashboard_components.Reversal import Reversal
+from .individual_dashboard_components.Suspense_debit import SuspenseDebit
+from .individual_dashboard_components.Suspense_Credit import SuspenseCredit
+from .individual_dashboard_components.Summary import SummaryWindow
+from utils.json_logic import load_result
+from .individual_dashboard_components.Investment import InvestmentChart
+from .individual_dashboard_components.EMI import EMITransactionChart
+from .individual_dashboard_components.foreign_transactions import ForeignTransactionsWidget
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -165,7 +166,8 @@ class IndividualDashboard(QMainWindow):
             "Suspense Credit": SuspenseCredit,
             "Reversal": Reversal,
             "Investment": InvestmentChart,
-            "EMI": EMITransactionChart
+            "EMI": EMITransactionChart,
+            "Foreign Transactions": ForeignTransactionsWidget
         }
         # # Create buttons for each category
         # for category, items in self.categories:
