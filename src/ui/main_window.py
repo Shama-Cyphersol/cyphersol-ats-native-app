@@ -10,7 +10,9 @@ from .name_manager import NameManagerTab
 from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 import pandas as pd
 from ..core.db import Database
-from sqlalchemy.sql import text  # Import the text function
+from ..core.models import User
+from sqlalchemy.sql import text
+from sqlalchemy.exc import IntegrityError
 
 class AnimatedToggle(QPushButton):
     def __init__(self, parent=None):
@@ -147,7 +149,7 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(ReportsTab())
         self.content_area.addWidget(NameManagerTab())
-        self.content_area.addWidget(SettingsTab())
+        # self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
         content_layout.addWidget(self.content_area)
@@ -161,16 +163,39 @@ class MainWindow(QMainWindow):
 
 
     def initialize_database(self):
-        """Initial method to set up or validate the database connection"""
+        """Initial method to set up or validate the database connection and create a user record."""
         try:
+            # Get the database session
             db = Database.get_session()
-            # Use text() to wrap the raw SQL query
+
+            # Validate database connection
             result = db.execute(text("SELECT datetime('now');")).fetchone()
             if result:
                 print("Database connection established successfully.")
             else:
                 print("Failed to retrieve data from the database.")
-            db.close()  # Always close the session after use
+                return  # Exit if the database connection isn't validated
+
+            # Check if a user exists, or create a new one
+            username = "default_user"  # Example username
+            email = "default_user@example.com"  # Example email
+            existing_user = db.query(User).filter_by(username=username).first()
+            if existing_user:
+                print(f"User '{username}' already exists.")
+            else:
+                new_user = User(
+                    username=username,
+                    email=email,
+                    password="secure_password123"  # Always hash passwords in a real application
+                )
+                db.add(new_user)
+                db.commit()
+                print(f"User '{username}' created successfully.")
+            
+            # Close the session after use
+            db.close()
+        except IntegrityError as ie:
+            print(f"Integrity error: {ie}")
         except Exception as e:
             print(f"Error initializing database: {e}")
 
