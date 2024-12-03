@@ -10,9 +10,10 @@ from .name_manager import NameManagerTab
 from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 import pandas as pd
 from ..core.db import Database
-from ..core.models import User
+from ..core.models import User, Case, StatementInfo, Entity
 from sqlalchemy.sql import text
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime
 
 class AnimatedToggle(QPushButton):
     def __init__(self, parent=None):
@@ -149,7 +150,7 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(ReportsTab())
         self.content_area.addWidget(NameManagerTab())
-        # self.content_area.addWidget(SettingsTab())
+        self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
         content_layout.addWidget(self.content_area)
@@ -164,21 +165,19 @@ class MainWindow(QMainWindow):
 
     def initialize_database(self):
         """Initial method to set up or validate the database connection and create a user record."""
+
         try:
-            # Get the database session
             db = Database.get_session()
 
-            # Validate database connection
             result = db.execute(text("SELECT datetime('now');")).fetchone()
             if result:
                 print("Database connection established successfully.")
             else:
                 print("Failed to retrieve data from the database.")
-                return  # Exit if the database connection isn't validated
+                return
 
-            # Check if a user exists, or create a new one
-            username = "default_user"  # Example username
-            email = "default_user@example.com"  # Example email
+            username = "default_user"
+            email = "default_user@example.com"
             existing_user = db.query(User).filter_by(username=username).first()
             if existing_user:
                 print(f"User '{username}' already exists.")
@@ -186,13 +185,47 @@ class MainWindow(QMainWindow):
                 new_user = User(
                     username=username,
                     email=email,
-                    password="secure_password123"  # Always hash passwords in a real application
+                    password="secure_password123"
                 )
                 db.add(new_user)
                 db.commit()
                 print(f"User '{username}' created successfully.")
-            
-            # Close the session after use
+
+            case_id = "C12345"
+            existing_case = db.query(Case).filter_by(case_id=case_id).first()
+            if not existing_case:
+                new_case = Case(
+                    case_id=case_id,
+                    user_id=existing_user.id,
+                    created_at=datetime.now()
+                )
+                db.add(new_case)
+                db.commit()
+                print(f"Case '{case_id}' created successfully.")
+            else:
+                print(f"Case '{case_id}' already exists.")
+
+            statement = StatementInfo(
+                case_id=new_case.case_id,
+                account_name="John Doe",
+                account_number="1234567890",
+                local_filename="statement_12345.pdf",
+                start_date=datetime(2022, 4, 1),
+                end_date=datetime(2023, 3, 31)
+            )
+            db.add(statement)
+            db.commit()
+            print(f"Statement for Case '{case_id}' created successfully.")
+
+            entity = Entity(
+                case_id=new_case.case_id,
+                name="Jane Doe",
+                role="Plaintiff"
+            )
+            db.add(entity)
+            db.commit()
+            print(f"Entity for Case '{case_id}' created successfully.")
+
             db.close()
         except IntegrityError as ie:
             print(f"Integrity error: {ie}")
