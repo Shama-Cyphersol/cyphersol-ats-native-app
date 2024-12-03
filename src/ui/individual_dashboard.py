@@ -20,7 +20,7 @@ from .individual_dashboard_components.Reversal import Reversal
 from .individual_dashboard_components.Suspense_debit import SuspenseDebit
 from .individual_dashboard_components.Suspense_Credit import SuspenseCredit
 from .individual_dashboard_components.Summary import SummaryWindow
-from utils.json_logic import load_result
+from ..utils.json_logic import load_result
 from .individual_dashboard_components.Investment import InvestmentChart
 from .individual_dashboard_components.EMI import EMITransactionChart
 from .individual_dashboard_components.foreign_transactions import ForeignTransactionsWidget
