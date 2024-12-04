@@ -10,6 +10,8 @@ from .case_dashboard_components.individual_table import create_individual_dashbo
 from .case_dashboard_components.link_analysis import LinkAnalysisWidget
 from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
 from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
+# from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -83,7 +85,7 @@ class CaseDashboard(QWidget):
         main_layout.addWidget(splitter, stretch=1)
 
         # Set default section to open
-        self.showSection("Fund Flow Network Graph", create_network_graph(result=self.case_result))
+        self.showSection("Network Graph", create_network_graph(result=self.case_result))
 
         self.setLayout(main_layout)
     
@@ -120,12 +122,14 @@ class CaseDashboard(QWidget):
         sidebar_layout.addSpacing(20)  # Adjust the value (e.g., 20 pixels) as needed
         
         self.categories = {
-            "Fund Flow Network Graph": create_network_graph(self.case_result),
+            "Network Graph": create_network_graph(self.case_result),
             "Entites Distribution": create_entity_distribution_chart(self.case_result),
             "Individual Table": create_individual_dashboard_table(self.case),
             "Link Analysis": LinkAnalysisWidget(self.case_result,self.case_id),
             "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
             "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
+            "Name Manager": SimilarNameGroups(self.case_id,self),
+            "Acc No. & Name Manager": SimilarNameGroups(self.case_id,self),
         }
     
         # Create buttons for each category
@@ -204,6 +208,8 @@ class CaseDashboard(QWidget):
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         scroll.setWidget(self.content_container)
+        # scroll.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        
         content_layout.addWidget(scroll,stretch=1)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
@@ -253,7 +259,10 @@ class CaseDashboard(QWidget):
             self.section_widgets[section_name] = widget
 
         # Set expanding size policy to adjust according to content
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # set min height of widget to screen size
+        if section_name == "Name Manager":
+            widget.setMinimumHeight(int(self.height()*0.8))
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Clear the content layout
         while self.content_layout.count():

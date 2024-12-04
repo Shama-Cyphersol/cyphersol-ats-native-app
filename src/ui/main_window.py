@@ -6,7 +6,7 @@ from .dashboard import DashboardTab
 from .report_generator import ReportGeneratorTab
 from .settings import SettingsTab
 from .reports import ReportsTab
-from .name_manager import NameManagerTab
+from ..utils.name_manager_table_old import NameManagerTab
 from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 import pandas as pd
 from core.db import Database
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
             ("Dashboard", "dashboard.png"),
             ("Generate Report", "generate_report.png"),
             ("Reports", "report.png"),
-            ("Name Manager", "name_manager.png"),
+            # ("Name Manager", "name_manager.png"),
             ("Settings", "settings.png"),
             ("Logout", "logout.png"),
         ]
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(DashboardTab())
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(ReportsTab())
-        self.content_area.addWidget(NameManagerTab())
+        # self.content_area.addWidget(NameManagerTab())
         self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 

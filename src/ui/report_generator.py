@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QDialogButtonBox, QComboBox,QCompleter, QSizePolicy
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
@@ -20,6 +20,38 @@ import time
 from utils.refresh import add_pdf_extraction
 from utils.json_logic import get_process_df
 
+class UnitDialog(QDialog):
+    def __init__(self, existing_units, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add New Unit")
+        self.setModal(True)
+        
+        layout = QVBoxLayout()
+        
+        # Unit name input
+        self.unit_input = QLineEdit()
+        self.unit_input.setPlaceholderText("Enter new unit name")
+        color_black_styles = "color: #34495e;"
+        self.unit_input.setStyleSheet(color_black_styles)
+        label = QLabel("Unit Name:")
+        label.setStyleSheet(color_black_styles)
+        layout.addWidget(label)
+        layout.addWidget(self.unit_input)
+        
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | 
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self.setLayout(layout)
+        
+    def get_unit_name(self):
+        return self.unit_input.text().strip()
+    
 class WebBridge(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,7 +81,11 @@ class ReportGeneratorTab(QWidget):
     def __init__(self):
         super().__init__()
         self.selected_files = []  # Store selected files
-        self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+        self.case_id = "ATS_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+        self.units = fetch_units()
+        serial_number = get_last_serial_number()
+        self.selectd_unit = ""
+        self.serial_number = self.process_serial_number(serial_number)
         self.tab_widget = QWidget()
         self.init_ui()
 
@@ -65,43 +101,153 @@ class ReportGeneratorTab(QWidget):
         # Create a frame to hold the form
         form_frame = QFrame()
         form_frame.setStyleSheet("""
+           
             QFrame {
-                border: 1px solid #bdc3c7;
-                border-radius: 10px;
-                padding: 10px;
-                background-color: #ffffff; /* Background color of the form */
+            background-color: #ffffff;
+            border: 1px solid #bdc3c7;
+            border-radius: 10px;
+            padding: 20px;
+            }
+            QLabel {
+                color: #34495e;
+                font-size: 14px;
+                margin-bottom: 5px;
             }
         """)
 
         # Create a form layout to hold form fields
         form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(20)
 
-        # Case ID field (label on top, field below)
+        # Uniform input style
+        input_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #bdc3c7;
+                border-radius: 5px;
+                color: #34495e;
+                background-color: #f8f9fa;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #f8f9fa;
+                color: #34495e;
+            }
+
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border: 1px solid #3498db;
+                outline: none;
+            }
+            QLineEdit::placeholder, QComboBox::placeholder {
+                color: #95a5a6;
+                font-style: italic;
+            }
+        """
+
+        first_row_layout = QHBoxLayout()
+        first_row_layout.setSpacing(10)  # Add consistent spacing between elements
+
+        # Unit Dropdown with Add Button
+        unit_layout = QVBoxLayout()
+        # unit_label = QLabel("Unit")
+        unit_label = self.create_label("Unit")
+        # unit_label.setStyleSheet("margin-bottom: 5px; color: #34495e;")
+        unit_dropdown_layout = QHBoxLayout()
+        self.unit_dropdown = QComboBox()
+        self.unit_dropdown.addItems(self.units)
+        self.unit_dropdown.setEditable(True)
+        self.unit_dropdown.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.unit_dropdown.setStyleSheet(input_style)
+        self.unit_dropdown.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                
+        # Completer for unit dropdown
+        completer = QCompleter(self.units)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.unit_dropdown.setCompleter(completer)
+                
+        # Add button to create new unit
+        self.add_unit_btn = QPushButton("+")
+        self.add_unit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white !important;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        self.add_unit_btn.clicked.connect(self.add_new_unit)
+                
+        unit_dropdown_layout.addWidget(self.unit_dropdown)
+        unit_dropdown_layout.addWidget(self.add_unit_btn)
+        unit_layout.addWidget(unit_label)
+        unit_layout.addLayout(unit_dropdown_layout)
+        unit_layout.setSpacing(3)
+        first_row_layout.addLayout(unit_layout, 1)  # Add stretch factor
+
+        # Serial Number
+        serial_layout = QVBoxLayout()
+        # serial_label = QLineEdit("Serial Number")
+        serial_label = self.create_label("Serial Number")
+        self.custom_serial_number = QLineEdit()
+        self.custom_serial_number.setPlaceholderText("Enter custom text")
+        self.custom_serial_number.setText(self.serial_number)
+        self.custom_serial_number.setStyleSheet(input_style)
+        self.custom_serial_number.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        serial_layout.addWidget(serial_label)
+        serial_layout.addWidget(self.custom_serial_number)
+        serial_layout.setSpacing(5)
+        first_row_layout.addLayout(serial_layout, 1)  # Add stretch factor
+
+        # Case ID
         case_id_layout = QVBoxLayout()
-        case_id_label = self.create_label("Case ID:")
-        case_id_layout.addWidget(case_id_label)
-        
+        # case_id_label = QLineEdit("Case ID")
+        case_id_label = self.create_label("Case ID")
+        # case_id_label.setStyleSheet("margin-bottom: 5px; color: #34495e;")
         self.case_id_widget = QLineEdit()
         self.case_id_widget.setText(str(self.case_id))
         self.case_id_widget.setReadOnly(True)
         self.case_id_widget.setPlaceholderText("Auto-generate ID")
-        self.case_id_widget.setStyleSheet("""
+        self.case_id_widget.setStyleSheet(input_style + """
             QLineEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  /* Text color */
-            }
-            QLineEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
-            }
-            QLineEdit::placeholder {
-                color: #95a5a6;  /* Placeholder text color */
-                font-style: italic;  /* Optional: make placeholder italic */
+                background-color: #f1f2f6;
+                color: #7f8c8d;
             }
         """)
+        self.case_id_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        case_id_layout.addWidget(case_id_label)
         case_id_layout.addWidget(self.case_id_widget)
+        case_id_layout.setSpacing(5)
+        first_row_layout.addLayout(case_id_layout, 1)  # Add stretch factor
+
+        form_layout.addRow(first_row_layout)
+
+
+        # Generate Case ID method
+        def generate_case_id():
+            # Get selected unit
+            unit = self.unit_dropdown.currentText().lower().replace(" ", "_")
+            # Generate random 4 digits
+            # random_digits = ''.join(random.choices(string.digits, k=4))
+            serial_number = self.custom_serial_number.text()
+            self.serial_number = serial_number
+            self.selectd_unit = unit
+            # Combine to create case ID
+            case_id = f"ATS_{unit}_{serial_number}"
+            return case_id
+        
+        # Update case ID when unit or custom text changes
+        def update_case_id():
+            self.case_id_widget.setText(generate_case_id())
+        
+        self.unit_dropdown.currentTextChanged.connect(update_case_id)
+        self.custom_serial_number.textChanged.connect(update_case_id)
+        
+        # Initial case ID generation
+        update_case_id()
+
         form_layout.addRow(case_id_layout)
 
         # Bank Statement and Password in one row (horizontal layout)
@@ -110,6 +256,8 @@ class ReportGeneratorTab(QWidget):
         # File input section
         file_input_layout = QVBoxLayout()
         file_label = self.create_label("Bank Statements")
+        # file_label.setStyleSheet("QLabel{margin-bottom: 10px;}")
+        # file_label.setStyleSheet("margin-bottom: 5px;")
         file_input_layout.addWidget(file_label)
 
         # Create a horizontal layout for file input and button
@@ -126,6 +274,7 @@ class ReportGeneratorTab(QWidget):
                 border-radius: 5px;
                 color: #34495e;
                 background-color: #f5f6fa;
+                width: 50vw;
             }
         """)
         self.file_display.mousePressEvent = lambda e: self.browse_files()
@@ -152,93 +301,93 @@ class ReportGeneratorTab(QWidget):
 
         bp_layout.addLayout(file_input_layout)
 
-        # Password field
-        self.password = QLineEdit()
-        self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password.setPlaceholderText("Enter Password")
-        self.password.setStyleSheet("""
-            QLineEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  /* Text color */
-            }
-            QLineEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
-            }
-            QLineEdit::placeholder {
-                color: #95a5a6;  /* Placeholder text color */
-                font-style: italic;  /* Optional: make placeholder italic */
-            }
-        """)
-        bp_layout.addLayout(self.create_labeled_field("Password", self.password))
+        # # Password field
+        # self.password = QLineEdit()
+        # self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        # self.password.setPlaceholderText("Enter Password")
+        # self.password.setStyleSheet("""
+        #     QLineEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: #34495e;  /* Text color */
+        #     }
+        #     QLineEdit:focus {
+        #         border: 1px solid #2980b9;  /* Border color when focused */
+        #     }
+        #     QLineEdit::placeholder {
+        #         color: #95a5a6;  /* Placeholder text color */
+        #         font-style: italic;  /* Optional: make placeholder italic */
+        #     }
+        # """)
+        # bp_layout.addLayout(self.create_labeled_field("Password", self.password))
         form_layout.addRow(bp_layout)
 
-        # Start Date and End Date on one line
-        date_layout = QHBoxLayout()
-        start_date_layout = QVBoxLayout()
-        start_date_label = self.create_label("Start Date")
-        start_date_layout.addWidget(start_date_label)
+        # # Start Date and End Date on one line
+        # date_layout = QHBoxLayout()
+        # start_date_layout = QVBoxLayout()
+        # start_date_label = self.create_label("Start Date")
+        # start_date_layout.addWidget(start_date_label)
 
-        self.start_date = QDateEdit()
-        self.start_date.setCalendarPopup(True)
-        start_date_calendar_widget = self.start_date.calendarWidget()
-        start_date_calendar_widget.setStyleSheet("""
-            QCalendarWidget QAbstractItemView:enabled {
-                color: black;  /* Date color */
-                background-color: white;
-            }
-        """)
-        self.start_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
-        # set default date to today
-        self.start_date.setDate(QDate.currentDate())
+        # self.start_date = QDateEdit()
+        # self.start_date.setCalendarPopup(True)
+        # start_date_calendar_widget = self.start_date.calendarWidget()
+        # start_date_calendar_widget.setStyleSheet("""
+        #     QCalendarWidget QAbstractItemView:enabled {
+        #         color: black;  /* Date color */
+        #         background-color: white;
+        #     }
+        # """)
+        # self.start_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
+        # # set default date to today
+        # self.start_date.setDate(QDate.currentDate())
         
-        self.start_date.setStyleSheet("""
-            QDateEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: black;  
-            }
-            QDateEdit:focus {
-                border: 1px solid #2980b9;  
-            }
-        """)
-        start_date_layout.addWidget(self.start_date)
+        # self.start_date.setStyleSheet("""
+        #     QDateEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: black;  
+        #     }
+        #     QDateEdit:focus {
+        #         border: 1px solid #2980b9;  
+        #     }
+        # """)
+        # start_date_layout.addWidget(self.start_date)
 
-        end_date_layout = QVBoxLayout()
-        end_date_label = self.create_label("End Date")
-        end_date_layout.addWidget(end_date_label)
+        # end_date_layout = QVBoxLayout()
+        # end_date_label = self.create_label("End Date")
+        # end_date_layout.addWidget(end_date_label)
 
-        self.end_date = QDateEdit()
-        self.end_date.setCalendarPopup(True)
-        end_date_calendar_widget = self.end_date.calendarWidget()
-        end_date_calendar_widget.setStyleSheet("""
-            QCalendarWidget QAbstractItemView:enabled {
-                color: black;  /* Date color */
-                background-color: white;
-            }
-        """)
-        self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
-        self.end_date.setDate(QDate.currentDate())
-        self.end_date.setStyleSheet("""
-            QDateEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  
-            }
-            QDateEdit:focus {
-                border: 1px solid #2980b9;  
-            }
-        """)
-        end_date_layout.addWidget(self.end_date)
-        date_layout.addLayout(start_date_layout)
-        date_layout.addLayout(end_date_layout)
-        form_layout.addRow(date_layout)
+        # self.end_date = QDateEdit()
+        # self.end_date.setCalendarPopup(True)
+        # end_date_calendar_widget = self.end_date.calendarWidget()
+        # end_date_calendar_widget.setStyleSheet("""
+        #     QCalendarWidget QAbstractItemView:enabled {
+        #         color: black;  /* Date color */
+        #         background-color: white;
+        #     }
+        # """)
+        # self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
+        # self.end_date.setDate(QDate.currentDate())
+        # self.end_date.setStyleSheet("""
+        #     QDateEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: #34495e;  
+        #     }
+        #     QDateEdit:focus {
+        #         border: 1px solid #2980b9;  
+        #     }
+        # """)
+        # end_date_layout.addWidget(self.end_date)
+        # date_layout.addLayout(start_date_layout)
+        # date_layout.addLayout(end_date_layout)
+        # form_layout.addRow(date_layout)
 
         # Submit button 
         button_box_layout = QVBoxLayout()
@@ -286,6 +435,43 @@ class ReportGeneratorTab(QWidget):
 
         self.setLayout(main_layout)
         self.setWindowTitle('Styled PyQt6 App')
+    
+    def process_serial_number(self, serial_number):
+        sr_no = str(serial_number)
+        while len(sr_no) < 5:
+            sr_no = '0' + sr_no
+        
+        return sr_no
+
+    def add_new_unit(self):
+        # Open dialog to add new unit
+        dialog = UnitDialog(self.units, self)
+
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_unit = dialog.get_unit_name()
+            
+            # Check if unit already exists (case-insensitive)
+            existing_units_lower = [u.lower() for u in self.units]
+            if new_unit.lower() not in existing_units_lower and new_unit:
+                # Add to units list
+                self.units.append(new_unit)
+                
+                # Update dropdown
+                self.unit_dropdown.addItem(new_unit)
+                
+                # Set the newly added unit as current
+                self.unit_dropdown.setCurrentText(new_unit)
+
+                add_unit(new_unit)
+            elif not new_unit:
+                # Show error if empty unit name
+                QMessageBox.warning(self, "Invalid Input", "Unit name cannot be empty.")
+            else:
+                # Show error if unit already exists
+                QMessageBox.warning(self, "Duplicate Unit", "This unit already exists.")
+        
+        dialog.deleteLater()
 
     def create_section_title(self, text):
         section_title = QLabel(text)
@@ -490,7 +676,7 @@ class ReportGeneratorTab(QWidget):
                                     <td>${report.report_name}</td>
                                     <td>
                                         <button class="upload-btn" onclick="uploadAdditionalPdf(${index}, '${report.case_id}')">
-                                            Add PDF
+                                            Add
                                         </button>
                                     </td>
                                 `;
@@ -849,7 +1035,8 @@ class ReportGeneratorTab(QWidget):
             # Get the form data
             CA_ID = self.case_id
             pdf_paths = self.selected_files
-            password = self.password.text()
+            # password = self.password.text()
+            password = [""]
             
             password_provided = False
             start_date_provided = False
@@ -861,28 +1048,30 @@ class ReportGeneratorTab(QWidget):
                 password_provided = True
                 password = [password]
 
-            start_date = self.start_date.date().toString("dd-MM-yyyy")
-            end_date = self.end_date.date().toString("dd-MM-yyyy")
+            # start_date =[ self.start_date.date().toString("dd-MM-yyyy")]
+            # end_date = self.end_date.date().toString("dd-MM-yyyy")
+            start_date = [""]
+            end_date = [""]
 
             # Check if start_date is same as today
-            if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
-                start_date = [""]
-            else:
-                start_date_provided = True
-                start_date = [start_date]
+            # if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            #     start_date = [""]
+            # else:
+            #     start_date_provided = True
+            #     start_date = [start_date]
 
-            if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
-                end_date = [""]
-            else:
-                end_date_provided = True
-                end_date = [end_date]
+            # if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            #     end_date = [""]
+            # else:
+            #     end_date_provided = True
+            #     end_date = [end_date]
 
             bank_names = []
             # For each path in pdf_paths, assign a unique name as A,B,C etc
             for i in range(len(pdf_paths)):
                 bank_names.append(chr(65 + i))
-                if not password_provided:
-                    password.append("")
+                # if not password_provided:
+                #     password.append("")
                 if not start_date_provided:
                     start_date.append("")
                 if not end_date_provided:
@@ -922,7 +1111,6 @@ class ReportGeneratorTab(QWidget):
                         # For error message
                         msg_box = QMessageBox(self)
                         msg_box.setStyleSheet("""
-                         
                             QMessageBox QLabel {
                                 color: black;
                             }
@@ -939,6 +1127,7 @@ class ReportGeneratorTab(QWidget):
             # Save the results
             save_case_data(CA_ID, pdf_paths, start_date, end_date, ner_results)
             save_result(CA_ID, result)
+            update_serial_number_history(self.serial_number)
 
             # Update the table
             self.create_recent_reports_table()
@@ -970,6 +1159,7 @@ class ReportGeneratorTab(QWidget):
                 }
             """)
             msg_box.setWindowTitle("Error")
+            print(e)
             msg_box.setText(f"An error occurred while processing: {str(e)}")
             msg_box.setIcon(QMessageBox.Icon.Critical)
             msg_box.exec()
@@ -985,11 +1175,11 @@ class ReportGeneratorTab(QWidget):
             # make the form empty
             self.selected_files = []
             self.file_display.setText("")
-            self.password.setText("")
-            self.start_date.setDate(QDate.currentDate())
-            self.end_date.setDate(QDate.currentDate())
-            self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
-            self.case_id.setText(str(self.case_id))
+            # self.password.setText("")
+            # self.start_date.setDate(QDate.currentDate())
+            # self.end_date.setDate(QDate.currentDate())
+            # self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+            # self.case_id.setText(str(self.case_id))
 
             end = time.time()
             print("Time taken to process the form", end-start)
@@ -1002,8 +1192,8 @@ class ReportGeneratorTab(QWidget):
         label.setStyleSheet("""
             QLabel {
                 color: #34495e;
-                  padding: 0px;
-                margin: 0px;
+                padding: 0px;
+                margin-bottom: 10px;
                 border: none;
             }
         """)

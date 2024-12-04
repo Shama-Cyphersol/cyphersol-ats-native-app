@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QToolButton, QStackedWidget, QLabel, QComboBox, QSlider, QDoubleSpinBox, QSizePolicy, QApplication
-from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QToolButton, QStackedWidget, QLabel, QComboBox, QSlider, QDoubleSpinBox, QSizePolicy, QApplication, QLineEdit
+from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
 from PyQt6.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -191,6 +191,27 @@ class CashFlowNetwork(QMainWindow):
         controls_layout.addWidget(self.frequency_value_label)
         controls_layout.addWidget(self.frequency_slider)
 
+        # Add amount input box
+        amount_label = QLabel("Amount:")
+        self.amount_input = QLineEdit()
+        self.amount_input.setPlaceholderText("Enter minimum amount")
+        self.amount_input.setValidator(QDoubleValidator(0.0, float('inf'), 2))  # Accept only positive numbers
+        self.amount_input.textChanged.connect(self.update_graph)
+        
+        self.amount_input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #3498db;
+                border-radius: 5px;
+                padding: 5px;
+                background-color: #ffffff;
+                color: #333333;
+                font-size: 12px;
+            }
+        """)
+        controls_layout.addWidget(amount_label)
+        controls_layout.addWidget(self.amount_input)
+
+
         self.setMinimumSize(800, 600)
         self.setFixedHeight(1000)
         
@@ -251,11 +272,32 @@ class CashFlowNetwork(QMainWindow):
 
         node_sizes = {}
         edge_weights = {}
+        
+        amount_text = self.amount_input.text()
+        entered_amount = float(amount_text) if amount_text else 0
+        filtered_data = self.backup_data[
+            (self.backup_data['Entity'].isin(
+                self.backup_data['Entity'].value_counts()[
+                    self.backup_data['Entity'].value_counts() >= self.frequency_slider.value()
+                ].index
+            )) &
+            (
+                (self.backup_data['Debit'] > entered_amount) | 
+                (self.backup_data['Credit'] > entered_amount)
+            )
+        ]
+        
+        # print("amount: ",entered_amount)
+        # print("filtered_data - ",filtered_data)
 
-        # Filter the data based on the frequency slider value
-        self.data = self.backup_data[self.backup_data['Entity'].isin(
-            self.backup_data['Entity'].value_counts()[self.backup_data['Entity'].value_counts() >= self.frequency_slider.value()].index
-        )]
+
+        # Check if the filtered data is sufficient
+        if filtered_data.empty:
+            self.stacked_widget.setCurrentIndex(1)  # Show empty state
+            return
+
+        self.data = filtered_data
+            
 
 
         # First pass: Add all nodes and edges
@@ -265,6 +307,7 @@ class CashFlowNetwork(QMainWindow):
 
         # Create a dictionary to track connections to entities
         entity_connections = {}
+        edge_amounts = {}
 
         for _, row in self.data.iterrows():
             name = row['Name']
@@ -286,11 +329,14 @@ class CashFlowNetwork(QMainWindow):
                 edge_weights[(name, entity)] = row['Debit']
                 node_sizes[name] = node_sizes.get(name, 0) + row['Debit']
                 node_sizes[entity] = node_sizes.get(entity, 0) + row['Debit']
+                edge_amounts[(name, entity)] = -row['Debit']
+
             if not pd.isna(row['Credit']):
                 G.add_edge(entity, name, amount=row['Credit'], weight=row['Credit'], transaction_type='credit')
                 edge_weights[(entity, name)] = row['Credit']
                 node_sizes[name] = node_sizes.get(name, 0) + row['Credit']
                 node_sizes[entity] = node_sizes.get(entity, 0) + row['Credit']
+                edge_amounts[(entity, name)] = row['Credit']
 
         # Set node colors based on number of connections
         for entity, connected_persons in entity_connections.items():
@@ -351,8 +397,49 @@ class CashFlowNetwork(QMainWindow):
                     credit_edges.append(edge)
 
         # Add labels
-        labels = nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', 
-                                       font_family='sans-serif', alpha=0.75, ax=ax)
+        # labels = nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', 
+        #                                font_family='sans-serif', alpha=0.75, ax=ax)
+        
+         # Custom edge labels with colored amounts
+        # def custom_edge_label_formatter(edge_dict):
+        #     labels = {}
+        #     for (u, v), amount in edge_dict.items():
+        #         color = 'red' if amount < 0 else 'green'
+        #         labels[(u, v)] = {
+        #             'text': f'₹{abs(amount):,.2f}', 
+        #             'color': color
+        #         }
+        #     return labels
+
+        # edge_label_data = custom_edge_label_formatter(edge_amounts)
+
+        for (u, v, d) in G.edges(data=True):
+            x = (pos[u][0] + pos[v][0]) / 2
+            y = (pos[u][1] + pos[v][1]) / 2
+            amount = d.get('amount', 0)
+            color = 'red' if amount < 0 else 'green'
+            plt.annotate(f'₹{abs(amount):,.2f}', (x, y), 
+                        color=color, 
+                        fontsize=8, 
+                        fontweight='bold', 
+                        ha='center', 
+                        va='center',
+                        bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+            
+        # # Add node amount labels
+        # for node in G.nodes():
+        #     if node in node_sizes:
+        #         amount_text = f'₹{node_sizes[node]:,.2f}'
+        #         plt.text(pos[node][0], pos[node][1] + 0.1, amount_text, 
+        #                 horizontalalignment='center', 
+        #                 verticalalignment='bottom', 
+        #                 fontsize=8, 
+        #                 fontweight='bold',
+        #                 color='red' if node_sizes[node] < 0 else 'green')
+                
+        # edge_labels = nx.get_edge_attributes(G, 'amount')
+        # edge_labels = {k: f'₹{abs(v):,.2f}' for k, v in edge_labels.items()}
+        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax, font_size=8, font_family='sans-serif')
         
         # Create legend elements
         legend_elements = [
@@ -377,6 +464,7 @@ class CashFlowNetwork(QMainWindow):
         ax.axis('off')
         self.canvas.draw()
 
+
     def update_graph(self):
         if self.has_sufficient_data():
             self.frequency_value_label.setText(str(self.frequency_slider.value()))
@@ -384,5 +472,14 @@ class CashFlowNetwork(QMainWindow):
             self.create_graph()
         else:
             self.stacked_widget.setCurrentIndex(1)  # Show empty state
+
+
+    # def update_graph(self):
+    #     if self.has_sufficient_data():
+    #         self.frequency_value_label.setText(str(self.frequency_slider.value()))
+    #         self.stacked_widget.setCurrentIndex(0)  # Show graph
+    #         self.create_graph()
+    #     else:
+    #         self.stacked_widget.setCurrentIndex(1)  # Show empty state
 
             

@@ -19,7 +19,7 @@ class SuspenseCredit(QWidget):
         suspense_credit_count = len(df)
 
         pie_data = {
-            'labels': ['Suspense Credit', 'Total Credit'],
+            'labels': ['Unkown Credit', 'Total Credit'],
             'values': [suspense_credit_count, total_credit_txn]
         }
 
@@ -43,7 +43,7 @@ class SuspenseCredit(QWidget):
         fig_pie = px.pie(pie_data, names='labels', values='values', 
                         #  color_discrete_sequence=['#a5d7a7', '#f9a19a'], 
                          color_discrete_sequence=['#94cb94', '#f16e65'],
-                         title='Suspense Credit Transactions vs Total Credit Transactions')
+                         title='Unkown Credit Transactions vs Total Credit Transactions')
         
         fig_pie.update_layout(margin=dict(l=10, r=40, t=50, b=10))
         
@@ -74,7 +74,7 @@ class SuspenseCredit(QWidget):
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Suspense Credit Details</title>
+            <title>Unkown Credit Details</title>
             <style>
                 * {{
                     margin: 0;

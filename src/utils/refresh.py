@@ -4632,7 +4632,7 @@ def lifo_fifo(df, period = 'week', category_wise = 'no', entities_of_interest = 
             # Find the sender's transactions from a week before the credit transaction
             sender_history = df[
                 (df['Name'] == credit_entity) &
-                (df['Value Date'] >= credit_date - pd.Timedelta(weeks=1)) &
+                (df['Value Date'] >= credit_date - duration) &
                 (df['Value Date'] < credit_date)
             ].reset_index(drop=True)
 
@@ -4640,7 +4640,7 @@ def lifo_fifo(df, period = 'week', category_wise = 'no', entities_of_interest = 
             subsequent_transactions = df[
                 (df['Name'] == person) &
                 (df['Value Date'] > credit_date) &
-                (df['Value Date'] <= credit_date + pd.Timedelta(weeks=1))
+                (df['Value Date'] <= credit_date + duration)
             ].reset_index(drop=True)
 
             # Add utilized and remaining credit columns to the DataFrame

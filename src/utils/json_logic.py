@@ -227,6 +227,28 @@ def update_process_df(case_id,new_process_df):
     except:
         print("Error updating process_df")
         return False
+    
+def fetch_units():
+    with open("src/data/json/units.json","r") as f:
+        return json.load(f)
+    
+def add_unit(unit):
+    units = fetch_units()
+    units.append(unit)
+    with open("src/data/json/units.json","w") as f:
+        json.dump(units,f,indent=4)
+
+def get_last_serial_number():
+    with open("src/data/json/serial_number_history.json","r") as f:
+        data = json.load(f)
+        return data[0]
+
+def update_serial_number_history(old_serial_number):
+    serial_number = get_last_serial_number()
+    if serial_number == old_serial_number:
+        serial_number = [serial_number+1]
+        with open("src/data/json/serial_number_history.json","w") as f:
+            json.dump(serial_number,f,indent=4)
 
 # test = load_result("CA_ID_JG5DYO7CDVYWQB46")
 # cummalative_df =  test["single_df"]["C2"]
