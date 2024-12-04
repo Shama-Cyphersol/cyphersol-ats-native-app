@@ -34,6 +34,16 @@ class UserRepository:
         :return: User object if found, None otherwise
         """
         return self.session.query(User).filter_by(username=username).first()
+    
+
+    def get_user_by_username_and_password(self, username: str, password: str) -> Optional[User]:
+        """
+        Retrieves a user by their username and password.
+        :param username: Username of the user to retrieve
+        :param password: Password of the user to retrieve
+        :return: User object if found, None otherwise
+        """
+        return self.session.query(User).filter_by(username=username, password=password).first()
 
 
     def get_user_by_email(self, email: str) -> Optional[User]:

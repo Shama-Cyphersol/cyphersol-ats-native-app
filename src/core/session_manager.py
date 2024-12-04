@@ -9,6 +9,8 @@ class SessionManager:
         Logs in the user by storing their information in a class-level variable.
         :param user: A dictionary or user object with user details
         """
+
+
         cls._current_user = user
         print("User logged in successfully!", user.get('email'), user.get('username'))
 
@@ -44,7 +46,7 @@ class SessionManager:
         :return: True if the user is authenticated, False otherwise
         """
         user_repo = UserRepository()
-        user = user_repo.get_user_by_username(username=username, password=password)
+        user = user_repo.get_user_by_username_and_password(username=username, password=password)
 
         if user:
             return True
