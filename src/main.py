@@ -3,8 +3,10 @@ import argparse
 from PyQt6.QtWidgets import QApplication
 from src.ui.main_window import MainWindow
 from src.ui.license_dialog import LicenseDialog
+from src.core.repository import *
 from PyQt6 import QtGui
 import os
+from src.core.session_manager import SessionManager
 
 # Add the src directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +33,17 @@ def main():
     if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
         print("License verification failed or cancelled.")
         sys.exit(1)
+    else:
+        print("License verification successful.")
+        # save the user data to the database
+        user_info = license_dialog.user_info
+        user_repository = UserRepository()
+        user = user_repository.get_user_by_username(user_info.get("username"))
+        if not user:
+            user_repository.create_user(user_info)
+
+        SessionManager.login_user(user_info)
+   
     
     # Only show main window if license is verified
     window = MainWindow()

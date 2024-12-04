@@ -7,10 +7,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette, QColor, QFont
 from PyQt6.QtWidgets import QSizePolicy
 from PyQt6.QtGui import QBrush
-from utils.json_logic import *
-from utils.name_merge import *
+from ..utils.json_logic import *
+from ..utils.name_merge import *
 import time
-from utils.refresh import replace_entities
+from ..utils.refresh import replace_entities
 
 # Enhanced color scheme with better contrast
 BLUE_COLOR = "#3498db"  

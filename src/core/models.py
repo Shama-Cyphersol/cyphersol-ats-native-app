@@ -19,7 +19,6 @@ class User(Base):
         return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
 
 
-
 class Case(Base):
     __tablename__ = 'cases'
 
@@ -30,10 +29,10 @@ class Case(Base):
     user = relationship('User', back_populates='cases')
     statements = relationship('StatementInfo', back_populates='case', cascade="all, delete-orphan")
     entities = relationship('Entity', back_populates='case', cascade="all, delete-orphan")
+    merged_groups = relationship('MergedGroup', back_populates='case', cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Case(case_id='{self.case_id}', title='{self.title}', user_id={self.user_id})>"
-
 
 
 class StatementInfo(Base):
@@ -61,11 +60,11 @@ class Entity(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     case_id = Column(String, ForeignKey('cases.case_id'), nullable=False)
     name = Column(String, nullable=False)
-    merged_group = Column(String, ForeignKey('merged_groups.merged_group_name'), nullable=True)
+    merged_group_id = Column(Integer, ForeignKey('merged_groups.id'), nullable=True)
     role = Column(String, nullable=True)  # E.g., "Plaintiff", "Defendant", "Witness"
 
     case = relationship('Case', back_populates='entities')
-    merged_entities = relationship('MergedGroup', back_populates='case', cascade="all, delete-orphan")
+    merged_group = relationship('MergedGroup', back_populates='entities')
 
     def __repr__(self):
         return f"<Entity(id={self.id}, name='{self.name}', case_id='{self.case_id}')>"
@@ -78,8 +77,9 @@ class MergedGroup(Base):
     merged_group_name = Column(String, nullable=False)
     case_id = Column(String, ForeignKey('cases.case_id'), nullable=False)
 
-    case = relationship('Case', back_populates='merged_entities', cascade="all, delete-orphan")
+    entities = relationship('Entity', back_populates='merged_group', cascade="all, delete-orphan")
+    case = relationship('Case', back_populates='merged_groups')
 
     def __repr__(self):
-        return f"<MergedEntities(id={self.id}, case_id='{self.case_id}', entity1_id={self.entity1_id}, entity2_id={self.entity2_id})>"
+        return f"<MergedGroup(id={self.id}, case_id='{self.case_id}')>"
 

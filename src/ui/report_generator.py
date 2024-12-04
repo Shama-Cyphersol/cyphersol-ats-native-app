@@ -17,8 +17,8 @@ from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
 from ..utils.ner_model import pdf_to_name
 from PyQt6.QtGui import QMovie
 import time
-from utils.refresh import add_pdf_extraction
-from utils.json_logic import get_process_df
+from ..utils.refresh import add_pdf_extraction
+from ..utils.json_logic import get_process_df
 
 class WebBridge(QObject):
     def __init__(self, parent=None):

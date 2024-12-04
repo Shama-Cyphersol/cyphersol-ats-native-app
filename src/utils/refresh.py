@@ -36,9 +36,9 @@ import logging
 import openpyxl
 from openpyxl.styles import Alignment
 import re
-from utils.model_loader import model
+from ..utils.model_loader import model_loader
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-from utils.common_functions import CommonFunctions
+from ..utils.common_functions import CommonFunctions
 
 ##EXTRACTION PROCESS
 def extract_text_from_file(file_path):

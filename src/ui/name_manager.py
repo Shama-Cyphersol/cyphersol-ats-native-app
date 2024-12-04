@@ -10,8 +10,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QUrl
 from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from utils.json_logic import load_all_case_data, load_case_data
-from utils.name_manager_groups import GroupSelector
+from ..utils.json_logic import load_all_case_data, load_case_data
+from ..utils.name_manager_groups import GroupSelector
 
 class ModernStyledTableWidget(QTableWidget):
     def __init__(self, columns: List[str], parent=None):

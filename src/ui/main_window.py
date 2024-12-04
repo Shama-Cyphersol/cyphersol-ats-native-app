@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("CypherSol")
-        self.initialize_database()
+        # self.initialize_database()
         self.setGeometry(100, 100, 1200, 800)
         self.setStyleSheet("""
                            

@@ -3,6 +3,8 @@ import pickle
 from datetime import datetime
 import json
 import os
+from ..core.repository import *
+from ..core.session_manager import SessionManager
 # from .refresh import cummalative_person_sheets
 
 def ensure_result_directory_exists(directory_path):
@@ -11,39 +13,62 @@ def ensure_result_directory_exists(directory_path):
         # Create the directory if it doesn't exist
         os.makedirs(directory_path)
 
-def save_case_data(case_id, file_names, start_date, end_date,individual_names):
+def save_case_data(case_id, file_names, start_date, end_date, individual_names):
     today_date = datetime.now().strftime("%d-%m-%Y")
-    case_data = {
 
-        "case_id": case_id,
-        "file_names": file_names,
-        "start_date": start_date,
-        "end_date": end_date,
-        "report_name": "Report_"+case_id,
-        "individual_names":individual_names,
-        "date":today_date
+    total_items = max(len(file_names), len(start_date), len(end_date), len(individual_names))
+
+    user = SessionManager.get_current_user()    
+
+    case_info = {
+        'case_id': case_id,
+        "user_id": user.id,
     }
 
-    if len(file_names) == 1:
-        case_data["start_date"] = start_date[0]
-        case_data["end_date"] = end_date[0]
-    else:
-        case_data["start_date"] = "-"
-        case_data["end_date"] = "-"
+    case = CaseRepository.create_case(case_info)
 
-    # Read existing data or initialize an empty list
-    try:
-        with open("src/data/json/cases.json", "r") as f:
-            existing_data = json.load(f)
-    except:
-        existing_data = []
+    for index in range(total_items):
+        statement_data = {
+            "case_id": case.id,
+            "account_name": individual_names[index].get("Name") or "" if index < len(individual_names) else "",
+            "account_number": individual_names[index].get("Acc Number") if index < len(individual_names) else "",
+            "local_filename": file_names[index] if index < len(file_names) else "",
+            "start_date": start_date[index] if index < len(start_date) else "",
+            "end_date": end_date[index] if index < len(end_date) else "",
+            "ifsc_code": individual_names[index].get("ifsc_code") or "" if index < len(individual_names) else "",
+            "bank_name": individual_names[index].get("bank_name") or "" if index < len(individual_names) else "",
+        }
 
-    # Append the new case data to the beginning of the list
-    existing_data.append( case_data)
+        statement_info = StatementInfoRepository.create_statement_info(statement_data)
 
-    # Write the updated data back to the file
-    with open("src/data/json/cases.json", "w") as f:
-        json.dump(existing_data, f, indent=4)
+    # case_data = {
+    #     "case_id": case_id,
+    #     "file_names": file_names,
+    #     "start_date": start_date,
+    #     "end_date": end_date,
+    #     "individual_names":individual_names,
+    #}
+
+    # if len(file_names) == 1:
+    #     case_data["start_date"] = start_date[0]
+    #     case_data["end_date"] = end_date[0]
+    # else:
+    #     case_data["start_date"] = "-"
+    #     case_data["end_date"] = "-"
+
+    # # Read existing data or initialize an empty list
+    # try:
+    #     with open("src/data/json/cases.json", "r") as f:
+    #         existing_data = json.load(f)
+    # except:
+    #     existing_data = []
+
+    # # Append the new case data to the beginning of the list
+    # existing_data.append( case_data)
+
+    # # Write the updated data back to the file
+    # with open("src/data/json/cases.json", "w") as f:
+    #     json.dump(existing_data, f, indent=4)
 
 def load_all_case_data():
     with open("src/data/json/cases.json", "r") as f:

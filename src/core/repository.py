@@ -1,6 +1,6 @@
 from .db import Database
 from typing import Optional, List
-from .models import User, StatementInfo, Case, Entity, MergedEntities
+from .models import User, StatementInfo, Case, Entity, MergedGroup
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,15 @@ class UserRepository:
         """
         return self.session.query(User).filter_by(id=user_id).first()
 
+    def get_user_by_username(self, username: str) -> Optional[User]:
+        """
+        Retrieves a user by their username.
+        :param username: Username of the user to retrieve
+        :return: User object if found, None otherwise
+        """
+        return self.session.query(User).filter_by(username=username).first()
+
+
     def get_user_by_email(self, email: str) -> Optional[User]:
         """
         Retrieves a user by their email address.
@@ -45,6 +54,8 @@ class UserRepository:
             user = User(**user_data)
             self.session.add(user)
             self.session.commit()
+
+            print("User created successfully:", user)
             return user
         except IntegrityError as e:
             self.session.rollback()
@@ -82,7 +93,6 @@ class UserRepository:
             self.session.rollback()
             print(f"Error deleting user: {e}")
             return False
-
 
 class StatementInfoRepository:
     def __init__(self):
@@ -317,22 +327,22 @@ class MergedEntitiesRepository:
         """
         self.session: Session = Database.get_session()
 
-    def get_merged_entities_by_id(self, merged_entity_id) -> List[MergedEntities]:
+    def get_merged_entities_by_id(self, merged_entity_id) -> List[MergedGroup]:
         """
         Retrieves merged entities by their entity IDs.
         :return: List of MergedEntities objects
         """
-        return self.session.query(MergedEntities).filter_by(id=merged_entity_id).first()
+        return self.session.query(MergedGroup).filter_by(id=merged_entity_id).first()
         
-    def get_merged_entities_by_case_id(self, case_id: int) -> List[MergedEntities]:
+    def get_merged_entities_by_case_id(self, case_id: int) -> List[MergedGroup]:
         """
         Retrieves merged entities by their case ID.
         :param case_id: Case ID to filter by
         :return: List of MergedEntities objects
         """
-        return self.session.query(MergedEntities).filter_by(case_id=case_id).all()
+        return self.session.query(MergedGroup).filter_by(case_id=case_id).all()
     
-    def create_merged_entities(self, merged_entities_data: dict) -> Optional[MergedEntities]:
+    def create_merged_entities(self, merged_group_data: dict) -> Optional[MergedGroup]:
         """
         Creates a new merged entities record.
         :param merged_entities_data: Dictionary containing merged entities details
@@ -340,7 +350,7 @@ class MergedEntitiesRepository:
         """
         
         try:
-            merged_entities = MergedEntities(**merged_entities_data)
+            merged_entities = MergedGroup(**merged_group_data)
             self.session.add(merged_entities)
             self.session.commit()
             return merged_entities
