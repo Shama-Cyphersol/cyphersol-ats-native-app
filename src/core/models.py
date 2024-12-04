@@ -43,6 +43,8 @@ class StatementInfo(Base):
     case_id = Column(String, ForeignKey('cases.case_id'), nullable=False)
     account_name = Column(String, nullable=False)
     account_number = Column(String(50), nullable=False)
+    ifsc_code = Column(String(50), nullable=False)
+    bank_name = Column(String, nullable=False)
     local_filename = Column(String, nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
@@ -59,10 +61,25 @@ class Entity(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     case_id = Column(String, ForeignKey('cases.case_id'), nullable=False)
     name = Column(String, nullable=False)
+    merged_group = Column(String, ForeignKey('merged_groups.merged_group_name'), nullable=True)
     role = Column(String, nullable=True)  # E.g., "Plaintiff", "Defendant", "Witness"
 
     case = relationship('Case', back_populates='entities')
+    merged_entities = relationship('MergedGroup', back_populates='case', cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Entity(id={self.id}, name='{self.name}', case_id='{self.case_id}')>"
+    
+
+class MergedGroup(Base):
+    __tablename__ = 'merged_groups'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    merged_group_name = Column(String, nullable=False)
+    case_id = Column(String, ForeignKey('cases.case_id'), nullable=False)
+
+    case = relationship('Case', back_populates='merged_entities', cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<MergedEntities(id={self.id}, case_id='{self.case_id}', entity1_id={self.entity1_id}, entity2_id={self.entity2_id})>"
 

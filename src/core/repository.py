@@ -1,6 +1,6 @@
 from .db import Database
 from typing import Optional, List
-from .models import User, StatementInfo, Case, Entity
+from .models import User, StatementInfo, Case, Entity, MergedEntities
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -307,3 +307,44 @@ class CaseRepository:
             self.session.rollback()
             print(f"Error deleting case: {e}")
             return False
+        
+
+class MergedEntitiesRepository:
+
+    def __init__(self):
+        """
+        Initializes the repository with a session from the Database singleton.
+        """
+        self.session: Session = Database.get_session()
+
+    def get_merged_entities_by_id(self, merged_entity_id) -> List[MergedEntities]:
+        """
+        Retrieves merged entities by their entity IDs.
+        :return: List of MergedEntities objects
+        """
+        return self.session.query(MergedEntities).filter_by(id=merged_entity_id).first()
+        
+    def get_merged_entities_by_case_id(self, case_id: int) -> List[MergedEntities]:
+        """
+        Retrieves merged entities by their case ID.
+        :param case_id: Case ID to filter by
+        :return: List of MergedEntities objects
+        """
+        return self.session.query(MergedEntities).filter_by(case_id=case_id).all()
+    
+    def create_merged_entities(self, merged_entities_data: dict) -> Optional[MergedEntities]:
+        """
+        Creates a new merged entities record.
+        :param merged_entities_data: Dictionary containing merged entities details
+        :return: The created MergedEntities object if successful, None otherwise
+        """
+        
+        try:
+            merged_entities = MergedEntities(**merged_entities_data)
+            self.session.add(merged_entities)
+            self.session.commit()
+            return merged_entities
+        except IntegrityError as e:
+            self.session.rollback()
+            print(f"Error creating merged entities: {e}")
+            return None

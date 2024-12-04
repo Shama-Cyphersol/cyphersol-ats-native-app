@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
-from utils.dynamic_table import DynamicDataTable
+from ...utils.dynamic_table import DynamicDataTable
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
