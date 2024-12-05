@@ -24,7 +24,7 @@ from ..utils.ats_statement_analyzer import ATSFunctions
 
 class CABankStatement:
     def __init__(
-            self, bank_names, pdf_paths, pdf_passwords, start_date, end_date, CA_ID, progress_data
+            self, bank_names, pdf_paths, pdf_passwords, start_date, end_date, CA_ID, progress_data, individual_names
     ):
         self.writer = None
         self.bank_names = bank_names
@@ -40,6 +40,7 @@ class CABankStatement:
         self.progress_function = progress_data.get('progress_func')
         self.current_progress = progress_data.get('current_progress')
         self.total_progress = progress_data.get('total_progress')
+        self.individual_names = individual_names
 
     def CA_Bank_statement(self, filename, dfs, name_dfs):
         data = []
@@ -230,12 +231,14 @@ class CABankStatement:
             pdf_password = self.pdf_passwords[i]
             start_date = self.start_date[i]
             end_date = self.end_date[i]
+            acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
 
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")
             self.current_progress += 1
-            start = time.time()
             dfs[bank], name_dfs[bank] = self.commoner.extraction_process(bank, pdf_path, pdf_password, start_date,
                                                                          end_date)
+            name_dfs[bank] = acc_name_n_num[bank]
+            
             end = time.time()
             print(f"Time taken to extract bank statement: {end - start} seconds")
             self.progress_function(self.current_progress, self.total_progress,
