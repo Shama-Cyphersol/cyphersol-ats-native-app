@@ -16,3 +16,5 @@ class LicenseManager:
         if license_key:
             return license_key
         return None
+
+# keyring.delete_password("Cyphersol", "license_key")

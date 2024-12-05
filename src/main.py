@@ -29,40 +29,44 @@ def main():
 
     app = QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(os.path.join(parent_dir, 'assets/icon.png')))
-    
-    license_key = LicenseManager.get_license_key()
-    print(f"License Key present or not: {license_key}")
-    user = {}
 
-    if not license_key:
-        # Show license verification dialog
-        license_dialog = LicenseDialog(test_mode=args.test)
-        license_key = license_dialog.license_key_input.text()
+    if SessionManager.is_logged_in():
+        user = SessionManager.get_current_user()
+        print(f"Restored session for user: {user['username']}")
+    else:
+        license_key = LicenseManager.get_license_key()
+        print(f"License Key present or not: {license_key}", type(license_key))
+        user = {}
 
-        print(f"License Key: {license_key}")
+        if not license_key:
+            print("License key not found. Showing license dialog...")
+            license_dialog = LicenseDialog(test_mode=args.test)
+            if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
+                print("License verification failed or cancelled.")
+                sys.exit(1)
 
-        if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
-            print("License verification failed or cancelled.")
-            sys.exit(1)
-        else:
-            print("License verification successful.")
-            # save the user data to the database
+            # Retrieve and store the license key
+            license_key = license_dialog.license_key_input.text()
+            print(f"License Key: {license_key}")
+            LicenseManager.store_license_key(license_key=license_key)
+
+            # Get or create user info based on license dialog
             user_info = license_dialog.user_info
-            LicenseManager.store_license_key(license_key=license_dialog.license_key)
             user_repository = UserRepository()
             user = user_repository.get_user_by_username(user_info.get("username"))
+
             if not user:
                 user = user_repository.create_user(user_info)
-    else:
-        login_dialog = LoginDialog(test_mode=args.test)
-
-        if login_dialog.exec() != LoginDialog.DialogCode.Accepted:
-            sys.exit(1)
-            print("Login failed or cancelled.")
         else:
+            # Show login dialog for the user
+            login_dialog = LoginDialog(test_mode=args.test)
+            if login_dialog.exec() != LoginDialog.DialogCode.Accepted:
+                print("Login failed or cancelled.")
+                sys.exit(1)
+
             user = login_dialog.user
 
-    SessionManager.login_user(user)
+        SessionManager.login_user(user)
 
     # Only show main window if license is verified
     window = MainWindow()
