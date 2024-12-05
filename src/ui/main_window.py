@@ -118,8 +118,8 @@ class MainWindow(QMainWindow):
             ("Generate Report", "generate_report.png"),
             ("Reports", "report.png"),
             # ("Name Manager", "name_manager.png"),
-            ("Settings", "settings.png"),
-            ("Logout", "logout.png"),
+            # ("Settings", "settings.png"),
+            # ("Logout", "logout.png"),
         ]
 
         for text, icon in button_icons:
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
         self.content_area.addWidget(ReportGeneratorTab())
         self.content_area.addWidget(ReportsTab())
         # self.content_area.addWidget(NameManagerTab())
-        self.content_area.addWidget(SettingsTab())
+        # self.content_area.addWidget(SettingsTab())
         # self.content_area.addWidget(CashFlowNetwork(data=dummy_data_for_network_graph))
 
         content_layout.addWidget(self.content_area)

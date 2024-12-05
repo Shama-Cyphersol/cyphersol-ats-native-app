@@ -87,7 +87,10 @@ class BankTransactionDashboard(QMainWindow):
                 }
                 for _, row in month_data.iterrows()
             ]
-        category_data = self.data['Category'].value_counts().head(10).to_dict()
+        category_data = {}
+        for month in unique_months:
+            month_data = self.data[self.data['Month'] == month]
+            category_data[month] = month_data['Category'].value_counts().to_dict()
 
         html_content = f'''
         <!DOCTYPE html>
@@ -120,31 +123,23 @@ class BankTransactionDashboard(QMainWindow):
                     height: auto;
                     margin: 0 auto;
                 }}
-                .radio-group {{
+                .checkbox-group {{
                     text-align: center;
-                    margin: 20px 0;
-                    padding: 10px;
+                    margin: 17px 0;
+                    padding: 12px;
                     background: white;
                     border-radius: 10px;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }}
-                .radio-group label {{
-                    margin-right: 15px;
+                .checkbox-group label {{
+                    margin-right: 8px;
                     font-size: 14px;
                     cursor: pointer;
                     padding: 5px 10px;
                     border-radius: 15px;
                     transition: background-color 0.3s;
                 }}
-                .radio-group label:hover {{
-                    background-color: #e3f2fd;
-                }}
-                .radio-group input[type="radio"]:checked + span {{
-                    background-color: #2196f3;
-                    color: white;
-                    padding: 5px 10px;
-                    border-radius: 15px;
-                }}
+
                 .chart-container {{
                     background: white;
                     border-radius: 10px;
@@ -231,8 +226,9 @@ class BankTransactionDashboard(QMainWindow):
         </head>
         <body>
             <div class="dashboard-container">
-                <div class="radio-group">
-                    {" ".join([f'<label><input type="radio" name="month" value="{month}" {"checked" if i == 0 else ""}><span>{month}</span></label>' for i, month in enumerate(unique_months)])}
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="selectAllMonths"><span>Select All</span></label>
+                    {" ".join([f'<label><input type="checkbox" name="month" value="{month}" checked><span>{month}</span></label>' for month in unique_months])}
                 </div>
                 
                 <div class="chart-container">
@@ -282,7 +278,7 @@ class BankTransactionDashboard(QMainWindow):
                 const dailyData = {json.dumps(daily_data)};
                 const tableData = {json.dumps(table_data)};
                 const categoryData = {json.dumps(category_data)};
-                let selectedMonth = "{unique_months[0]}";
+                let selectedMonth = ["{unique_months[0]}"];
                 
                 // Balance Line Chart
                 const balanceCtx = document.getElementById('balanceChart').getContext('2d');
@@ -447,8 +443,7 @@ class BankTransactionDashboard(QMainWindow):
                             tableBody.innerHTML += tr;
                         }});
                     }}
-                    
-                    
+                      
                     document.getElementById('pageInfo').textContent = filteredData.length > 0 ? `Page ${{currentPage}} of ${{totalPages}}` : '';
                     document.getElementById('prevBtn').disabled = currentPage === 1;
                     document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
@@ -468,37 +463,98 @@ class BankTransactionDashboard(QMainWindow):
                         updateTable();
                     }}
                 }}
+                
+                function updateChartsAndTable() {{
+                    // Aggregate data for selected months
+                    const aggregatedDays = [];
+                    const aggregatedBalances = [];
+                    const aggregatedDebits = [];
+                    const aggregatedCredits = [];
+                    const aggregatedTableData = [];
+                    const aggregatedCategoryData = {{}};
+
+                    selectedMonth.forEach(month => {{
+                        aggregatedDays.push(...dailyData[month].days);
+                        aggregatedBalances.push(...dailyData[month].balances);
+                        aggregatedDebits.push(...dailyData[month].debits);
+                        aggregatedCredits.push(...dailyData[month].credits);
+                        aggregatedTableData.push(...tableData[month]);
+
+                        Object.entries(categoryData[month] || {{}}).forEach(([category, count]) => {{
+                            aggregatedCategoryData[category] = (aggregatedCategoryData[category] || 0) + count;
+                        }});
+                    }});
+
+                    // Update balance chart
+                    balanceChart.data.labels = aggregatedDays;
+                    balanceChart.data.datasets[0].data = aggregatedBalances;
+                    balanceChart.update();
+
+                    // Update transaction chart
+                    transactionChart.data.labels = aggregatedDays;
+                    transactionChart.data.datasets[0].data = aggregatedDebits;
+                    transactionChart.data.datasets[1].data = aggregatedCredits;
+                    transactionChart.update();
+
+                    categoryChart.data.labels = Object.keys(aggregatedCategoryData);
+                    categoryChart.data.datasets[0].data = Object.values(aggregatedCategoryData);
+                    categoryChart.update();
+
+                    // Update table
+                    filteredData = aggregatedTableData;
+                    currentPage = 1;
+                    updateTable();
+               }}
 
                 // Initialize table with first month's data
                 filteredData = tableData[selectedMonth];
                 updateTable();
+
+                function handleMonthSelection() {{
+                    const checkboxes = document.querySelectorAll('input[name="month"]:checked');
+                    selectedMonth = Array.from(checkboxes).map(cb => cb.value);
+
+                    if (selectedMonth.length === 0) {{
+                        document.getElementById('searchInput').value = '';
+                        filteredData = [];
+                        currentPage = 1;
+                        updateTable();
+                    }} else {{
+                        updateChartsAndTable();
+                    }}
+                }}
+
                 
+                document.getElementById('selectAllMonths').addEventListener('change', function () {{
+                  const checkboxes = document.querySelectorAll('input[name="month"]');
+                   checkboxes.forEach(cb => cb.checked = this.checked);
+                   handleMonthSelection();
+                }});
+                
+                // Add month selection event listener
+                document.querySelectorAll('input[name="month"]').forEach(checkbox => {{
+                    checkbox.addEventListener('change', function () {{
+                       document.getElementById('selectAllMonths').checked = selectedMonth.length === Object.keys(dailyData).length;
+                       handleMonthSelection();
+                   }});
+                }});
+
                 // Add search event listener
                 document.getElementById('searchInput').addEventListener('input', handleSearch);
                 
-                // Add month selection event listener
-                document.querySelectorAll('input[name="month"]').forEach(radio => {{
-                    radio.addEventListener('change', function() {{
-                        selectedMonth = this.value;
-                        
-                        // Update balance chart
-                        balanceChart.data.labels = dailyData[selectedMonth].days;
-                        balanceChart.data.datasets[0].data = dailyData[selectedMonth].balances;
-                        balanceChart.update();
-                        
-                        // Update transaction chart
-                        transactionChart.data.labels = dailyData[selectedMonth].days;
-                        transactionChart.data.datasets[0].data = dailyData[selectedMonth].debits;
-                        transactionChart.data.datasets[1].data = dailyData[selectedMonth].credits;
-                        transactionChart.update();
-                        
-                        // Update table
-                        document.getElementById('searchInput').value = '';
-                        filteredData = tableData[selectedMonth];
-                        currentPage = 1;
-                        updateTable();
+                document.addEventListener('DOMContentLoaded', function () {{
+                    // Ensure the first checkbox is checked
+                    const checkboxes = document.querySelectorAll('input[name="month"]');
+                    checkboxes.forEach(checkbox => {{
+                        checkbox.checked = selectedMonth.includes(checkbox.value);
                     }});
-                }});
+
+                    // Set "Select All" checkbox state
+                    document.getElementById('selectAllMonths').checked = selectedMonth.length === Object.keys(dailyData).length;
+
+                    // Initialize the charts and table with the first month's data
+                    updateChartsAndTable();
+               }});
             </script>
         </body>
         </html>

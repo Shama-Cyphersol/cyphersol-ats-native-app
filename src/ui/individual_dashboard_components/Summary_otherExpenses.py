@@ -17,6 +17,8 @@ class SummaryOtherExpenses(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+
+        print("Other expenses Data: \n",data)
         
         # print("Data: \n",data)
         self.months = self.get_months_from_data(data)
@@ -33,7 +35,7 @@ class SummaryOtherExpenses(QMainWindow):
 
         # Create the web view
         self.web = QWebEngineView()
-        self.web.setFixedHeight(1400)
+        self.web.setFixedHeight(1200)
         layout.addWidget(self.web)
 
         if self.data:
@@ -47,28 +49,35 @@ class SummaryOtherExpenses(QMainWindow):
         ]
         return month_columns
     
-    def get_highest_category(self, selected_month):
+    def get_highest_category(self, selected_months):
         try:
-            if not self.data[selected_month]:
+            aggregated_data = {}
+            for month in selected_months:
+                if month in self.data:
+                    for category, amount in self.data[month].items():
+                        aggregated_data[category] = aggregated_data.get(category, 0) + amount
+            
+            if not aggregated_data:
+            
                 return "No data", 0
             
-            max_category = max(self.data[selected_month].items(), key=lambda x: x[1])
+            max_category = max(aggregated_data.items(), key=lambda x: x[1])
             return max_category[0], max_category[1]
         except Exception as e:
             print(f"Error getting highest category: {e}")
             return "Error", 0
     
-    def update_dashboard(self, selected_month):
+    def update_dashboard(self, selected_months):
         try:
-            if selected_month not in self.data:
-                raise ValueError(f"No data available for {selected_month}")
+            if selected_months not in self.data:
+                raise ValueError(f"No data available for {selected_months}")
 
             # Filter out zero values
-            filtered_data = {k: v for k, v in self.data[selected_month].items() if v > 0}
+            filtered_data = {k: v for k, v in self.data[selected_months].items() if v > 0}
             
             # Calculate metrics
             total_income = sum(filtered_data.values())
-            top_category, top_amount = self.get_highest_category(selected_month)
+            top_category, top_amount = self.get_highest_category(selected_months)
 
             # Create HTML content with modern dashboard design
             html_content = f'''
@@ -167,7 +176,7 @@ class SummaryOtherExpenses(QMainWindow):
                         height: 500px;
                     }}
                     
-                    .radio-group {{
+                    .checkbox-group {{
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
                         gap: 10px;
@@ -178,7 +187,7 @@ class SummaryOtherExpenses(QMainWindow):
                         margin-bottom: 20px;
                     }}
                     
-                    .radio-group label {{
+                    .checkbox-group label {{
                         display: flex;
                         align-items: center;
                         padding: 8px;
@@ -186,20 +195,7 @@ class SummaryOtherExpenses(QMainWindow):
                         cursor: pointer;
                         transition: background-color 0.2s;
                     }}
-                    
-                    .radio-group label:hover {{
-                        background-color: #f0f2f5;
-                    }}
-                    
-                    .radio-group input[type="radio"] {{
-                        margin-right: 8px;
-                        cursor: pointer;
-                    }}
-                    
-                    .radio-group input[type="radio"]:checked + span {{
-                        color: #3B82F6;
-                        font-weight: 600;
-                    }}
+
 
                     .table-header {{
                     text-align: center;
@@ -214,12 +210,15 @@ class SummaryOtherExpenses(QMainWindow):
             <body>
                 <div class="dashboard">
                 <div class="header">
-                        <h1>Other Expenses for <span id="selectedMonth">{selected_month}</span></h1>
+                        <h1>Other Expenses <span id="selectedMonth"></span></h1>
                     </div>
-                    <div class="radio-group">
-                        {' '.join([f'<label><input type="radio" name="month" value="{month}"{" checked" if month == selected_month else ""}><span>{month}</span></label>' for month in self.months])}
-                    </div>
-                    
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" id="selectAll" value="SelectAll">
+                                <span>Select All</span>
+                            </label>
+                            {' '.join([f'<label><input type="checkbox" class="month-checkbox" value="{month}"><span>{month}</span></label>' for month in self.months if month in self.data])}
+                        </div>
                     
                     <div class="metrics-grid">
                         <div class="metric-card">
@@ -297,21 +296,42 @@ class SummaryOtherExpenses(QMainWindow):
                         }});
                     }}
                     
-                    function updateDashboard(selectedMonth) {{
-                        const selectedData = monthsData[selectedMonth];
+                   function updateDashboard(selectedMonths) {{
+                        const monthsArray = Array.isArray(selectedMonths) ? selectedMonths : [selectedMonths];
+
+
+                        if (monthsArray.length === 0) {{
+                        // If no months are selected, clear the dashboard
+                        // document.getElementById('selectedMonth').textContent = 'No months selected';
+                        document.getElementById('totalIncome').textContent = '₹0.00';
+                        document.getElementById('topCategory').textContent = '-';
+                        document.getElementById('topAmount').textContent = '₹0.00';
+                        updateTable({{}});
+                        if (myChart) {{
+                            myChart.destroy();
+                        }}
+                        return;
+                    }}
                         
-                        // Update header
-                        document.getElementById('selectedMonth').textContent = selectedMonth;
-                        
+                        const aggregatedData = {{}};
+                            monthsArray.forEach(month => {{
+                                const monthData = monthsData[month] || {{}};
+                                Object.entries(monthData).forEach(([category, amount]) => {{
+                                    if (!aggregatedData[category]) {{
+                                        aggregatedData[category] = 0;
+                                    }}
+                                    aggregatedData[category] += amount;
+                                }});
+                            }});                        
                         // Update metrics
-                        const totalIncome = Object.values(selectedData).reduce((a, b) => a + b, 0);
-                        document.getElementById('totalIncome').textContent = `₹${{totalIncome.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`
-                        
-                        const topCategory = Object.entries(selectedData).reduce((a, b) => a[1] > b[1] ? a : b);
+                        const totalIncome = Object.values(aggregatedData).reduce((a, b) => a + b, 0);
+                        const topCategory = Object.entries(aggregatedData).reduce((a, b) => a[1] > b[1] ? a : b, ["-", 0]);
+
+                        document.getElementById('totalIncome').textContent = `₹${{totalIncome.toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2 }})}}`;
                         document.getElementById('topCategory').textContent = topCategory[0];
-                        document.getElementById('topAmount').textContent = `₹${{topCategory[1].toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2}})}}`;
-                        
-                        updateTable(selectedData);
+                        document.getElementById('topAmount').textContent = `₹${{topCategory[1].toLocaleString('en-IN', {{minimumFractionDigits: 2, maximumFractionDigits: 2 }})}}`;
+
+                        updateTable(aggregatedData);
 
                         // Destroy existing chart if it exists
                         if (myChart) {{
@@ -323,10 +343,10 @@ class SummaryOtherExpenses(QMainWindow):
                         myChart = new Chart(ctx, {{
                             type: 'pie',
                             data: {{
-                                labels: Object.keys(selectedData),
+                                labels: Object.keys(aggregatedData),
                                 datasets: [{{
-                                    data: Object.values(selectedData),
-                                    backgroundColor: Object.keys(selectedData).map(key => colors[key] || '#888'),
+                                    data: Object.values(aggregatedData),
+                                    backgroundColor: Object.keys(aggregatedData).map(key => colors[key] || '#888'),
                                     borderWidth: 2,
                                     borderColor: '#ffffff'
                                 }}]
@@ -362,12 +382,35 @@ class SummaryOtherExpenses(QMainWindow):
                     }}
                     
                     // Initialize chart with first month
-                    updateDashboard('{selected_month}');
-                    
-                    // Add event listeners to radio buttons
-                    document.querySelectorAll('input[name="month"]').forEach(radio => {{
-                        radio.addEventListener('change', function() {{
-                            updateDashboard(this.value);
+                    document.addEventListener('DOMContentLoaded', function () {{
+                        // Automatically check the first checkbox on page load
+                        const checkboxes = document.querySelectorAll('.month-checkbox');
+                        const selectAllCheckbox = document.getElementById('selectAll');
+                        
+                        if (checkboxes.length > 0) {{
+                            checkboxes[0].checked = true; // Ensure the first checkbox is checked
+                        }}
+
+                        // Initialize the dashboard with the first month's data
+                        const selectedMonths = Array.from(document.querySelectorAll('.month-checkbox:checked')).map(cb => cb.value);
+                        updateDashboard(selectedMonths);
+
+                        // Add change event listeners to all checkboxes
+                        checkboxes.forEach(checkbox => {{
+                            checkbox.addEventListener('change', function() {{
+                             if (!checkbox.checked) {{
+                                selectAllCheckbox.checked = false; // Uncheck "Select All" if any individual checkbox is unchecked
+                            }}
+                                const selectedMonths = Array.from(document.querySelectorAll('.month-checkbox:checked')).map(cb => cb.value);
+                                updateDashboard(selectedMonths);
+                            }});
+                        }});
+
+                        selectAllCheckbox.addEventListener('change', function () {{
+                            const isChecked = selectAllCheckbox.checked;
+                            checkboxes.forEach(cb => cb.checked = isChecked);
+                            const selectedMonths = isChecked ? Array.from(checkboxes).map(cb => cb.value) : [];
+                            updateDashboard(selectedMonths);
                         }});
                     }});
                 </script>
@@ -390,4 +433,3 @@ class SummaryOtherExpenses(QMainWindow):
             </html>
             '''
             self.web.setHtml(error_html)
-

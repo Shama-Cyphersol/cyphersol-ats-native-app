@@ -4,14 +4,16 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from utils.json_logic import *
 from functools import partial
-from .case_dashboard_components.network import create_network_graph
-from .case_dashboard_components.entity import create_entity_distribution_chart
-from .case_dashboard_components.individual_table import create_individual_dashboard_table
-from .case_dashboard_components.link_analysis import LinkAnalysisWidget
-from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
-from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+from utils.json_logic import delete_name_merge_object
 from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
-# from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+
+# from .case_dashboard_components.entity import create_entity_distribution_chart
+# from .case_dashboard_components.individual_table import create_individual_dashboard_table
+# from .case_dashboard_components.link_analysis import LinkAnalysisWidget
+# from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
+# from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+# from .case_dashboard_components.name_manager import SimilarNameGroups
+# from .case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -43,6 +45,11 @@ class SidebarButton(QPushButton):
                 color: #3498db;
                 border-left: 3px solid #3498db;
             }
+            QPushButton:disabled {
+                color: #aaaaaa;
+                background-color: #f0f0f0;
+                border-left: 3px solid transparent;
+            }
         """)
 
 class CaseDashboard(QWidget):
@@ -54,7 +61,54 @@ class CaseDashboard(QWidget):
         self.buttons = {}  # Store buttons for management
         self.section_widgets = {}  # Store section widgets
         self.current_section_label = None  # Store current section label
+        self.sidebar_options_disabled = True
+
+         # Lazy loading mapping
+        self.lazy_categories = {
+            "Name Manager": self.lazy_load_name_manager,
+            "Acc No and Name Manager": self.lazy_load_account_manager,
+            "Network Graph": self.lazy_load_network_graph,
+            "Entites Distribution": self.lazy_load_entity_distribution,
+            "Individual Table": self.lazy_load_individual_table,
+            "Link Analysis": self.lazy_load_link_analysis,
+            "Bi-Directional Analysis": self.lazy_load_bidirectional_analysis,
+            "FIFO LIFO": self.lazy_load_fifo_lifo
+        }
+        
         self.init_ui()
+
+    def lazy_load_network_graph(self):
+        from .case_dashboard_components.network import create_network_graph
+        return create_network_graph(result=self.case_result)
+
+    def lazy_load_entity_distribution(self):
+        from .case_dashboard_components.entity import create_entity_distribution_chart
+        return create_entity_distribution_chart(self.case_result)
+
+    def lazy_load_individual_table(self):
+        from .case_dashboard_components.individual_table import create_individual_dashboard_table
+        return create_individual_dashboard_table(self.case)
+
+    def lazy_load_link_analysis(self):
+        from .case_dashboard_components.link_analysis import LinkAnalysisWidget
+        return LinkAnalysisWidget(self.case_result, self.case_id)
+
+    def lazy_load_bidirectional_analysis(self):
+        from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
+        return BiDirectionalAnalysisWidget(self.case_result, self.case_id)
+
+    def lazy_load_fifo_lifo(self):
+        from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+        return FIFO_LFIO_Analysis(self.case_result, self.case_id)
+
+    def lazy_load_name_manager(self):
+        from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
+        return SimilarNameGroups(self.case_id, self)
+
+    def lazy_load_account_manager(self):
+        from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+        return AccountNumberAndNameManager(self.case_id,self.refresh_case_data)
+    
 
     def init_ui(self):
         self.showFullScreen()  # Make window fullscreen
@@ -76,7 +130,7 @@ class CaseDashboard(QWidget):
         splitter.addWidget(sidebar)
         splitter.addWidget(content_area)
         splitter.setStretchFactor(splitter.indexOf(content_area), 1)
-        splitter.setStretchFactor(0, 0)  # Sidebar gets minimal stretch
+        splitter.setStretchFactor(0, 1)  # Sidebar gets minimal stretch
         splitter.setStretchFactor(1, 1)  # Content area stretches with the window
         splitter.setSizes([350, 1150])  # Initial sizes
         splitter.setHandleWidth(0)  # Make sidebar non-resizable
@@ -85,7 +139,7 @@ class CaseDashboard(QWidget):
         main_layout.addWidget(splitter, stretch=1)
 
         # Set default section to open
-        self.showSection("Network Graph", create_network_graph(result=self.case_result))
+        self.showSection("Name Manager", SimilarNameGroups(self.case_id, self))
 
         self.setLayout(main_layout)
     
@@ -121,22 +175,40 @@ class CaseDashboard(QWidget):
         # Add significant padding between the header and the categories
         sidebar_layout.addSpacing(20)  # Adjust the value (e.g., 20 pixels) as needed
         
+        # self.categories = {
+        #     "Network Graph": create_network_graph(self.case_result),
+        #     "Entites Distribution": create_entity_distribution_chart(self.case_result),
+        #     "Individual Table": create_individual_dashboard_table(self.case),
+        #     "Link Analysis": LinkAnalysisWidget(self.case_result,self.case_id),
+        #     "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
+        #     "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
+        #     "Name Manager": SimilarNameGroups(self.case_id,self),
+        #     "Acc No and Name Manager": AccountNumberAndNameManager(self.case_id),
+        # }
+
         self.categories = {
-            "Network Graph": create_network_graph(self.case_result),
-            "Entites Distribution": create_entity_distribution_chart(self.case_result),
-            "Individual Table": create_individual_dashboard_table(self.case),
-            "Link Analysis": LinkAnalysisWidget(self.case_result,self.case_id),
-            "Bi-Directional Analysis": BiDirectionalAnalysisWidget(self.case_result,self.case_id),
-            "FIFO LIFO": FIFO_LFIO_Analysis(self.case_result,self.case_id),
-            "Name Manager": SimilarNameGroups(self.case_id,self),
-            "Acc No. & Name Manager": SimilarNameGroups(self.case_id,self),
+            category: None for category in self.lazy_categories.keys()
         }
     
-        # Create buttons for each category
-        for category, widget_class in self.categories.items():
+        # # Create buttons for each category
+        # for category, widget_class in self.categories.items():
+        #     # Create button for each category
+        #     btn = SidebarButton(category)
+        #     btn.clicked.connect(partial(self.showSection, category, widget_class))
+        #     self.buttons[category] = btn
+        #     sidebar_layout.addWidget(btn)
+
+        # sidebar_layout.addStretch()
+        # return sidebar
+
+        for category in self.categories:
             # Create button for each category
             btn = SidebarButton(category)
-            btn.clicked.connect(partial(self.showSection, category, widget_class))
+            if self.sidebar_options_disabled and (category is not "Name Manager" and not "Acc No and Name Manager"):
+                btn.setEnabled(False)
+                btn.setCheckable(False)
+            else:
+                btn.clicked.connect(partial(self.showSection, category))
             self.buttons[category] = btn
             sidebar_layout.addWidget(btn)
 
@@ -235,32 +307,31 @@ class CaseDashboard(QWidget):
         dialog.exec()
 
     def showSection(self, section_name, widget_class):
-        # Uncheck all buttons except the clicked one
         for btn in self.buttons.values():
             btn.setChecked(False)
         self.buttons[section_name].setChecked(True)
 
-        # Update the section label
-        self.current_section_label.setText(section_name)
-
-        # # Clear previous content
-        # while self.content_layout.count():
-        #     item = self.content_layout.takeAt(0)
-        #     print("Item ",section_name," - ", item)
-        #     print("Item widget ",section_name," - ", item.widget())
-        #     if item.widget():
-        #         item.widget().deleteLater()
-
-        # Check if the widget for this section already exists
-        if section_name in self.section_widgets:
-            widget = self.section_widgets[section_name]
+        if section_name == "Acc No and Name Manager":
+            self.current_section_label.setText("Account Number and Name Manager")
         else:
-            widget = widget_class
+            self.current_section_label.setText(section_name)
+
+        # if section_name in self.section_widgets:
+        #     widget = self.section_widgets[section_name]
+        # else:
+        #     widget = widget_class
+        #     self.section_widgets[section_name] = widget
+
+        # Lazy load the widget if it doesn't exist
+        if section_name not in self.section_widgets:
+            # Use the lazy loading function to create the widget
+            widget = self.lazy_categories[section_name]()
             self.section_widgets[section_name] = widget
 
-        # Set expanding size policy to adjust according to content
-        # set min height of widget to screen size
-        if section_name == "Name Manager":
+        # Get the widget (either newly created or existing)
+        widget = self.section_widgets[section_name]
+
+        if section_name == "Name Manager" or section_name == "Acc No and Name Manager":
             widget.setMinimumHeight(int(self.height()*0.8))
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
@@ -270,8 +341,23 @@ class CaseDashboard(QWidget):
             if item.widget():
                 item.widget().setParent(None)
         
-        # Add the widget to the content layout
         self.content_layout.addWidget(widget)
         
-        # Add stretch at the bottom to push content to the top and allow scroll if necessary
         self.content_layout.addStretch()
+
+    def refresh_case_data(self,new_case_data):
+        self.case = new_case_data
+        self.section_widgets["Network Graph"] = self.lazy_load_network_graph()
+        self.section_widgets["Entites Distribution"] = self.lazy_load_bidirectional_analysis()
+        self.section_widgets["Individual Table"] = self.lazy_load_individual_table()
+        self.section_widgets["Link Analysis"] = self.lazy_load_link_analysis()
+        self.section_widgets["Bi-Directional Analysis"] = self.lazy_load_bidirectional_analysis()
+        self.section_widgets["FIFO LIFO"] = self.lazy_load_fifo_lifo()
+        delete_name_merge_object(self.case_id)
+        self.section_widgets["Name Manager"] = self.lazy_load_name_manager()
+
+        # self.section_widgets=self.lazy_categories
+
+     
+        
+        

@@ -126,7 +126,7 @@ class FIFO_LFIO_Analysis(QWidget):
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_area.setWidget(scroll_widget)
 
-        print("lifo_fifo_analysis_data ",self.lifo_fifo_analysis_data)
+        # print("lifo_fifo_analysis_data ",self.lifo_fifo_analysis_data)
 
         # Check if lifo_fifo_analysis_data is empty
         self.is_data_empty = False

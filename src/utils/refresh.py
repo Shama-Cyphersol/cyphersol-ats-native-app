@@ -5111,3 +5111,64 @@ def add_pdf_extraction(bank_names, pdf_paths, pdf_passwords, start_date, end_dat
 
     # return (account_number, current_progress)
     return {"single_df":single_df, "cummalative_df":cummalative_df}
+
+def refresh_name_n_acc_number(process_df, dict_name):
+    # Replace old names with new names in the "Name" column
+    process_df['Name'] = process_df['Name'].replace(dict_name)
+    return process_df
+
+def forward_analysis(process_df):
+    # Initialize new columns for Utilization and Remaining Credits with zero values
+    process_df["Utilization"] = 0
+    process_df["Remaining Credit"] = 0
+    
+    # Convert Value Date to datetime for sorting and comparison
+    process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
+    
+    # Get the first row as the anchor row
+    anchor_row = process_df.iloc[0]
+    
+    # Set initial remaining credit to the Credit amount in the anchor row
+    remaining_credit = anchor_row["Credit"]
+    
+    # Create a DataFrame to store the forward analysis
+    forward_df = pd.DataFrame(columns=process_df.columns)
+    
+    # Iterate through the rows for forward analysis
+    for index, row in process_df.iterrows():
+        if remaining_credit <= 0:
+            break  # Stop if remaining credit is zero or less
+        
+        # Calculate utilization for the current row
+        utilization = min(remaining_credit, row["Debit"])
+        
+        # Update remaining credit
+        remaining_credit -= utilization
+        
+        # Update Utilization and Remaining Credit columns for the current row
+        row["Utilization"] = utilization
+        row["Remaining Credit"] = remaining_credit
+        
+        # Append the updated row to the forward analysis DataFrame
+        forward_df = pd.concat([forward_df, pd.DataFrame([row])], ignore_index=True)
+    
+    return forward_df
+    
+
+def get_funds(process_df, row_number):
+    # Convert Value Date to datetime
+    process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
+    
+    # Get the anchor row
+    anchor_row = process_df.iloc[row_number]
+    
+    # Extract sender's name
+    sender = anchor_row["Name"]
+    
+    # Filter rows for the sender
+    sender_df = process_df[process_df["Name"] == sender].copy()
+    
+    # Ensure the anchor row is the first row in the result
+    sender_df = forward_analysis(sender_df)
+    
+    return sender_df

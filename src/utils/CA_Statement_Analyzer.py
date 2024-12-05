@@ -7,6 +7,7 @@ from openpyxl.styles import Font
 import logging
 from openpyxl import Workbook, load_workbook
 import sys
+import time
 
 bold_font = Font(bold=True)
 pd.options.display.float_format = "{:,.2f}".format
@@ -232,8 +233,11 @@ class CABankStatement:
 
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")
             self.current_progress += 1
+            start = time.time()
             dfs[bank], name_dfs[bank] = self.commoner.extraction_process(bank, pdf_path, pdf_password, start_date,
                                                                          end_date)
+            end = time.time()
+            print(f"Time taken to extract bank statement: {end - start} seconds")
             self.progress_function(self.current_progress, self.total_progress,
                                    info=f"Extraction completed successfully")
             self.current_progress += 1

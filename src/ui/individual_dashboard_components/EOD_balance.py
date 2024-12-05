@@ -56,11 +56,12 @@ class EODBalanceChart(QMainWindow):
         return months_data
 
     def create_html_content(self, months_data):
+        
         # Create radio buttons HTML
-        radio_buttons = ''
+        checkbox_html = '<label><input type="checkbox" id="selectAllCheckbox"> Select All</label>\n'
         for month in months_data.keys():
             checked = 'checked' if month == list(months_data.keys())[0] else ''
-            radio_buttons += f'<label><input type="radio" name="month" value="{month}" {checked}> {month}</label>\n'
+            checkbox_html += f'<label><input type="checkbox" name="month" value="{month}" {checked}> {month}</label>\n'
 
         # Prepare table data
         table_data = {}
@@ -113,11 +114,11 @@ class EODBalanceChart(QMainWindow):
                     font-weight: bold;
                     color: #1e293b;
                 }}
-                .radio-group {{
+                .checkbox-group {{
                     text-align: center;
                     margin-bottom: 20px;
                 }}
-                .radio-group label {{
+                .checkbox-group label {{
                     margin-right: 15px;
                     font-size: 16px;
                 }}
@@ -192,8 +193,8 @@ class EODBalanceChart(QMainWindow):
             </style>
         </head>
         <body>
-            <div class="radio-group">
-                {radio_buttons}
+            <div class="checkbox-group">
+                {checkbox_html}
             </div>
             
             <div class="chart-container">
@@ -209,6 +210,7 @@ class EODBalanceChart(QMainWindow):
                 <table>
                     <thead>
                         <tr>
+                        <th>Month</th>
                             <th>Day</th>
                             <th>Amount</th>
                         </tr>
@@ -238,7 +240,7 @@ class EODBalanceChart(QMainWindow):
                     monthColors[month] = colors[index % colors.length];
                 }});
 
-                let selectedMonth = Object.keys(monthsData)[0];
+                let selectedMonths = Object.keys(monthsData);
                 let searchTerm = '';
                 
                 function generateLabels(dataLength) {{
@@ -248,18 +250,8 @@ class EODBalanceChart(QMainWindow):
                 const config = {{
                     type: 'line',
                     data: {{
-                        labels: generateLabels(monthsData[selectedMonth].length),
-                        datasets: [{{
-                            label: selectedMonth,
-                            data: monthsData[selectedMonth],
-                            backgroundColor: monthColors[selectedMonth],
-                            borderColor: monthColors[selectedMonth],
-                            borderWidth: 2,
-                            fill: false,
-                            pointBackgroundColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            pointRadius: 4
-                        }}]
+                        labels: generateLabels(monthsData[selectedMonths[0]].length),
+                        datasets: []
                     }},
                     options: {{
                         responsive: true,
@@ -277,7 +269,8 @@ class EODBalanceChart(QMainWindow):
                                 ticks: {{
                                     maxTicksLimit: 31,
                                     callback: function(value, index) {{
-                                        return index % Math.ceil(monthsData[selectedMonth].length / 15) === 0 ? value : '';
+                                        return index % Math.ceil(monthsData[selectedMonths[0]].length / 15) === 0? value : '';
+                                        
                                     }}
                                 }}
                             }},
@@ -298,17 +291,32 @@ class EODBalanceChart(QMainWindow):
                 const rowsPerPage = 10;
                 let currentPage = 1;
                 
+                function updateSelectAllState() {{
+                const allCheckboxes = Array.from(document.querySelectorAll('input[name="month"]'));
+                const allChecked = allCheckboxes.every(cb => cb.checked);
+                document.getElementById('selectAllCheckbox').checked = allChecked;
+            }}
                 function filterData() {{
-                    const currentData = tableData[selectedMonth];
-                    if (!searchTerm) return currentData;
+                    let combinedData = [];
+                    selectedMonths.forEach(month => {{
+                        const monthData = tableData[month].map(item => ({{
+                            ...item,
+                            month: month  // Add month to each data point
+                        }}));
+                        combinedData = combinedData.concat(monthData);
+                    }});
+
+                    if (!searchTerm) return combinedData;
                     
-                    return currentData.filter(item => {{
+                    return combinedData.filter(item => {{
                         const dayStr = item.day.toString();
                         const valueStr = item.value.toFixed(2).toString();
                         const searchTermLower = searchTerm.toLowerCase();
+                        const monthStr = item.month.toLowerCase();
                         
                         return dayStr.includes(searchTermLower) || 
-                               valueStr.includes(searchTermLower);
+                            valueStr.includes(searchTermLower) ||
+                            monthStr.includes(searchTermLower);
                     }});
                 }}
                 
@@ -324,6 +332,7 @@ class EODBalanceChart(QMainWindow):
                     for (let i = start; i < end; i++) {{
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
+                        <td>${{filteredData[i].month}}</td>
                             <td>${{filteredData[i].day}}</td>
                             <td>${{filteredData[i].value.toFixed(2)}}</td>
                         `;
@@ -354,6 +363,68 @@ class EODBalanceChart(QMainWindow):
                     }}
                 }}
                 
+                function updateChartAndTable() {{
+                financialChart.data.labels = generateLabels(monthsData[selectedMonths[0]].length);
+                financialChart.data.datasets = [];
+                
+                selectedMonths.forEach((month, index) => {{
+                    financialChart.data.datasets.push({{
+                        label: month,
+                        data: monthsData[month],
+                        backgroundColor: colors[index % colors.length],
+                        borderColor: colors[index % colors.length],
+                        borderWidth: 2,
+                        fill: false,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }});
+               }});
+                
+                financialChart.update('active');
+                currentPage = 1;
+                searchTerm = '';
+                searchInput.value = '';
+                updateTable();
+            }}
+                function initializeChart() {{
+                    selectedMonths = [Object.keys(monthsData)[0]]; // Ensure first month is selected
+                    
+                    // Uncheck all checkboxes first
+                    document.querySelectorAll('input[name="month"]').forEach(cb => {{
+                        cb.checked = false;
+                    }});
+                    
+                    // Check the first month's checkbox
+                    document.querySelector(`input[name="month"][value="${{selectedMonths[0]}}"]`).checked = true;
+                    
+                    // Clear existing datasets
+                    financialChart.data.datasets = [];
+                    
+                    // Add dataset for the first month
+                    financialChart.data.labels = generateLabels(monthsData[selectedMonths[0]].length);
+                    financialChart.data.datasets.push({{
+                        label: selectedMonths[0],
+                        data: monthsData[selectedMonths[0]],
+                        backgroundColor: colors[0],
+                        borderColor: colors[0],
+                        borderWidth: 2,
+                        fill: false,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }});
+                    
+                    // Update the chart
+                    financialChart.update('active');
+                    
+                    // Reset pagination and search
+                    currentPage = 1;
+                    searchTerm = '';
+                    searchInput.value = '';
+                    updateTable();
+                }}
+                                
                 // Search functionality
                 const searchInput = document.getElementById('searchInput');
                 searchInput.addEventListener('input', function(e) {{
@@ -361,35 +432,29 @@ class EODBalanceChart(QMainWindow):
                     currentPage = 1; // Reset to first page when searching
                     updateTable();
                 }});
+
+                document.getElementById('selectAllCheckbox').addEventListener('change', function() {{
+                const isChecked = this.checked;
+                document.querySelectorAll('input[name="month"]').forEach(checkbox => {{
+                    checkbox.checked = isChecked;
+               }});
+                selectedMonths = isChecked ? Object.keys(monthsData) : [];
+                updateChartAndTable();
+            }});
                 
-                // Update chart and table when radio button changes
-                document.querySelectorAll('input[name="month"]').forEach(radio => {{
-                    radio.addEventListener('change', function() {{
-                        selectedMonth = this.value;
-                        const newLabels = generateLabels(monthsData[selectedMonth].length);
-                        
-                        financialChart.data.labels = newLabels;
-                        financialChart.data.datasets[0].label = selectedMonth;
-                        financialChart.data.datasets[0].data = monthsData[selectedMonth];
-                        financialChart.data.datasets[0].backgroundColor = monthColors[selectedMonth];
-                        financialChart.data.datasets[0].borderColor = monthColors[selectedMonth];
-                        
-                        financialChart.options.scales.x.ticks.callback = function(value, index) {{
-                            return index % Math.ceil(monthsData[selectedMonth].length / 15) === 0 ? value : '';
-                        }};
-                        
-                        financialChart.update('active');
-                        
-                        // Reset pagination and search
-                        currentPage = 1;
-                        searchTerm = '';
-                        searchInput.value = '';
-                        updateTable();
+                // Update chart and table when checkbox  changes
+                document.querySelectorAll('input[name="month"]').forEach(checkbox => {{
+                    checkbox.addEventListener('change', function() {{
+                        selectedMonths = Array.from(document.querySelectorAll('input[name="month"]:checked')).map(cb => cb.value);
+                        updateSelectAllState();
+                        updateChartAndTable();
                     }});
                 }});
                 
                 // Initialize table
                 updateTable();
+
+                document.addEventListener('DOMContentLoaded', initializeChart);
             </script>
         </body>
         </html>

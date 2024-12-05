@@ -12,11 +12,7 @@ import json
 def create_entity_distribution_chart(result):
     try:
         entity_df = result["cummalative_df"]["entity_df"]
-        print("entity_df ",entity_df.shape)
         entity_df = entity_df[entity_df['Entity'].notna() & (entity_df['Entity'] != '')]
-        print("entity_df ",entity_df.shape)
-
-        print("entity_df ",entity_df)
 
         # Remove rows where Entity is empty
         entity_df = entity_df[entity_df.iloc[:, 0] != ""]

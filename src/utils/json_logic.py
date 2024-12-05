@@ -3,7 +3,7 @@ import pickle
 from datetime import datetime
 import json
 import os
-# from utils.refresh import cummalative_person_sheets
+from utils.refresh import cummalative_person_sheets
 
 def ensure_result_directory_exists(directory_path):
     # Check if the directory exists
@@ -39,11 +39,14 @@ def save_case_data(case_id, file_names, start_date, end_date,individual_names):
         existing_data = []
 
     # Append the new case data to the beginning of the list
-    existing_data.append( case_data)
+    existing_data.insert(0, case_data)
+    # existing_data.append( case_data)
 
     # Write the updated data back to the file
     with open("src/data/json/cases.json", "w") as f:
         json.dump(existing_data, f, indent=4)
+    
+    return case_data
 
 def load_all_case_data():
     with open("src/data/json/cases.json", "r") as f:
@@ -92,6 +95,27 @@ def update_case_data(case_id, new_case_data):
         json.dump(data, f, indent=4)
 
     return True
+
+def delete_case_data(case_id):
+    # Load existing data
+    data = load_all_case_data()
+
+    # Find the case with the matching ID
+    for i, case in enumerate(data):
+        if case["case_id"] == case_id:
+            # Remove the case from the list
+            data.pop(i)
+            break
+    else:
+        print(f"Error: Case with ID {case_id} not found.")
+        return False
+
+    # Write the updated data back to the file
+    with open("src/data/json/cases.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+    return True
+
 
 def save_result(CA_ID,result):
     with open("src/data/results/"+CA_ID+".pkl", 'wb') as f:
@@ -202,13 +226,22 @@ def create_name_merge_object(obj):
         
 
 def find_merge_name_object(case_id):
-
     with open(f"src/data/json/merged_names.json","r") as f:
         data = json.load(f)
         for obj in data:
             if obj["case_id"] == case_id:
                 return obj
         return None
+    
+def delete_name_merge_object(case_id):
+    with open(f"src/data/json/merged_names.json","r") as f:
+        data = json.load(f)
+        for i,obj in enumerate(data):
+            if obj["case_id"] == case_id:
+                data.pop(i)
+                break
+    with open(f"src/data/json/merged_names.json","w") as f:
+        json.dump(data,f,indent=4)
 
 def get_process_df(case_id):
     data = load_result(case_id)
@@ -245,10 +278,16 @@ def get_last_serial_number():
 
 def update_serial_number_history(old_serial_number):
     serial_number = get_last_serial_number()
+    print("old_serial_number",old_serial_number)
+    old_serial_number = int(old_serial_number)
+    print("old_serial_number",old_serial_number)
     if serial_number == old_serial_number:
+        print("updating serial number")
         serial_number = [serial_number+1]
         with open("src/data/json/serial_number_history.json","w") as f:
             json.dump(serial_number,f,indent=4)
+
+
 
 # test = load_result("CA_ID_JG5DYO7CDVYWQB46")
 # cummalative_df =  test["single_df"]["C2"]
