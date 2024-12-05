@@ -11,6 +11,7 @@ class LoginDialog(QDialog):
         self.test_mode = test_mode
         self.setWindowTitle("Login")
         self.resize(300, 150)
+        self.user = None
 
         self.layout = QVBoxLayout(self)
 
@@ -40,8 +41,10 @@ class LoginDialog(QDialog):
         username = self.username_input.text()
         password = self.password_input.text()
 
-        if SessionManager.authenticate_user(username, password):
+        user =  SessionManager.authenticate_user(username, password)
+        if user:
             print("User authenticated successfully!")
+            self.user = user
             self.accept()
         else:
             self.error_label.setText("Invalid username or password. Please try again.")

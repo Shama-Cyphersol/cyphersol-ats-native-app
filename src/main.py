@@ -31,8 +31,8 @@ def main():
     app.setWindowIcon(QtGui.QIcon(os.path.join(parent_dir, 'assets/icon.png')))
     
     license_key = LicenseManager.get_license_key()
-
-    user_info = {}
+    print(f"License Key present or not: {license_key}")
+    user = {}
 
     if not license_key:
         # Show license verification dialog
@@ -41,7 +41,6 @@ def main():
 
         print(f"License Key: {license_key}")
 
-
         if license_dialog.exec() != LicenseDialog.DialogCode.Accepted:
             print("License verification failed or cancelled.")
             sys.exit(1)
@@ -49,11 +48,11 @@ def main():
             print("License verification successful.")
             # save the user data to the database
             user_info = license_dialog.user_info
-            LicenseManager.store_license_key(license_key=user_info.get("license_key"))
+            LicenseManager.store_license_key(license_key=license_dialog.license_key)
             user_repository = UserRepository()
             user = user_repository.get_user_by_username(user_info.get("username"))
             if not user:
-                user_info = user_repository.create_user(user_info)
+                user = user_repository.create_user(user_info)
     else:
         login_dialog = LoginDialog(test_mode=args.test)
 
@@ -61,8 +60,7 @@ def main():
             sys.exit(1)
             print("Login failed or cancelled.")
         else:
-            username = login_dialog.username_input.text()
-            password = login_dialog.password_input.text()
+            user = login_dialog.user
 
     SessionManager.login_user(user)
 

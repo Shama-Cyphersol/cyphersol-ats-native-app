@@ -12,7 +12,7 @@ class SessionManager:
 
 
         cls._current_user = user
-        print("User logged in successfully!", user.get('email'), user.get('username'))
+        print("User logged in successfully!", user.email, user.username)
 
     @classmethod
     def get_current_user(cls):
@@ -49,6 +49,6 @@ class SessionManager:
         user = user_repo.get_user_by_username_and_password(username=username, password=password)
 
         if user:
-            return True
+            return user
         
-        return False
+        return None

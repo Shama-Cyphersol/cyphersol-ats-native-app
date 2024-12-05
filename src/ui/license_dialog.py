@@ -12,6 +12,7 @@ class LicenseDialog(QDialog):
         self.license_verifier = LicenseVerifier(config_path)
         self.test_mode = test_mode
         self.user_info = {}
+        self.license_key = None
         self.init_ui()
         
     def init_ui(self):
@@ -62,6 +63,8 @@ class LicenseDialog(QDialog):
                 license_key=self.license_key_input.text(),
                 username=self.username_input.text()
             )
+
+            # result.get("data").get()
             
             if result["verified"]:
                 user_info = {
@@ -73,6 +76,7 @@ class LicenseDialog(QDialog):
                 }
 
                 self.user_info = user_info
+                self.license_key = self.license_key_input.text()
 
                 QMessageBox.information(
                     self,
