@@ -7,12 +7,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette, QColor, QFont
 from PyQt6.QtWidgets import QSizePolicy
 from PyQt6.QtGui import QBrush
-from ..utils.json_logic import *
-from ..utils.name_merge import *
+from ...utils.json_logic import *
 import time
-from ..utils.refresh import replace_entities
+from ...utils.refresh import replace_entities
 
-# Enhanced color scheme with better contrast
 BLUE_COLOR = "#3498db"  
 WHITE_COLOR = "#FFFFFF"
 BACKGROUND_COLOR = "#f8fafc"  # Light gray background
@@ -71,15 +69,15 @@ class ClickableLabel(QLabel):
             }}
         """)
 
-class GroupSelector(QMainWindow):
+class SimilarNameGroups(QMainWindow):
     def __init__(self,case_id, parent, similar_names_groups=sample_similar_names):
         super().__init__()
         self.setWindowTitle(f"Similar Names Merger for Case Id - {case_id}")
-        self.setGeometry(100, 100, 1000, 800)
         self.case_id = case_id
-        
-        start = time.time()
-        similar_names_groups = self.get_similar_names()
+
+        screen = QApplication.primaryScreen().geometry()
+        self.resize(screen.width(), screen.height())
+        similar_names_groups = find_merge_name_object(self.case_id)
         self.original_groups = similar_names_groups["original_groups"]
         self.merged_groups = similar_names_groups["merged_groups"]
         if similar_names_groups["unselected_groups"] == [] and similar_names_groups["merged_groups"] == []:
@@ -87,11 +85,9 @@ class GroupSelector(QMainWindow):
         else:
             self.unselected_groups = similar_names_groups["unselected_groups"]
 
-        print("merged groups", self.merged_groups)
-        print("Unselected groups", self.unselected_groups)
-        end = time.time()
+        # print("merged groups", self.merged_groups)
+        # print("Unselected groups", self.unselected_groups)
 
-        print("Time taken to get similar names in seconds - ",end-start)
 
         # Enhanced window styling
         self.setStyleSheet(f"""
@@ -313,7 +309,7 @@ class GroupSelector(QMainWindow):
         final_button_container.addStretch()
 
         # Final submit button for merge history page
-        final_merge_btn = StyledPushButton("Merge All Groups")
+        final_merge_btn = StyledPushButton("Final these Groups")
         final_merge_btn.clicked.connect(self.final_merge_all_groups)
         final_button_container.addWidget(final_merge_btn)
         final_button_container.addStretch()
@@ -361,56 +357,13 @@ class GroupSelector(QMainWindow):
             demerge_label.setForeground(QBrush(QColor(255,0,0)))
             demerge_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.merged_history_table.setItem(row_position, 1, demerge_label)
-        
-    def get_similar_names(self):
-        """Get similar names groups for a given case ID"""
-        print("case_id name manager groups",self.case_id)
-        merged_names_object = find_merge_name_object(self.case_id)
-        data = load_result(self.case_id)
-
-        group_of_similar_entities = None
-
-        # if "similar_entities" not in data["cummalative_df"]:
-        #     process_df = None
-        #     try:
-        #         process_df = data["cummalative_df"]["process_df"] 
-        #     except:
-        #         process_df = data["cummalative_df"]["df"]
-
-        #     unique_values = extract_unique_names_and_entities(process_df)
-        #     group_of_similar_entities = group_similar_entities(unique_values)
-        #     # data["cummalative_df"]["similar_entities"] = group_of_similar_entities
-        #     # save_result(self.case_id,data)
-        #     print("Saved similar entities in pkl")
-        # else:
-        #     group_of_similar_entities = data["cummalative_df"]["similar_entities"]
-
-        if merged_names_object == None:
-            process_df = data["cummalative_df"]["process_df"]
-            unique_values = extract_unique_names_and_entities(process_df)
-            similar_groups = group_similar_entities(unique_values)
-
-            obj = {
-                "case_id":self.case_id,
-                "original_groups":similar_groups,
-                "merged_groups":[],
-                "unselected_groups":[],
-            }
-
-            create_name_merge_object(obj)
-            group_of_similar_entities = obj
-        else:
-            group_of_similar_entities = merged_names_object
-
-        # Call the function which takes in process df and returns similar names
-        return group_of_similar_entities
-
+    
     def final_merge_all_groups(self):
 
-        if self.unselected_groups:
-            # Show error message if there are still groups to merge
-            self.show_error_message(f"Please merge all {len(self.unselected_groups)} remaining name groups before final submission.")
-            return
+        # if self.unselected_groups:
+        #     # Show error message if there are still groups to merge
+        #     self.show_error_message(f"Please merge all {len(self.unselected_groups)} remaining name groups before final submission.")
+        #     return
         
         # Show confirmation dialog
         msg = QMessageBox(self)
@@ -447,13 +400,19 @@ class GroupSelector(QMainWindow):
             print("Get old process df")
             process_df = get_process_df(self.case_id)
             print("Got old process df, now replacing entities")
-            new_process_df = replace_entities(process_df,self.merged_groups)
+
+            groups_to_merge = self.merged_groups
+            for group in self.unselected_groups:
+                for item in group:
+                    groups_to_merge.append([item])
+
+            new_process_df = replace_entities(process_df,groups_to_merge)
             print("Replaced entities Got new process df, now updating process df and running refresh function")
             response = update_process_df(self.case_id,new_process_df)
             print("Updated process df and ran refresh function reponse = ",response)
             if response == True:
                 self.show_success_message("Successfully merged all groups")
-                self.close()
+                # self.close()
             else:
                 self.show_error_message("Error while merging groups")
         else:
@@ -474,7 +433,9 @@ class GroupSelector(QMainWindow):
                 """
             no_names_label = QLabel("No similar names found")
 
-            if not self.unselected_groups:
+            if not self.unselected_groups and not self.merged_groups and not self.original_groups:
+                no_names_label = QLabel("No similar names found")
+            if not self.unselected_groups and self.merged_groups:
                 no_names_label = QLabel("All names have been merged")
             no_names_label.setStyleSheet(text_style)
            
@@ -610,7 +571,7 @@ class GroupSelector(QMainWindow):
             
             self.update_json()
             self.count_label.setText("Total groups: " + str(len(self.unselected_groups)))
-            self.tab_widget.setCurrentIndex(1)
+            # self.tab_widget.setCurrentIndex(1)
 
     def show_error_message(self, message):
         """Show styled error message"""
@@ -814,15 +775,29 @@ class GroupSelector(QMainWindow):
             # Show success message
             self.show_success_message("Successfully demerged names")
 
-    def resizeEvent(self, event):
-        """Handle window resize events"""
-        super().resizeEvent(event)
+    # def resizeEvent(self, event):
+    #     """Handle window resize events"""
+    #     super().resizeEvent(event)
         
-        # Update table column widths
-        table_width = self.merged_history_table.width()
-        self.merged_history_table.setColumnWidth(0, int(table_width * 0.4))
-        self.merged_history_table.setColumnWidth(1, int(table_width * 0.4))
-        self.merged_history_table.setColumnWidth(2, int(table_width * 0.2))
+    #     # Update table column widths
+    #     table_width = self.merged_history_table.width()
+    #     self.merged_history_table.setColumnWidth(0, int(table_width * 0.4))
+    #     self.merged_history_table.setColumnWidth(1, int(table_width * 0.4))
+    #     self.merged_history_table.setColumnWidth(2, int(table_width * 0.2))
+
+def show_similar_names_groups(self, case_id):
+    """Open GroupSelector for the specific case ID in full screen"""
+
+    # Ensure the dialog is stored as an instance attribute
+    print("case_id name manager",case_id)
+
+    similar_names_dialog = SimilarNameGroups(case_id, parent=self)
+    
+    # Set the window to full screen and keep a reference
+    similar_names_dialog.showMaximized()
+    
+    # Ensure the dialog doesn't get garbage collected
+    similar_names_dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
 
 def main():
     app = QApplication(sys.argv)
@@ -832,7 +807,7 @@ def main():
     font = QFont("Segoe UI", 10)  # Use system font with reasonable size
     app.setFont(font)
     
-    window = GroupSelector(sample_similar_names)
+    window = SimilarNameGroups(sample_similar_names)
     window.show()
     sys.exit(app.exec())
 

@@ -23,8 +23,17 @@ class BiDirectionalAnalysisWidget(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+         # Check if lifo_fifo_analysis_data is empty
+        self.is_data_empty = False
+        try:
+            if self.bidirectional_analysis_data.empty:
+                self.is_data_empty = True
+        except:
+            if not self.bidirectional_analysis_data:
+                self.is_data_empty = True
+                
 
-        if self.bidirectional_analysis_data.empty:
+        if self.is_data_empty:
             self.show_no_data_message()
         else:
             # self.create_dropdowns()

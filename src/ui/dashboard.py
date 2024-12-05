@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from ..modules.dashboard_stats import get_report_count, get_recent_reports, get_monthly_report_count
+from ..modules.dashboard_stats import *
 import json
 from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from .case_dashboard import CaseDashboard
@@ -53,8 +53,8 @@ class DashboardTab(QWidget):
                 <div class="stat-label">Monthly Reports</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">42</div>
-                <div class="stat-label">Active Users</div>
+                <div class="stat-value">{get_count_of_statement()}</div>
+                <div class="stat-label">Total Statements</div>
             </div>
         </div>
         '''
@@ -255,7 +255,7 @@ class DashboardTab(QWidget):
                                 <td>${report.report_name}</td>
                                 <td>
                                     <button class="upload-btn" onclick="uploadPdf(${index}, '${report.case_id}')">
-                                        Add PDF
+                                        Add 
                                     </button>
                                 </td>
                             `;

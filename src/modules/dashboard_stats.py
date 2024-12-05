@@ -30,3 +30,10 @@ def get_recent_reports():
             'status': random.choice(['Completed', 'In Progress', 'Pending'])
         })
     return reports
+
+def get_count_of_statement():
+    cases = load_all_case_data()
+    count=0
+    for case in cases:
+        count += len(case["file_names"])
+    return count

@@ -23,7 +23,7 @@ class SuspenseDebit(QWidget):
         
         # Calculate pie chart data
         pie_data = {
-            'labels': ['Suspense Debit', 'Total Debit'],
+            'labels': ['Unkown Debit', 'Total Debit'],
             'values': [suspense_debit_count, total_debit_txn]
         }
 
@@ -50,7 +50,7 @@ class SuspenseDebit(QWidget):
         fig_pie = px.pie(pie_data, names='labels', values='values', 
                         #  color_discrete_sequence=['#a5d7a7', '#f9a19a'], 
                          color_discrete_sequence=['#94cb94', '#f16e65'],
-                         title='Suspense Debit Transactions vs Total Debit Transactions')
+                         title='Unkown Debit Transactions vs Total Debit Transactions')
         
         fig_pie.update_layout(margin=dict(l=10, r=40, t=50, b=10))
         
@@ -81,7 +81,7 @@ class SuspenseDebit(QWidget):
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Suspense Debit Details</title>
+            <title>Unkown Debit Details</title>
             <style>
                 * {{
                     margin: 0;

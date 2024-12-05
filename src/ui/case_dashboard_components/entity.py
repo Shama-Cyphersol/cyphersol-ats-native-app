@@ -12,11 +12,18 @@ import json
 def create_entity_distribution_chart(result):
     try:
         entity_df = result["cummalative_df"]["entity_df"]
+        entity_df = entity_df[entity_df['Entity'].notna() & (entity_df['Entity'] != '')]
+
         # Remove rows where Entity is empty
         entity_df = entity_df[entity_df.iloc[:, 0] != ""]
         # Take top 10 entities by frequency
         entity_df_10 = entity_df.nlargest(10, entity_df.columns[1])
-        return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df,"all_transactions":result["cummalative_df"]["process_df"]})
+
+        all_transactions = result["cummalative_df"]["process_df"]
+
+        all_transactions = all_transactions[all_transactions['Entity'].notna() & (all_transactions['Entity'] != '')]
+
+        return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df,"all_transactions":all_transactions})
     except Exception as e:
         print("Error creating entity distribution chart:", e)
         # Create dummy data if there's an error
@@ -55,18 +62,16 @@ class EntityDistributionChart(QWidget):
         # Create web view
         self.web = QWebEngineView()
         # self.web.setMinimumHeight(1400)
+        
         self.web.setFixedHeight(670)
         layout.addWidget(self.web)
         
         # Create web channel
         self.channel = QWebChannel()
 
+        self.web_bridge = WebBridge(self)
         # Create web bridge
-        self.web_bridge = WebBridge(self)
-
         self.channel.registerObject('pyqtBridge', self.web_bridge)
-
-        self.web_bridge = WebBridge(self)
 
         # Set up the web page
         self.web_page = QWebEnginePage(self.web)
@@ -633,6 +638,7 @@ class EntityDistributionChart(QWidget):
         </body>
         </html>
         '''
+
         
         # self.web.setMinimumHeight(1400)  # Set minimum height instead of fixed height
         self.web.setHtml(html_content)

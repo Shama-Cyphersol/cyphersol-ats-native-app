@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QDialogButtonBox, QComboBox,QCompleter, QSizePolicy
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
@@ -19,37 +19,52 @@ from PyQt6.QtGui import QMovie
 import time
 from ..utils.refresh import add_pdf_extraction
 from ..utils.json_logic import get_process_df
+from ..ui.main_dashboard_components.recent_reports import RecentReportsTable
+from ..utils.name_merge import *
 
-class WebBridge(QObject):
-    def __init__(self, parent=None):
+class UnitDialog(QDialog):
+    def __init__(self, existing_units, parent=None):
         super().__init__(parent)
-        self.parent = parent
-
-    @pyqtSlot(str)
-    def caseIdClicked(self, case_id):
-        self.parent.handle_case_id(case_id)
-
-    @pyqtSlot(str, str)
-    def uploadAdditionalPdf(self, row, case_id):
-        self.parent.handle_upload_additional_pdf(row, case_id)
-
-    @pyqtSlot(str)
-    def log(self, message):
-        print("JavaScript Log:", message)
-
-class CustomWebPage(QWebEnginePage):
-    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
-        # print(f"JS Console ({level}): {message} [Line {lineNumber}] [{sourceID}]")
-        print(f"JS Console conntected")
-
-
+        self.setWindowTitle("Add New Unit")
+        self.setModal(True)
+        
+        layout = QVBoxLayout()
+        
+        # Unit name input
+        self.unit_input = QLineEdit()
+        self.unit_input.setPlaceholderText("Enter new unit name")
+        color_black_styles = "color: #34495e;"
+        self.unit_input.setStyleSheet(color_black_styles)
+        label = QLabel("Unit Name:")
+        label.setStyleSheet(color_black_styles)
+        layout.addWidget(label)
+        layout.addWidget(self.unit_input)
+        
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | 
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self.setLayout(layout)
+        
+    def get_unit_name(self):
+        return self.unit_input.text().strip()
+    
 
 # Report Generator
 class ReportGeneratorTab(QWidget):
     def __init__(self):
         super().__init__()
         self.selected_files = []  # Store selected files
-        self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+        self.case_id = ""
+        self.units = fetch_units()
+        serial_number = get_last_serial_number()
+        self.selectd_unit = ""
+        self.serial_number = self.process_serial_number(serial_number)
         self.tab_widget = QWidget()
         self.init_ui()
 
@@ -65,43 +80,135 @@ class ReportGeneratorTab(QWidget):
         # Create a frame to hold the form
         form_frame = QFrame()
         form_frame.setStyleSheet("""
+           
             QFrame {
-                border: 1px solid #bdc3c7;
-                border-radius: 10px;
-                padding: 10px;
-                background-color: #ffffff; /* Background color of the form */
+            background-color: #ffffff;
+            border: 1px solid #bdc3c7;
+            border-radius: 10px;
+            padding: 20px;
+            }
+            QLabel {
+                color: #34495e;
+                font-size: 14px;
+                margin-bottom: 5px;
             }
         """)
 
         # Create a form layout to hold form fields
         form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(20)
 
-        # Case ID field (label on top, field below)
+        # Uniform input style
+        input_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #bdc3c7;
+                border-radius: 5px;
+                color: #34495e;
+                background-color: #f8f9fa;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #f8f9fa;
+                color: #34495e;
+            }
+
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border: 1px solid #3498db;
+                outline: none;
+            }
+            QLineEdit::placeholder, QComboBox::placeholder {
+                color: #95a5a6;
+                font-style: italic;
+            }
+        """
+
+        first_row_layout = QHBoxLayout()
+        first_row_layout.setSpacing(10)  # Add consistent spacing between elements
+
+        # Unit Dropdown with Add Button
+        unit_layout = QVBoxLayout()
+        # unit_label = QLabel("Unit")
+        unit_label = self.create_label("Unit")
+        # unit_label.setStyleSheet("margin-bottom: 5px; color: #34495e;")
+        unit_dropdown_layout = QHBoxLayout()
+        self.unit_dropdown = QComboBox()
+        self.unit_dropdown.addItems(self.units)
+        self.unit_dropdown.setEditable(True)
+        self.unit_dropdown.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.unit_dropdown.setStyleSheet(input_style)
+        self.unit_dropdown.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                
+        # Completer for unit dropdown
+        completer = QCompleter(self.units)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.unit_dropdown.setCompleter(completer)
+                
+        # Add button to create new unit
+        self.add_unit_btn = QPushButton("+")
+        self.add_unit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white !important;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        self.add_unit_btn.clicked.connect(self.add_new_unit)
+                
+        unit_dropdown_layout.addWidget(self.unit_dropdown)
+        unit_dropdown_layout.addWidget(self.add_unit_btn)
+        unit_layout.addWidget(unit_label)
+        unit_layout.addLayout(unit_dropdown_layout)
+        unit_layout.setSpacing(3)
+        first_row_layout.addLayout(unit_layout, 1)  # Add stretch factor
+
+        # Serial Number
+        serial_layout = QVBoxLayout()
+        # serial_label = QLineEdit("Serial Number")
+        serial_label = self.create_label("Serial Number")
+        self.custom_serial_number = QLineEdit()
+        self.custom_serial_number.setPlaceholderText("Enter custom text")
+        self.custom_serial_number.setText(self.serial_number)
+        self.custom_serial_number.setStyleSheet(input_style)
+        self.custom_serial_number.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        serial_layout.addWidget(serial_label)
+        serial_layout.addWidget(self.custom_serial_number)
+        serial_layout.setSpacing(5)
+        first_row_layout.addLayout(serial_layout, 1)  # Add stretch factor
+
+        # Case ID
         case_id_layout = QVBoxLayout()
-        case_id_label = self.create_label("Case ID:")
-        case_id_layout.addWidget(case_id_label)
-        
+        # case_id_label = QLineEdit("Case ID")
+        case_id_label = self.create_label("Case ID")
+        # case_id_label.setStyleSheet("margin-bottom: 5px; color: #34495e;")
         self.case_id_widget = QLineEdit()
         self.case_id_widget.setText(str(self.case_id))
         self.case_id_widget.setReadOnly(True)
         self.case_id_widget.setPlaceholderText("Auto-generate ID")
-        self.case_id_widget.setStyleSheet("""
+        self.case_id_widget.setStyleSheet(input_style + """
             QLineEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  /* Text color */
-            }
-            QLineEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
-            }
-            QLineEdit::placeholder {
-                color: #95a5a6;  /* Placeholder text color */
-                font-style: italic;  /* Optional: make placeholder italic */
+                background-color: #f1f2f6;
+                color: #7f8c8d;
             }
         """)
+        self.case_id_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        case_id_layout.addWidget(case_id_label)
         case_id_layout.addWidget(self.case_id_widget)
+        case_id_layout.setSpacing(5)
+        first_row_layout.addLayout(case_id_layout, 1)  # Add stretch factor
+
+        form_layout.addRow(first_row_layout)
+
+        self.unit_dropdown.currentTextChanged.connect(self.update_case_id)
+        self.custom_serial_number.textChanged.connect(self.update_case_id)
+        
+        # Initial case ID generation
+        self.update_case_id()
+
         form_layout.addRow(case_id_layout)
 
         # Bank Statement and Password in one row (horizontal layout)
@@ -110,6 +217,8 @@ class ReportGeneratorTab(QWidget):
         # File input section
         file_input_layout = QVBoxLayout()
         file_label = self.create_label("Bank Statements")
+        # file_label.setStyleSheet("QLabel{margin-bottom: 10px;}")
+        # file_label.setStyleSheet("margin-bottom: 5px;")
         file_input_layout.addWidget(file_label)
 
         # Create a horizontal layout for file input and button
@@ -126,6 +235,7 @@ class ReportGeneratorTab(QWidget):
                 border-radius: 5px;
                 color: #34495e;
                 background-color: #f5f6fa;
+                width: 50vw;
             }
         """)
         self.file_display.mousePressEvent = lambda e: self.browse_files()
@@ -152,93 +262,93 @@ class ReportGeneratorTab(QWidget):
 
         bp_layout.addLayout(file_input_layout)
 
-        # Password field
-        self.password = QLineEdit()
-        self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password.setPlaceholderText("Enter Password")
-        self.password.setStyleSheet("""
-            QLineEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  /* Text color */
-            }
-            QLineEdit:focus {
-                border: 1px solid #2980b9;  /* Border color when focused */
-            }
-            QLineEdit::placeholder {
-                color: #95a5a6;  /* Placeholder text color */
-                font-style: italic;  /* Optional: make placeholder italic */
-            }
-        """)
-        bp_layout.addLayout(self.create_labeled_field("Password", self.password))
+        # # Password field
+        # self.password = QLineEdit()
+        # self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        # self.password.setPlaceholderText("Enter Password")
+        # self.password.setStyleSheet("""
+        #     QLineEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: #34495e;  /* Text color */
+        #     }
+        #     QLineEdit:focus {
+        #         border: 1px solid #2980b9;  /* Border color when focused */
+        #     }
+        #     QLineEdit::placeholder {
+        #         color: #95a5a6;  /* Placeholder text color */
+        #         font-style: italic;  /* Optional: make placeholder italic */
+        #     }
+        # """)
+        # bp_layout.addLayout(self.create_labeled_field("Password", self.password))
         form_layout.addRow(bp_layout)
 
-        # Start Date and End Date on one line
-        date_layout = QHBoxLayout()
-        start_date_layout = QVBoxLayout()
-        start_date_label = self.create_label("Start Date")
-        start_date_layout.addWidget(start_date_label)
+        # # Start Date and End Date on one line
+        # date_layout = QHBoxLayout()
+        # start_date_layout = QVBoxLayout()
+        # start_date_label = self.create_label("Start Date")
+        # start_date_layout.addWidget(start_date_label)
 
-        self.start_date = QDateEdit()
-        self.start_date.setCalendarPopup(True)
-        start_date_calendar_widget = self.start_date.calendarWidget()
-        start_date_calendar_widget.setStyleSheet("""
-            QCalendarWidget QAbstractItemView:enabled {
-                color: black;  /* Date color */
-                background-color: white;
-            }
-        """)
-        self.start_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
-        # set default date to today
-        self.start_date.setDate(QDate.currentDate())
+        # self.start_date = QDateEdit()
+        # self.start_date.setCalendarPopup(True)
+        # start_date_calendar_widget = self.start_date.calendarWidget()
+        # start_date_calendar_widget.setStyleSheet("""
+        #     QCalendarWidget QAbstractItemView:enabled {
+        #         color: black;  /* Date color */
+        #         background-color: white;
+        #     }
+        # """)
+        # self.start_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
+        # # set default date to today
+        # self.start_date.setDate(QDate.currentDate())
         
-        self.start_date.setStyleSheet("""
-            QDateEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: black;  
-            }
-            QDateEdit:focus {
-                border: 1px solid #2980b9;  
-            }
-        """)
-        start_date_layout.addWidget(self.start_date)
+        # self.start_date.setStyleSheet("""
+        #     QDateEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: black;  
+        #     }
+        #     QDateEdit:focus {
+        #         border: 1px solid #2980b9;  
+        #     }
+        # """)
+        # start_date_layout.addWidget(self.start_date)
 
-        end_date_layout = QVBoxLayout()
-        end_date_label = self.create_label("End Date")
-        end_date_layout.addWidget(end_date_label)
+        # end_date_layout = QVBoxLayout()
+        # end_date_label = self.create_label("End Date")
+        # end_date_layout.addWidget(end_date_label)
 
-        self.end_date = QDateEdit()
-        self.end_date.setCalendarPopup(True)
-        end_date_calendar_widget = self.end_date.calendarWidget()
-        end_date_calendar_widget.setStyleSheet("""
-            QCalendarWidget QAbstractItemView:enabled {
-                color: black;  /* Date color */
-                background-color: white;
-            }
-        """)
-        self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
-        self.end_date.setDate(QDate.currentDate())
-        self.end_date.setStyleSheet("""
-            QDateEdit {
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                color: #34495e;  
-            }
-            QDateEdit:focus {
-                border: 1px solid #2980b9;  
-            }
-        """)
-        end_date_layout.addWidget(self.end_date)
-        date_layout.addLayout(start_date_layout)
-        date_layout.addLayout(end_date_layout)
-        form_layout.addRow(date_layout)
+        # self.end_date = QDateEdit()
+        # self.end_date.setCalendarPopup(True)
+        # end_date_calendar_widget = self.end_date.calendarWidget()
+        # end_date_calendar_widget.setStyleSheet("""
+        #     QCalendarWidget QAbstractItemView:enabled {
+        #         color: black;  /* Date color */
+        #         background-color: white;
+        #     }
+        # """)
+        # self.end_date.setDisplayFormat("dd/MM/yyyy")  # Set display format
+        # self.end_date.setDate(QDate.currentDate())
+        # self.end_date.setStyleSheet("""
+        #     QDateEdit {
+        #         padding: 10px;
+        #         font-size: 16px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 5px;
+        #         color: #34495e;  
+        #     }
+        #     QDateEdit:focus {
+        #         border: 1px solid #2980b9;  
+        #     }
+        # """)
+        # end_date_layout.addWidget(self.end_date)
+        # date_layout.addLayout(start_date_layout)
+        # date_layout.addLayout(end_date_layout)
+        # form_layout.addRow(date_layout)
 
         # Submit button 
         button_box_layout = QVBoxLayout()
@@ -286,515 +396,78 @@ class ReportGeneratorTab(QWidget):
 
         self.setLayout(main_layout)
         self.setWindowTitle('Styled PyQt6 App')
+    
+    # Generate Case ID method
+    def generate_case_id(self):
+        # Get selected unit
+        unit = self.unit_dropdown.currentText().lower().replace(" ", "_")
+        # Generate random 4 digits
+        # random_digits = ''.join(random.choices(string.digits, k=4))
+        serial_number = self.custom_serial_number.text()
+        self.serial_number = serial_number
+        self.selectd_unit = unit
+        # Combine to create case ID
+        case_id = f"ATS_{unit}_{serial_number}"
+        return case_id
+    
+    # Update case ID when unit or custom text changes
+    def update_case_id(self):
+        self.case_id_widget.setText(self.generate_case_id())
+        self.case_id = self.case_id_widget.text()
+        
+    def process_serial_number(self, serial_number):
+        sr_no = str(serial_number)
+        while len(sr_no) < 5:
+            sr_no = '0' + sr_no
+        
+        return sr_no
+
+    def add_new_unit(self):
+        # Open dialog to add new unit
+        dialog = UnitDialog(self.units, self)
+
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_unit = dialog.get_unit_name()
+            
+            # Check if unit already exists (case-insensitive)
+            existing_units_lower = [u.lower() for u in self.units]
+            if new_unit.lower() not in existing_units_lower and new_unit:
+                # Add to units list
+                self.units.append(new_unit)
+                
+                # Update dropdown
+                self.unit_dropdown.addItem(new_unit)
+                
+                # Set the newly added unit as current
+                self.unit_dropdown.setCurrentText(new_unit)
+
+                add_unit(new_unit)
+            elif not new_unit:
+                # Show error if empty unit name
+                QMessageBox.warning(self, "Invalid Input", "Unit name cannot be empty.")
+            else:
+                # Show error if unit already exists
+                QMessageBox.warning(self, "Duplicate Unit", "This unit already exists.")
+        
+        dialog.deleteLater()
 
     def create_section_title(self, text):
         section_title = QLabel(text)
         section_title.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
         section_title.setStyleSheet("color: #34495e; margin-top: 20px;")
         return section_title
-    
+
     def create_recent_reports_table(self):
-        if not hasattr(self, 'web_view'):
-            # Create web view and custom page
-            self.web_view = QWebEngineView()
-            self.web_page = CustomWebPage(self.web_view)
-            self.web_view.setPage(self.web_page)
-            
-            # Create and set up web channel
-            self.channel = QWebChannel()
-            self.web_page.setWebChannel(self.channel)
-            
-            # Create bridge and register it with the channel
-            self.bridge = WebBridge(self)
-            self.channel.registerObject('bridge', self.bridge)
-
-            # HTML content with modern styling and QWebChannel integration
-            html_content = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 20px;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        background-color: white;
-                        border-radius: 10px;
-                        overflow: hidden;
-                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-                    }
-                    th {
-                        background-color: #3498db;
-                        color: white;
-                        font-weight: bold;
-                        padding: 12px;
-                        text-align: center;
-                    }
-                    td {
-                        padding: 10px;
-                        text-align: center;
-                        border-bottom: 1px solid #eee;
-                    }
-                    tr:hover {
-                        background-color: #f5f5f5;
-                    }
-                    .upload-btn {
-                        background-color: #3498db;
-                        color: white;
-                        border: none;
-                        padding: 5px 15px;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        font-size: 12px;
-                    }
-                    .upload-btn:hover {
-                        background-color: #2980b9;
-                    }
-                    .case-id {
-                        color: blue;
-                        cursor: pointer;
-                        text-decoration: underline;
-                    }
-                    .search-container {
-                        margin: 20px 0;
-                        padding: 10px;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    }
-                    .search-input {
-                        width: 300px;
-                        padding: 10px;
-                        border: 2px solid #3498db;
-                        border-radius: 5px;
-                        font-size: 14px;
-                        outline: none;
-                        transition: border-color 0.3s;
-                    }
-                    .search-input:focus {
-                        border-color: #2980b9;
-                    }
-                    .pagination {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        margin-top: 20px;
-                        gap: 10px;
-                    }
-                    .pagination button {
-                        padding: 8px 16px;
-                        background-color: #3498db;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        font-weight: bold;
-                    }
-                    .pagination button:disabled {
-                        background-color: #bdc3c7;
-                        cursor: not-allowed;
-                    }
-                    .pagination span {
-                        font-weight: bold;
-                        color: #333333;
-                    }
-                    .no-results {
-                        text-align: center;
-                        padding: 20px;
-                        color: #666;
-                        font-style: italic;
-                    }
-                </style>
-                <script>
-                    let bridge = null;
-                    let initialized = false;
-                    let filteredData = [];
-                    const rowsPerPage = 10;
-                    let currentPage = 1;
-
-                    function initWebChannel() {
-                        return new Promise((resolve) => {
-                            if (typeof qt !== 'undefined') {
-                                new QWebChannel(qt.webChannelTransport, function(channel) {
-                                    bridge = channel.objects.bridge;
-                                    bridge.log("WebChannel initialized");
-                                    resolve();
-                                });
-                            } else {
-                                setTimeout(initWebChannel, 100);
-                            }
-                        });
-                    }
-
-                    function caseIdClicked(caseId) {
-                        if (bridge) {
-                            bridge.log("Clicking case ID: " + caseId);
-                            bridge.caseIdClicked(caseId);
-                        }
-                    }
-                    
-                    function uploadAdditionalPdf(row, caseId) {
-                        if (bridge) {
-                            bridge.log("Uploading PDF for case: " + caseId);
-                            bridge.uploadAdditionalPdf(row, caseId);
-                        }
-                    }
-                    
-                    function handleSearch() {
-                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                        
-                        filteredData = window.tableData.filter(report => {
-                            return report.date.toLowerCase().includes(searchTerm) ||
-                                report.case_id.toLowerCase().includes(searchTerm) ||
-                                report.report_name.toLowerCase().includes(searchTerm);
-                        });
-                        currentPage = 1;
-                        updateTable();
-                    }
-
-                    function updateTable(data) {
-                        if (!initialized) {
-                            bridge.log("Table update called before initialization");
-                            return;
-                        }
-
-                        if (data) {
-                            window.tableData = data;
-                            filteredData = [...data];
-                        }
-                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-                        const start = (currentPage - 1) * rowsPerPage;
-                        const end = start + rowsPerPage;
-                        const pageData = filteredData.slice(start, end);
-                        
-                        const tbody = document.getElementById('tableBody');
-                        tbody.innerHTML = '';
-
-                        if (filteredData.length === 0) {
-                            tbody.innerHTML = `
-                                <tr>
-                                    <td colspan="5" class="no-results">No matching results found</td>
-                                </tr>
-                            `;
-                        } else {
-                            pageData.forEach((report, index) => {
-                                const row = document.createElement('tr');
-                                row.innerHTML = `
-                                    <td>${start +index + 1}</td>
-                                    <td>${report.date}</td>
-                                    <td class="case-id" onclick="caseIdClicked('${report.case_id}')">${report.case_id}</td>
-                                    <td>${report.report_name}</td>
-                                    <td>
-                                        <button class="upload-btn" onclick="uploadAdditionalPdf(${index}, '${report.case_id}')">
-                                            Add PDF
-                                        </button>
-                                    </td>
-                                `;
-                                tbody.appendChild(row);
-                            });
-                        }
-                        document.getElementById('pageInfo').textContent = filteredData.length > 0 ? 
-                            `Page ${currentPage} of ${totalPages}` : '';
-                        document.getElementById('prevBtn').disabled = currentPage === 1;
-                        document.getElementById('nextBtn').disabled = currentPage === totalPages || filteredData.length === 0;
-                    }
-                    function nextPage() {
-                        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-                        if (currentPage < totalPages) {
-                            currentPage++;
-                            updateTable();
-                        }
-                    }
-
-                    function previousPage() {
-                        if (currentPage > 1) {
-                            currentPage--;
-                            updateTable();
-                        }
-                    }
-                    document.addEventListener('DOMContentLoaded', async function() {
-                        try {
-                            await initWebChannel();
-                            initialized = true;
-                            bridge.log("Page fully initialized");
-                            window.updateTableData && window.updateTableData();
-                        } catch (error) {
-                            console.error("Initialization error:", error);
-                        }
-                    });
-                    function updateTableData(data) {
-                        if (!initialized) {
-                            bridge.log("Table update called before initialization");
-                            return;
-                        }
-                        bridge.log("Updating table with data: " + JSON.stringify(data));
-                        tableData = data;
-                        filteredData = [...tableData];
-                        updateTable();
-                    }
-
-                </script>
-            </head>
-            <body>
-                <div class="search-container">
-                    <input type="text" 
-                        id="searchInput" 
-                        class="search-input" 
-                        placeholder="Search..."
-                        oninput="handleSearch()">
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Sr no.</th>
-                            <th>Date</th>
-                            <th>Case ID</th>
-                            <th>Report Name</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                    </tbody>
-                </table>
-                <div class="pagination">
-                    <button id="prevBtn" onclick="previousPage()">Previous</button>
-                    <span id="pageInfo"></span>
-                    <button id="nextBtn" onclick="nextPage()">Next</button>
-                </div>
-            </body>
-            </html>
-            """
-            
-            # Load the HTML content
-            self.web_view.setHtml(html_content)
-            self.web_view.minimumHeight = 1000
-            
-            # Wait for the page to load before updating table data
-            def check_initialization():
-                self.web_page.runJavaScript(
-                    'typeof initialized !== "undefined" && initialized',
-                    lambda result: self.update_table_data() if result else QTimer.singleShot(100, check_initialization)
-                )
-            
-            # Start checking for initialization
-            QTimer.singleShot(100, check_initialization)
-            return self.web_view
+        if not hasattr(self, 'recent_reports_table'):
+            self.recent_reports_table = RecentReportsTable()
+        
+        return self.recent_reports_table.get_web_view()
 
     def update_table_data(self):
-        recent_reports = load_all_case_data()
-        json_data = json.dumps(recent_reports)
-        
-        # Store data in JavaScript and call updateTable
-        js_code = f"""
-            window.tableData = {json_data};
-            if (typeof updateTable === 'function') {{
-                updateTable(window.tableData);
-            }} else {{
-                window.updateTableData = function() {{
-                    updateTable(window.tableData);
-                }};
-            }}
-        """
-        self.web_page.runJavaScript(js_code)
- 
-    def handle_case_id(self, case_id):
-        # Create and configure the spinner
-        # spinner_label = QLabel(self)
-        # spinner_movie = QMovie("assets/spinner.gif")
-        # spinner_label.setMovie(spinner_movie)
-        # spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # # Style and size the spinner
-        # spinner_label.setFixedSize(100, 100)
-        # spinner_label.setStyleSheet("""
-        #     QLabel {
-        #         background-color: rgba(255, 255, 255, 200);
-        #         border-radius: 10px;
-        #     }
-        # """)
-        
-        # # Center the spinner in the parent widget
-        # spinner_label.move(
-        #     (self.width() - spinner_label.width()) // 2,
-        #     (self.height() - spinner_label.height()) // 2
-        # )
-        
-        # # Show the spinner and start animation
-        # spinner_label.show()
-        # spinner_movie.start()
-        
-        # Create the dialog first but don't show it yet
-        self.new_window = QDialog(self)
-        self.new_window.setWindowTitle(f"Case Dashboard - Case {case_id}")
-        self.new_window.setModal(False)
-        self.new_window.setWindowFlags(
-            self.new_window.windowFlags() |
-            Qt.WindowType.WindowMinimizeButtonHint |
-            Qt.WindowType.WindowMaximizeButtonHint |
-            Qt.WindowType.WindowCloseButtonHint
-        )
-        self.new_window.setMinimumSize(1000, 800)
-        
-        try:
-            # Create a layout for the dialog
-            layout = QVBoxLayout()
-            self.new_window.setLayout(layout)
-            
-            # Create the case dashboard with a loading callback
-            case_dashboard = CaseDashboard(case_id=case_id)
-            layout.addWidget(case_dashboard)
-            self.new_window.showMaximized()
-            # # Add a method to the case dashboard to signal when loading is complete
-            # def on_dashboard_ready():
-            #     # Stop and cleanup the spinner
-            #     spinner_label.movie().stop()
-            #     spinner_label.hide()
-            #     spinner_label.deleteLater()
-                
-            #     # Show the window now that data is loaded
-            #     layout.addWidget(case_dashboard)
-            #     self.new_window.showMaximized()
-            
-            # # Connect the loading complete signal if CaseDashboard has one
-            # if hasattr(case_dashboard, 'loading_complete'):
-            #     case_dashboard.loading_complete.connect(on_dashboard_ready)
-            # else:
-            #     # If CaseDashboard doesn't have a loading signal, 
-            #     # we'll need to modify CaseDashboard to add it
-            #     print("Warning: CaseDashboard should implement loading_complete signal")
-            #     on_dashboard_ready()
-                
-        except Exception as e:
-            # Handle any errors and clean up
-            print(e)
-            print(f"Error creating case dashboard: {str(e)}")
-            # spinner_label.movie().stop()
-            # spinner_label.hide()
-            # spinner_label.deleteLater()
-            self.new_window.deleteLater()
-            # QMessageBox.critical(
-            #     self,
-            #     "Error",
-            #     f"Failed to open case dashboard: {str(e)}",
-            # )
-            msg_box = QMessageBox(self)
-            msg_box.setStyleSheet("""
-                
-                QMessageBox QLabel {
-                    color: black;
-                }
-            """)
-            msg_box.setWindowTitle("Warning")
-            msg_box.setText(f"Failed to open case dashboard: {str(e)}")
-            msg_box.setIcon(QMessageBox.Icon.Warning)
-            msg_box.exec()
-            
-    def handle_upload_additional_pdf(self, row, case_id):
-        file_names, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Upload PDF Report",
-            "",
-            "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
-        )
-        
-        if file_names:
-            try:
-                # Add your file handling logic here
-                print(f"Uploading PDF for Case ID: {case_id}")
-                print(f"Selected file: {file_names}")
-
-                pdf_paths = file_names
-                passwords = [""]
-                start_date = [""]
-                end_date = [""]
-            
-                bank_names = []
-                # For each path in pdf_paths, assign a unique name as A,B,C etc
-                for i in range(len(pdf_paths)):
-                    bank_names.append(chr(65 + i))
-                    # if not password_provided:
-                    #     password.append("")
-                    # if not start_date_provided:
-                    #     start_date.append("")
-                    # if not end_date_provided:
-                    #     end_date.append("")
-
-                process_df = get_process_df(case_id)
-
-
-                ner_results = {
-                    "Name": [],
-                    "Acc Number": []
-                }
-
-                # Process PDFs with NER
-                for pdf in pdf_paths:
-                    result = pdf_to_name(pdf)
-                    for entity in result:
-                        if entity["label"] == "PER":
-                            ner_results["Name"].append(entity["text"])
-                        elif entity["label"] == "ACC_NO":
-                            ner_results["Acc Number"].append(entity["text"])
-                            
-                print("Ner results after additional pdf ", ner_results)
-                case_data = load_case_data(case_id)
-
-                # case_data["file_names"] =+ pdf_paths
-                
-                for file in pdf_paths:
-                    case_data["file_names"].append(file)
-
-                # Add new data to the existing dictionary
-                for key, value in ner_results.items():
-                    if key in case_data["individual_names"]:
-                        case_data["individual_names"][key].extend(value)  # Append the new list to the existing list
-                    else:
-                        case_data["individual_names"][key] = value  # Add the new key-value pair if the key doesn't exist                print("case data",case_data)
-
-                response = add_pdf_extraction(bank_names,pdf_paths,passwords,start_date,end_date,case_id,process_df)
-                data = load_result(case_id)
-                existing_keys = list(data["single_df"].keys())
-                
-                print("response_single_df ", response["single_df"])
-
-                for key,value in response["single_df"].items():
-                   
-                    next_letter = chr(65 + len(existing_keys)) 
-                    next_key = f"{next_letter}{len(existing_keys)}"
-                    print("next key - ",next_key)
-                    data["single_df"][next_key] = value
-                
-                data["cummalative_df"] = response["cummalative_df"]
-
-               
-                save_result(case_id,data)
-                update_case_data(case_id, case_data)
-                
-                success_message = f'<p style="color: black;">PDF successfully uploaded for Case ID: {case_id}</p>'
-                QMessageBox.information(
-                    self,
-                    "Success",
-                    success_message
-                )
-                
-            except Exception as e:
-                print(e)
-                msg_box = QMessageBox(self)
-                msg_box.setStyleSheet("""
-                    
-                    QMessageBox QLabel {
-                        color: black;
-                    }
-                """)
-                msg_box.setWindowTitle("Warning")
-                msg_box.setText(f"Failed to upload PDF: {str(e)}")
-                msg_box.setIcon(QMessageBox.Icon.Critical)
-                msg_box.exec()
-
+        if hasattr(self, 'recent_reports_table'):
+            self.recent_reports_table.update_table_data()
+  
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
             pass
@@ -841,41 +514,42 @@ class ReportGeneratorTab(QWidget):
             # start the timer
             QTimer.singleShot(100, self.process_form)
             
-    
     def process_form(self):
         start = time.time()
 
         try:
             # Get the form data
-            CA_ID = self.case_id
             pdf_paths = self.selected_files
-            password = self.password.text()
+            # password = self.password.text()
+            password = [""]
             
             password_provided = False
             start_date_provided = False
             end_date_provided = False
 
-            if password == "": 
-                password = [""]
-            else:
-                password_provided = True
-                password = [password]
+            # if password == "": 
+            #     password = [""]
+            # else:
+            #     password_provided = True
+            #     password = [password]
 
-            start_date = self.start_date.date().toString("dd-MM-yyyy")
-            end_date = self.end_date.date().toString("dd-MM-yyyy")
+            # start_date =[ self.start_date.date().toString("dd-MM-yyyy")]
+            # end_date = self.end_date.date().toString("dd-MM-yyyy")
+            start_date = [""]
+            end_date = [""]
 
             # Check if start_date is same as today
-            if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
-                start_date = [""]
-            else:
-                start_date_provided = True
-                start_date = [start_date]
+            # if start_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            #     start_date = [""]
+            # else:
+            #     start_date_provided = True
+            #     start_date = [start_date]
 
-            if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
-                end_date = [""]
-            else:
-                end_date_provided = True
-                end_date = [end_date]
+            # if end_date == QDate.currentDate().toString("dd-MM-yyyy"):
+            #     end_date = [""]
+            # else:
+            #     end_date_provided = True
+            #     end_date = [end_date]
 
             bank_names = []
             # For each path in pdf_paths, assign a unique name as A,B,C etc
@@ -922,7 +596,6 @@ class ReportGeneratorTab(QWidget):
                         # For error message
                         msg_box = QMessageBox(self)
                         msg_box.setStyleSheet("""
-                         
                             QMessageBox QLabel {
                                 color: black;
                             }
@@ -933,12 +606,18 @@ class ReportGeneratorTab(QWidget):
                         msg_box.setIcon(QMessageBox.Icon.Warning)
                         msg_box.exec()
 
-            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, CA_ID, progress_data)
+            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data)
             result = converter.start_extraction()
-
+            
+            group_of_similar_entities = self.get_similar_names(self.case_id,result)
+            len_similar_groups = len(group_of_similar_entities["original_groups"])
             # Save the results
-            save_case_data(CA_ID, pdf_paths, start_date, end_date, ner_results)
-            save_result(CA_ID, result)
+            saved_case_data = save_case_data(self.case_id, pdf_paths, start_date, end_date, ner_results)
+            print("Case data saved", saved_case_data)
+            save_result(self.case_id, result)
+            print("Result saved ")
+            update_serial_number_history(self.custom_serial_number.text())
+            print("Serial number updated", self.serial_number)
 
             # Update the table
             self.create_recent_reports_table()
@@ -954,11 +633,12 @@ class ReportGeneratorTab(QWidget):
                 }
             """)
             msg_box.setWindowTitle("Success")
-            msg_box.setText("Form submitted and processed successfully!")
+            msg_box.setText(f"Form submitted and processed successfully! Found {len_similar_groups} similar groups, please check the case dashboard and merge the similar groups.")
             msg_box.setIcon(QMessageBox.Icon.NoIcon)
             msg_box.exec()
 
         except Exception as e:
+            print("An error occurred while processing:", e) 
             # For error message
             msg_box = QMessageBox(self)
             msg_box.setStyleSheet("""
@@ -970,6 +650,7 @@ class ReportGeneratorTab(QWidget):
                 }
             """)
             msg_box.setWindowTitle("Error")
+            print(e)
             msg_box.setText(f"An error occurred while processing: {str(e)}")
             msg_box.setIcon(QMessageBox.Icon.Critical)
             msg_box.exec()
@@ -985,11 +666,16 @@ class ReportGeneratorTab(QWidget):
             # make the form empty
             self.selected_files = []
             self.file_display.setText("")
-            self.password.setText("")
-            self.start_date.setDate(QDate.currentDate())
-            self.end_date.setDate(QDate.currentDate())
-            self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
-            self.case_id.setText(str(self.case_id))
+            serial_number = get_last_serial_number()
+            self.serial_number = self.process_serial_number(serial_number)
+            self.custom_serial_number.setText(self.serial_number)
+            self.update_case_id()
+            
+            # self.password.setText("")
+            # self.start_date.setDate(QDate.currentDate())
+            # self.end_date.setDate(QDate.currentDate())
+            # self.case_id = "CA_ID_"+''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+            # self.case_id.setText(str(self.case_id))
 
             end = time.time()
             print("Time taken to process the form", end-start)
@@ -1002,9 +688,10 @@ class ReportGeneratorTab(QWidget):
         label.setStyleSheet("""
             QLabel {
                 color: #34495e;
-                  padding: 0px;
-                margin: 0px;
+                padding: 0px;
+                margin-bottom: 10px;
                 border: none;
+                font-weight: bold;
             }
         """)
         return label
@@ -1015,3 +702,28 @@ class ReportGeneratorTab(QWidget):
         layout.addWidget(label)
         layout.addWidget(widget)
         return layout
+    
+        
+    def get_similar_names(self,case_id,data):
+        """Get similar names groups for a given case ID"""
+        print("case_id name manager groups",case_id)
+        # merged_names_object = find_merge_name_object(case_id)
+        # data = load_result(case_id)
+
+        group_of_similar_entities = None
+
+        process_df = data["cummalative_df"]["process_df"]
+        unique_values = extract_unique_names_and_entities(process_df)
+        similar_groups = group_similar_entities(unique_values)
+
+        obj = {
+            "case_id":case_id,
+            "original_groups":similar_groups,
+            "merged_groups":[],
+            "unselected_groups":[],
+        }
+
+        create_name_merge_object(obj)
+        group_of_similar_entities = obj
+
+        return group_of_similar_entities

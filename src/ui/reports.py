@@ -1,212 +1,233 @@
-import sys
-import os
-from typing import List, Dict
-
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QTableWidget, QTableWidgetItem, QHeaderView, QDialog, 
-    QPushButton, QFileDialog, QMessageBox, QGraphicsDropShadowEffect, QToolButton
-)
-from PyQt6.QtCore import Qt, QSize, QUrl
-from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
+from PyQt6.QtWidgets import QApplication, QVBoxLayout,QMessageBox, QDialog, QFileDialog
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import pyqtSlot, QObject
 from ..utils.json_logic import load_all_case_data, load_case_data
 
 
-
-class ModernStyledTableWidget(QTableWidget):
-    def __init__(self, columns: List[str], parent=None):
-        super().__init__(parent)
-        self.setup_ui(columns)
-
-    def setup_ui(self, columns: List[str]):
-        # Configure table
-        self.setColumnCount(len(columns))
-        self.setHorizontalHeaderLabels(columns)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.verticalHeader().setVisible(False)
-
-        # Modern styling
-        self.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border-radius: 12px;
-                alternate-background-color: #f0f4f8;
-                selection-background-color: #3498db;
-                selection-color: white;
-            }
-            QHeaderView::section {
-                background-color: #3498db;
-                color: white;
-                padding: 10px;
-                font-size: 14px;
-                font-weight: bold;
-                border: none;
-                border-bottom: 2px solid #34495e;
-            }
-            QTableWidget::item {
-                border-bottom: 1px solid #ecf0f1;
-                color: #34495e;
-            }
-             QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-
-        # Hover and selection effects
-        self.setAlternatingRowColors(True)
-
-
-class ReportsTab(QWidget):
+class ReportsTab(QDialog):
     def __init__(self):
         super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
-        
-        # Title with shadow effect
-        title = QLabel("Select a Case to download reports")
-        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 20px;")
-        
-        # Add shadow to title
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(15)
-        shadow.setColor(QColor(0, 0, 0, 50))
-        shadow.setOffset(0, 2)
-        title.setGraphicsEffect(shadow)
-        
-        layout.addWidget(title)
-
-        # Create reports table
-        self.reports_table = ModernStyledTableWidget([
-            "Sr No.", "Date", "Case ID", "Report Name", "Actions"
-        ])
-        self.populate_reports_table()
-        
-        # Connect row click
-        self.reports_table.cellClicked.connect(self.show_case_individuals)
-
-        layout.addWidget(self.reports_table)
-        self.setLayout(layout)
-
-    def populate_reports_table(self):
-        recent_reports = load_all_case_data()
-        self.reports_table.setRowCount(len(recent_reports))
-        
-        for row, report in enumerate(recent_reports):
-            # Standard columns
-            for col, key in enumerate(["Sr No.", "Date", "Case ID", "Report Name"]):
-                value = str(row + 1) if key == "Sr No." else report.get(key.lower().replace(" ", "_"), "")
-                item = QTableWidgetItem(value)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                item.setFlags(item.flags() ^ Qt.ItemFlag.ItemIsEditable)
-                self.reports_table.setItem(row, col, item)
-            
-            # Action button
-            label = QLabel(f'<a href="#">View Details</a>')
-            label.setStyleSheet("a { color: #3498db; } a:hover { color: #2980b9; }")
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setOpenExternalLinks(False)  # Disable opening links in browser
-            label.mousePressEvent = lambda event, r=row: self.show_case_individuals(r,0)  # Attach row click handler
-            self.reports_table.setCellWidget(row, 4, label)
-
-    def show_case_individuals(self, row, column):
-        case_id = self.reports_table.item(row, 2).text()
-        individuals_dialog = IndividualsDialog(case_id, parent=self)
-        individuals_dialog.exec()
-
-
-class IndividualsDialog(QDialog):
-    def __init__(self, case_id, parent=None):
-        super().__init__(parent)
-        self.case_id = case_id
-        self.init_ui()
-
-    def init_ui(self):
-        self.setWindowTitle(f"Individuals in Case {self.case_id}")
+        self.setWindowTitle("Reports")
         self.setMinimumSize(900, 600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-        self.setStyleSheet("background-color: white;")
 
+        # Layout
         layout = QVBoxLayout()
-
-        # Header section
-        header_layout = QHBoxLayout()
-        title = QLabel(f"Case {self.case_id} - Individual Details")
-        title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50;")
-        header_layout.addWidget(title)
-        layout.addLayout(header_layout)
-
-        # Individuals Table
-        self.individuals_table = ModernStyledTableWidget([
-            "Sr No.", "Individual Name", "Account Number", "Actions"
-        ])
-        self.populate_individuals_table()
-        
-        layout.addWidget(self.individuals_table)
-
+        self.web_view = QWebEngineView()
+        layout.addWidget(self.web_view)
         self.setLayout(layout)
 
-    def populate_individuals_table(self):
-        case_data = load_case_data(self.case_id)
-        names = case_data['individual_names']['Name']
-        acc_numbers = case_data['individual_names']['Acc Number']
-        
-        self.individuals_table.setRowCount(len(names))
+        # Set up QWebChannel
+        self.channel = QWebChannel()
+        self.channel.registerObject("qtWidget", self)  # Expose this object to JS
+        self.web_view.page().setWebChannel(self.channel)
 
-        for row in range(len(names)):
-            # Serial Number
-            serial_item = QTableWidgetItem(str(row + 1))
-            serial_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.individuals_table.setItem(row, 0, serial_item)
+        # Load Reports Table
+        self.load_reports_table()
 
-            # Name
-            name_item = QTableWidgetItem(names[row])
-            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.individuals_table.setItem(row, 1, name_item)
+    def load_reports_table(self):
+        # Generate HTML for reports table
+        reports_data = load_all_case_data()
+        html = self.generate_reports_html(reports_data)
+        self.web_view.setHtml(html)
 
-            # Account Number
-            acc_item = QTableWidgetItem(str(acc_numbers[row]))
-            acc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.individuals_table.setItem(row, 2, acc_item)
+    def generate_reports_html(self, reports_data):
+        # Include the WebChannel setup in the HTML
+        rows = ""
+        for i, report in enumerate(reports_data):
+            rows += f"""
+                <tr>
+                    <td>{i + 1}</td>
+                    <td>{report.get('date', '')}</td>
+                    <td>{report.get('case_id', '')}</td>
+                    <td>{report.get('report_name', '')}</td>
+                    <td><button onclick="qtWidget.viewDetails('{report.get('case_id', '')}')">View Details</button></td>
+                </tr>
+            """
 
-            # Actions Button
-            # download_btn = QPushButton("Download Report")
-            # download_btn.setStyleSheet("""
-            #     QPushButton {
-            #         background-color: #2ecc71;
-            #         color: white;
-            #         border: none;
-            #         padding: 5px 10px;
-            #         border-radius: 5px;
-            #     }
-            #     QPushButton:hover {
-            #         background-color: #27ae60;
-            #     }
-            # """)
-            # download_btn.clicked.connect(
-            #     lambda checked, n=names[row], a=acc_numbers[row]: 
-            #     self.download_individual_report(n, a)
-            # )
-            # self.individuals_table.setCellWidget(row, 4, download_btn)
-            label = QLabel(f'<a href="#">Download Report</a>')
-            label.setStyleSheet("QLabel { color: #3498db; } QLabel:hover { color: #2980b9; }")
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setOpenExternalLinks(False)  # Disable opening links in browser
-            label.mousePressEvent = lambda checked, n=names[row], a=acc_numbers[row]:self.download_individual_report(n, a)   # Attach row click handler
-            self.individuals_table.setCellWidget(row, 3, label)
+        html = f"""
+            <html>
+            <head>
+                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <script>
+                    var qtWidget;
+                    new QWebChannel(qt.webChannelTransport, function(channel) {{
+                        qtWidget = channel.objects.qtWidget;
+                    }});
+                </script>
+                <style>
+                    body {{
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                    }}
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        background-color: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }}
+                    th {{
+                        background-color: #3498db;
+                        color: white;
+                        font-weight: bold;
+                        padding: 12px;
+                        text-align: center;
+                    }}
+                    td {{
+                        padding: 10px;
+                        text-align: center;
+                        border-bottom: 1px solid #eee;
+                    }}
+                    tr:hover {{
+                        background-color: #f5f5f5;
+                    }}
+                    button {{
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    }}
+                    button:hover {{
+                        background-color: #2980b9;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h1>Select a Case to download reports</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sr No.</th>
+                            <th>Date</th>
+                            <th>Case ID</th>
+                            <th>Report Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        """
+        return html
 
-    def download_individual_report(self, name, acc_number):
+    @pyqtSlot(str)
+    def viewDetails(self, case_id):
+        # Generate and load individuals table for the clicked case_id
+        case_data = load_case_data(case_id)
+        html = self.generate_individuals_html(case_id, case_data)
+        self.web_view.setHtml(html)
+
+    def generate_individuals_html(self, case_id, case_data):
+        rows = ""
+        for i, (name, acc) in enumerate(zip(case_data['individual_names']['Name'], case_data['individual_names']['Acc Number'])):
+            rows += f"""
+                <tr>
+                    <td>{i + 1}</td>
+                    <td>{name}</td>
+                    <td>{acc}</td>
+                    <td><button onclick="qtWidget.downloadReport('{name}', '{acc}')">Download Report</button></td>
+                </tr>
+            """
+
+        html = f"""
+            <html>
+            <head>
+                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <script>
+                    var qtWidget;
+                    new QWebChannel(qt.webChannelTransport, function(channel) {{
+                        qtWidget = channel.objects.qtWidget;
+                    }});
+
+                    function goBack() {{
+                        qtWidget.goBack();
+                    }}
+                </script>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }}
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        background-color: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }}
+                    th {{
+                        background-color: #3498db;
+                        color: white;
+                        font-weight: bold;
+                        padding: 12px;
+                        text-align: center;
+                    }}
+                    td {{
+                        padding: 10px;
+                        text-align: center;
+                        border-bottom: 1px solid #eee;
+                    }}
+                    tr:hover {{
+                        background-color: #f5f5f5;
+                    }}
+                    button {{
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    }}
+                    .back-button {{
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 5px 20px;
+                        margin:10px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    }}
+                    button:hover {{
+                        background-color: #2980b9;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h2>Individuals in Case {case_id}</h2>
+                <button class="back-button" onclick="goBack()">Back</button>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sr No.</th>
+                            <th>Individual Name</th>
+                            <th>Account Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        """
+        return html
+    
+    @pyqtSlot()
+    def goBack(self):
+        self.load_reports_table()
+
+
+    @pyqtSlot(str, str)
+    def downloadReport(self, name, acc_number):
         file_path, _ = QFileDialog.getSaveFileName(
             self, 
             "Save Individual Report", 
@@ -231,9 +252,9 @@ class IndividualsDialog(QDialog):
                     f"Could not save report: {str(e)}"
                 )
 
-# Example usage
 if __name__ == '__main__':
+    import sys
     app = QApplication(sys.argv)
-    reports_tab = ReportsTab()
-    reports_tab.show()
+    window = ReportsTab()
+    window.show()
     sys.exit(app.exec())

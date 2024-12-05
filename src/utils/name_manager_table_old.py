@@ -10,8 +10,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QUrl
 from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from ..utils.json_logic import load_all_case_data, load_case_data
-from ..utils.name_manager_groups import GroupSelector
+from .json_logic import load_all_case_data, load_case_data
+from ..ui.case_dashboard_components.name_manager import SimilarNameGroups
 
 class ModernStyledTableWidget(QTableWidget):
     def __init__(self, columns: List[str], parent=None):
@@ -128,7 +128,7 @@ class NameManagerTab(QWidget):
         case_id = self.reports_table.item(row, 2).text()
         print("case_id name manager",case_id)
 
-        self.similar_names_dialog = GroupSelector(case_id, parent=self)
+        self.similar_names_dialog = SimilarNameGroups(case_id, parent=self)
         
         # Set the window to full screen and keep a reference
         self.similar_names_dialog.showMaximized()

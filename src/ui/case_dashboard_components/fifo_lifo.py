@@ -126,8 +126,18 @@ class FIFO_LFIO_Analysis(QWidget):
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_area.setWidget(scroll_widget)
 
+        # print("lifo_fifo_analysis_data ",self.lifo_fifo_analysis_data)
+
         # Check if lifo_fifo_analysis_data is empty
-        if not self.lifo_fifo_analysis_data:
+        self.is_data_empty = False
+        try:
+            if self.lifo_fifo_analysis_data.empty:
+                self.is_data_empty = True
+        except:
+            if not self.lifo_fifo_analysis_data:
+                self.is_data_empty = True
+                
+        if self.is_data_empty:
             no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
             no_data_label.setStyleSheet("""
                 color: #555;

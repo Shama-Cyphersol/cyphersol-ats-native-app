@@ -3,9 +3,10 @@ import os
 from collections import defaultdict
 from sentence_transformers import SentenceTransformer, util
 from fuzzywuzzy import fuzz
-
-
-
+import pandas as pd
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
+from collections import Counter
 
 def extract_unique_names_and_entities(df):
     # Get unique values from 'Name' column
@@ -21,50 +22,62 @@ def extract_unique_names_and_entities(df):
 
 
 
-def group_similar_entities(entities, low=0.62, high=1.0, weight_semantic=0.6, weight_string=0.4):
-    structure_model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"./matching_names_model")
+def group_similar_entities(entity_list):
+    # 1. Convert List to DataFrame
+    df = pd.DataFrame({'Entity': entity_list})
+    df['Cleaned_Entity'] = df['Entity']
 
-    n = len(entities)
-    grouped = defaultdict(list)
-    visited = set()
+    # 2. Generate Name Embeddings
+    model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"./matching_names_model")
+    unique_entities = df['Cleaned_Entity'].unique()
+    embeddings = model.encode(unique_entities)
+    embedding_df = pd.DataFrame({'Cleaned_Entity': unique_entities, 'Embedding': list(embeddings)})
 
-    # Precompute embeddings for semantic similarity
-    embeddings = structure_model.encode(entities, convert_to_tensor=True)
+    # 3. Clustering Similar Names
+    embedding_matrix = np.vstack(embedding_df['Embedding'].values)
+    clustering_model = AgglomerativeClustering(
+        n_clusters=None,
+        metric='cosine',
+        distance_threshold=0.33,
+        linkage='average'
+    )
+    labels = clustering_model.fit_predict(embedding_matrix)
+    embedding_df['Cluster'] = labels
 
-    for i in range(n):
-        for j in range(i + 1, n):
-            # Calculate semantic similarity
-            semantic_score = util.cos_sim(embeddings[i], embeddings[j]).item()
+    # 4. Map Clusters Back to Original List
+    result_df = pd.DataFrame({'Entity': entity_list})
+    result_df = result_df.merge(embedding_df[['Cleaned_Entity', 'Cluster']], 
+                                left_on='Entity', 
+                                right_on='Cleaned_Entity', 
+                                how='left')
 
-            # Calculate string similarity
-            string_score = fuzz.ratio(entities[i].lower(), entities[j].lower()) / 100
+    # 5. Review Clusters
+    cluster_groups = result_df.groupby('Cluster')['Entity'].unique().reset_index()
+    cluster_groups = cluster_groups[cluster_groups['Entity'].apply(len) > 1].reset_index(drop=True)
 
-            # Combine the scores
-            combined_score = (weight_semantic * semantic_score) + (weight_string * string_score)
+    all_entities_list = []
+    # Function to compute the majority starting letter of entities in a cluster
+    def majority_letter(entities):
+        # Extract first letters of valid entities
+        first_letters = [str(entity).strip()[0].lower() for entity in entities if isinstance(entity, str) and entity.strip()]
+        if not first_letters:
+            return ''  # Default if no valid entities
+        # Find the most common starting letter
+        return Counter(first_letters).most_common(1)[0][0]
 
-            if low <= combined_score < high and (entities[i], entities[j]) not in visited:
-                grouped[entities[i]].append(entities[j])
-                visited.add((entities[i], entities[j]))
-                visited.add((entities[j], entities[i]))
+    # Add majority letter to each cluster
+    cluster_groups['Majority_Letter'] = cluster_groups['Entity'].apply(majority_letter)
 
-    # Consolidate groups into lists
-    result = []
-    for key, value in grouped.items():
-        result.append([key] + value)
+    # Sort clusters by the majority starting letter
+    cluster_groups = cluster_groups.sort_values(by='Majority_Letter').reset_index(drop=True)
 
-    # Merge overlapping groups
-    merged = []
-    while result:
-        first, *rest = result
-        first = set(first)
-        overlapping = [g for g in rest if first & set(g)]
-        for g in overlapping:
-            first |= set(g)
-        rest = [g for g in rest if not (first & set(g))]
-        merged.append(list(first))
-        result = rest
+    # Display clusters
+    for idx, row in cluster_groups.iterrows():
+        cluster_id = row['Cluster']
+        entities_in_cluster = sorted([str(entity) for entity in row['Entity'] if isinstance(entity, str)], key=lambda x: x.lower())
+        all_entities_list.append(entities_in_cluster)
 
-    return merged
+    return all_entities_list
 
 
 def replace_entities(process_df, lists_of_names):

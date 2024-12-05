@@ -19,8 +19,16 @@ class LinkAnalysisWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
+        self.is_data_empty = False
+        try:
+            if self.link_analysis_data.empty:
+                self.is_data_empty = True
+        except:
+            if not self.link_analysis_data:
+                self.is_data_empty = True
+
          # Check if lifo_fifo_analysis_data is empty
-        if self.link_analysis_data.empty:
+        if self.is_data_empty:
             no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
             no_data_label.setStyleSheet("""
                 color: #555;

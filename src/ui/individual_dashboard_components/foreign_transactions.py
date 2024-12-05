@@ -1,22 +1,53 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QLabel
 from ...utils.dynamic_table import DynamicDataTable
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+from PyQt6.QtCore import Qt
+
 
 class ForeignTransactionsWidget(QWidget):
     def __init__(self, df=None, parent=None):
         super().__init__(parent)
         
         # If no DataFrame is provided, generate dummy data
-        if df is None:
-            df = self.generate_dummy_foreign_transactions()
-        
+        # if df is None:
+        #     df = self.generate_dummy_foreign_transactions()
+
+         # Check if lifo_fifo_analysis_data is empty
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        self.foreign_transaction_data = df
+        try:
+            if self.foreign_transaction_data.empty:
+                self.is_data_empty = True
+        except:
+            if not self.foreign_transaction_data:
+                self.is_data_empty = True
+                
+        if self.is_data_empty:
+            no_data_label = QLabel(f"No data available.")
+            no_data_label.setStyleSheet("""
+               QLabel {
+                    font-size: 16px;
+                    color: #666;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    margin: 20px;
+                }
+            """)
+            no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.layout.addWidget(no_data_label)
+            # scroll_area.setMinimumHeight(500)
 
-        self.create_table(df)
+        else:
+        
+            
+
+            self.create_table(df)
         self.setLayout(self.layout)
 
     def generate_dummy_foreign_transactions(self, num_rows=200):

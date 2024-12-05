@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QStackedWidget, QDialog, QFormLayout, QLineEdit, QPushButton, QLabel, QVBoxLayout
 from apps.user_management.views import DashboardView
 from PyQt6.QtGui import QIcon
+
 class UserInterface(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -61,7 +62,7 @@ class UserInterface(QMainWindow):
             ("Visualization", "visualization.png"),
             ("Master", "master.png"),
             # ("File Opener", "file.png"),
-            ("Settings", "settings.png")
+            # ("Settings", "settings.png")
         ]:
             btn = QPushButton(text)
             btn.setIcon(QIcon(f"resources/icons/{icon}"))
@@ -82,8 +83,8 @@ class UserInterface(QMainWindow):
         self.content_area = QStackedWidget()
         self.content_area.addWidget(DashboardView())
         self.content_area.addWidget(ReportsApp())
-        self.content_area.addWidget(FileOpenerTab())
-        self.content_area.addWidget(SettingsTab())
+        # self.content_area.addWidget(FileOpenerTab())
+        # self.content_area.addWidget(SettingsTab())
         content_layout.addWidget(self.content_area)
 
         main_layout.addWidget(content_widget)
