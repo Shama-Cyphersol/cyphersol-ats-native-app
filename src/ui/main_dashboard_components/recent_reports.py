@@ -406,17 +406,17 @@ class RecentReportsTable:
         )
         self.new_window.setMinimumSize(1000, 800)
         
-        try:
-            # Create a layout for the dialog
-            layout = QVBoxLayout()
-            self.new_window.setLayout(layout)
-            
-            # Create the case dashboard with a loading callback
-            case_dashboard = CaseDashboard(case_id=case_id)
-            layout.addWidget(case_dashboard)
-            self.new_window.showMaximized()
-            # # Add a method to the case dashboard to signal when loading is complete
-            # def on_dashboard_ready():
+        # try:
+        # Create a layout for the dialog
+        layout = QVBoxLayout()
+        self.new_window.setLayout(layout)
+        
+        # Create the case dashboard with a loading callback
+        case_dashboard = CaseDashboard(case_id=case_id)
+        layout.addWidget(case_dashboard)
+        self.new_window.showMaximized()
+        # # Add a method to the case dashboard to signal when loading is complete
+        # def on_dashboard_ready():
             #     # Stop and cleanup the spinner
             #     spinner_label.movie().stop()
             #     spinner_label.hide()
@@ -435,30 +435,30 @@ class RecentReportsTable:
             #     print("Warning: CaseDashboard should implement loading_complete signal")
             #     on_dashboard_ready()
                 
-        except Exception as e:
-            # Handle any errors and clean up
-            print(e)
-            print(f"Error creating case dashboard: {str(e)}")
-            # spinner_label.movie().stop()
-            # spinner_label.hide()
-            # spinner_label.deleteLater()
-            self.new_window.deleteLater()
-            # QMessageBox.critical(
-            #     self,
-            #     "Error",
-            #     f"Failed to open case dashboard: {str(e)}",
-            # )
-            msg_box = QMessageBox(self)
-            msg_box.setStyleSheet("""
+        # except Exception as e:
+        #     # Handle any errors and clean up
+        #     print(e)
+        #     print(f"Error creating case dashboard: {str(e)}")
+        #     # spinner_label.movie().stop()
+        #     # spinner_label.hide()
+        #     # spinner_label.deleteLater()
+        #     self.new_window.deleteLater()
+        #     # QMessageBox.critical(
+        #     #     self,
+        #     #     "Error",
+        #     #     f"Failed to open case dashboard: {str(e)}",
+        #     # )
+        #     msg_box = QMessageBox()
+        #     msg_box.setStyleSheet("""
                 
-                QMessageBox QLabel {
-                    color: black;
-                }
-            """)
-            msg_box.setWindowTitle("Warning")
-            msg_box.setText(f"Failed to open case dashboard: {str(e)}")
-            msg_box.setIcon(QMessageBox.Icon.Warning)
-            msg_box.exec()
+        #         QMessageBox QLabel {
+        #             color: black;
+        #         }
+        #     """)
+        #     msg_box.setWindowTitle("Warning")
+        #     msg_box.setText(f"Failed to open case dashboard: {str(e)}")
+        #     msg_box.setIcon(QMessageBox.Icon.Warning)
+        #     msg_box.exec()
 
     def update_table_data(self):
         try:

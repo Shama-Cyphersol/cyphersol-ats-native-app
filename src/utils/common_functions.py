@@ -269,7 +269,7 @@ class CommonFunctions:
 
         try:
             bank = re.sub(r"\d+", "", bank)
-            timestamp = int(timezone.localtime().timestamp())
+            # timestamp = int(timezone.localtime().timestamp())
             CA_ID = self.CA_ID
             ext = self.extract_extension(pdf_path)
 
@@ -919,16 +919,14 @@ class CommonFunctions:
         payment = principal * r / (1 - (1 + r) ** -n)
         # print("pmt_bl", payment)
         return payment
-    
+        
     def preprocess_df(self,df):
         # Convert columns to lowercase
         for col in df.columns:
             if df[col].dtype == "object":
                 df[col] = df[col].str.lower()
-
         # Remove spaces from 'Description'
         df["Description"] = df["Description"].str.replace(" ", "")
-
         # Define keywords to exclude
         exclude_keywords = [
             # Major Indian Banks
@@ -962,12 +960,11 @@ class CommonFunctions:
             "dcbbank",
             "lakshmivilasbank",
             "dbsbank",
-
             # Payment Processors and Wallets
             "upi",
             "upi-"
             "paytm", "okpaytm","pytm",
-            "phonepe",
+            # "phonepe",
             "gpay", "googlepay","amazonupi"
             "amazonpay",
             "mobikwik",
@@ -981,14 +978,12 @@ class CommonFunctions:
             "razorpay", "razor",
             "bhim",
             "nsdl",
-            "traces",
-
+            "traces","gpay","paytmqr","@axl"
             # Tax and Financial Terms
             "incometax",
             "itrfees",
             "cbdt",
             "dtax",
-
             # UPI Handles and Prefixes
             "okaxis", "okicici", "okhdfc", "okhdfcbank",
             "oksbi", "okyesbank", "okkotak", "okbob", "okpnb",
@@ -997,7 +992,6 @@ class CommonFunctions:
             "ach/",
             "gib/",
             "upi/p2m", "paytmqr", "paytm","p2a",'p2m',"paytmpay","p m"
-
             # Common Misspellings or Typos
             "icide",  # Typo for ICICI
             "axie",  # Typo for Axis
@@ -1005,11 +999,9 @@ class CommonFunctions:
             "okic", "oki", "okhdf", "okaxi", "okax",
             "rev-", "okbizaxis", "yesupi", "yblupi",
             "idfcfirstbanklimi", "utib", "barb", "eaw-",
-            "okbizicici", "sbin", "-utib", "ybl", "yesb",
-
+            "okbizicici", "sbin", "-utib", "ybl", "yesb"
             # Other Related Terms
-            "paymentoncred", "paymentoncredit", "creditpayment",
-
+            "paymentoncred", "paymentoncredit", "creditpayment"
             #creditor and detors
             "toib-", "brn-clg-chq", "mmt/imps", "neftdr", "neft/mb/", "nft/", "mob/tpft",
             "nlcindialtd", "neft/mb/ax", "tortgs", "rtgsdr", "mob/tpft/", "imb/", "imps",
@@ -1019,25 +1011,21 @@ class CommonFunctions:
             "neft-barb", "ecs/", "googleindiadigital", "one97communicationslimited",
             "toib-", "neft", "mmt/imps", "neftcr", "imps", "tortgs", "rtgs", "rtgscr",
             "ecs/", "mob/tpft/", "imb/", "mob/selfft/", "inb/", "imps-mob", "nft/",
-            "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment"
+            "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment","fromgoogleindiadigital"
         ]
         # Preprocessing function for 'Description'
         def preprocess_description(description):
             # Handle missing or empty descriptions
             if pd.isnull(description) or description.strip() == '':
                 return ''
-
             # Remove special characters but keep slashes (/)
             clean_description = re.sub(r'[^a-zA-Z/\s]', ' ', description)
-
             # Exclude keywords
             for keyword in exclude_keywords:
                 pattern = rf'\b{re.escape(keyword)}\b'  # Ensure full word matching and escape special characters
                 clean_description = re.sub(pattern, '', clean_description, flags=re.IGNORECASE)
-
             # Clean up extra spaces after removing keywords
             clean_description = re.sub(r'\s+', ' ', clean_description).strip()
-
             def remove_keywords(text, keywords):
                 for keyword in keywords:
                     # If the keyword contains non-word characters, don't use word boundaries
@@ -1047,18 +1035,14 @@ class CommonFunctions:
                         pattern = r'\b' + re.escape(keyword) + r'\b'
                     text = re.sub(pattern, '', text, flags=re.IGNORECASE)
                 return text
-
             clean_description = remove_keywords(clean_description, exclude_keywords)
             # Convert to lowercase
             clean_description = clean_description.lower()
-
             return clean_description
-
         # Apply the preprocessing to 'Description' column
         df['Description_processed'] = df['Description'].apply(preprocess_description)
-
         return df
-    
+
     def category_add_ca(self, df):
         x = df["Balance"]
         des = df['Description']
@@ -1070,12 +1054,9 @@ class CommonFunctions:
         df["Description"] = df["Description"].str.replace(" ", "")
         excel_file_path = os.path.join(BASE_DIR, "CA_Category_sheet.xlsx")
         df2 = pd.read_excel(excel_file_path)
-
         # Initialize the 'Category' column with "Suspense" for all rows
         df["Category"] = "Suspense"
         df["Entity"] = ""
-
-
         pos_pattern = r"^pos.*"
         df.loc[
             (df["Description"].str.contains(pos_pattern, regex=True))
@@ -1087,7 +1068,6 @@ class CommonFunctions:
             & (df["Credit"] > 0),
             "Category",
         ] = "POS-Cr"
-
         pos_pattern_2 = r"^(vps|ips|ecom|pur|pcd|edc|ecompur)"
         df.loc[
             (df["Description"].str.contains(pos_pattern_2, regex=True))
@@ -1099,10 +1079,8 @@ class CommonFunctions:
             & (df["Credit"] > 0),
             "Category",
         ] = "POS-Cr"
-
         def categorize_bank_charges(df):
             Bank_charges = r"^(bctt|nchg|tChg|tip/scg|rate\.diff|owchquereturncharges|inwardchqreturncharge|chrg|incidentalcharges|iwchq|smschrg|chrg:sms|\*chrg:sms|nachreturncharges|fundtransfercharges|cashwithdrawalchgs|impschg|monthlysmscha|amcatmcharges|monthlyservicechrgs)"
-
             df = df[
                 ~df["Description"].str.contains("POS-Cr|POS-Dr", regex=True, na=False)
             ]
@@ -1112,57 +1090,48 @@ class CommonFunctions:
                 "Category",
             ] = "Bank Charges"
             return df
-
         df = categorize_bank_charges(df)
-
         Bank_charges = r"(wchrgs)"
         df.loc[
             (df["Description"].str.contains(Bank_charges, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "Bank Charges"
-
         Bank_Interest_Recieved = r"^(int)"
         df.loc[
             (df["Description"].str.contains(Bank_Interest_Recieved, regex=True))
             & (df["Credit"] > 0),
             "Category",
         ] = "Bank Interest Received"
-
         Bounce = r"^(r-ret-utr)"
         df.loc[
             (df["Description"].str.contains(Bounce, regex=True)) & (df["Debit"] > 0),
             "Category",
         ] = "Bounce"
-
         Cash_Withdrawal = r"^(ccwd|vat|mat|nfs|atm|atm-cash-axis|atm-cash|atw|csw|atd|ati|vmt|inf|cwdr|self|cash-atm|atl/|cashpmt|chqpaid)"
         df.loc[
             (df["Description"].str.contains(Cash_Withdrawal, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "Cash Withdrawal"
-
         General_insurance = r"^(pac)"
         df.loc[
             (df["Description"].str.contains(General_insurance, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "General insurance"
-
         Indirect_tax = r"^(idtx)"
         df.loc[
             (df["Description"].str.contains(Indirect_tax, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "Indirect tax"
-
         interest_paid = r"^(int.coll)"
         df.loc[
             (df["Description"].str.contains(interest_paid, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "interest paid"
-
         investment = r"^(eba|autosweep|growwpay)"
         df.loc[
             (df["Description"].str.contains(investment, case=False, regex=True))
@@ -1175,7 +1144,6 @@ class CommonFunctions:
             & (df["Debit"] > 0),
             "Category",
         ] = "Investment"
-
         Local_cheque_collection = r"^(lccbrncms)"
         df.loc[
             (
@@ -1186,18 +1154,15 @@ class CommonFunctions:
             & (df["Debit"] > 0),
             "Category",
         ] = "Local cheque collection"
-
         emi = r"^(emi|lnpy)"
         df.loc[
             (df["Description"].str.contains(emi, case=False, regex=True))
             & (df["Debit"] > 0),
             "Category",
         ] = "Probable EMI"
-
         # Utility_Bills = r'^(bbps|bpay|axmob-mer|axmob-dthr)'
         # df.loc[(df['Description'].str.contains(Utility_Bills, case=False, regex=True)) & (
         #         df['Debit'] > 0), 'Category'] = 'Utility Bills'
-
         Tax_Payment = r"^(gib)"
         df.loc[
             (df["Description"].str.contains(Tax_Payment, case=False, regex=True))
@@ -1210,53 +1175,52 @@ class CommonFunctions:
             & (df["Debit"] > 0),
             "Category",
         ] = "GST Paid"
-
         Refund_Reversal = r"^(ft-rev|revchrg|rev:imps|imps:rec|imps_ret)"
         df.loc[
             (df["Description"].str.contains(Refund_Reversal, case=False, regex=True))
             & (df["Credit"] > 0),
             "Category",
         ] = "Refund/Reversal"
-
         Refund = r"^(imps:rec|ref-tr)"
         df.loc[
             (df["Description"].str.contains(Refund, case=False, regex=True))
             & (df["Credit"] > 0),
             "Category",
         ] = "Refund/Reversal"
-
         Redemption = r"^(revsweep|sewwptrf)"
         df.loc[
             (df["Description"].str.contains(Redemption, case=False, regex=True))
             & (df["Credit"] > 0),
             "Category",
         ] = "Redemption,Dividend & Interest"
-
         Recharge = r"^(rchg)"
         df.loc[
             (df["Description"].str.contains(Recharge, case=False, regex=True))
             & (df["Credit"] > 0),
             "Category",
         ] = "Recharge"
-
         # SBI
-        NEFT_SBI = df[df["Description"].str.contains("bytransfer-neft*", na=False)]
+        NEFT_SBI = df[df["Description"].str.contains("bytransfer-neft", na=False)]
         if not NEFT_SBI.empty:
             NEFT_1 = NEFT_SBI[
                 ~NEFT_SBI["Category"].str.contains("Redemption, Dividend & Interest")
             ]
-
-            # neft_names = NEFT_1['Description'].apply(lambda x: x.split('*')[3])
             def extract_category(description):
                 try:
-                    return description.split("*")[3]
+                    # Extract the part between the third and fourth '*' delimiters
+                    parts = description.split("*")
+                    if len(parts) > 3:
+                        name_part = parts[3]  # Extract the part after the third '*'
+                        # Remove any trailing content like '*neft/-'
+                        return name_part.split("*")[0].strip()
+                    else:
+                        return "Suspense"  # Fallback for descriptions without enough parts
                 except IndexError:
                     return "Suspense"
-
             neft_names = NEFT_1["Description"].apply(extract_category)
             NEFT_1["Category"] = neft_names
+            NEFT_1["Entity"] = neft_names
             df.update(NEFT_1)
-
         def extract_text_after_numeric(s):
             matches = re.findall(
                 r"\d+([^\d]+)", s
@@ -1264,7 +1228,6 @@ class CommonFunctions:
             return (
                 matches[-1] if matches else None
             )  # Returning the text after the last numeric character
-
         # Select all NEFT entries
         NEFT = df[df["Description"].str.contains("neft", na=False)]
         # Process for NEFT_1
@@ -1285,11 +1248,10 @@ class CommonFunctions:
                 print("Error in splitting NEFT names: ", e)
             # NEFT_1['Category'] = neft_names
             df.update(NEFT_1)
-
         # Process for NEFT_KOTAK
         NEFT_KOTAK = NEFT[
             ~NEFT["Category"].str.contains(
-                "Debtor|Creditor|Suspense|Redemption,Dividend & Interest,Salary Paid,Salary Received",
+                "Debtor|Creditor|Suspense|Redemption,Dividend & Interest|Salary Paid|Salary Received",
                 na=False,
             )
         ]
@@ -1297,7 +1259,6 @@ class CommonFunctions:
             extracted_text = NEFT_KOTAK["Description"].apply(extract_text_after_numeric)
             NEFT_KOTAK["Category"] = extracted_text
             df.update(NEFT_KOTAK)
-
         def extract_neft_colon_category(description):
             try:
                 name_part = description.split("neft:")[1]
@@ -1305,7 +1266,6 @@ class CommonFunctions:
                 return name_without_numbers.strip()
             except IndexError:
                 return "Suspense"  # Or any other default value you prefer
-
         NEFT_colon = df[df["Description"].str.contains("neft:", na=False)]
         if not NEFT_colon.empty:
             NEFT_colon = NEFT_colon[
@@ -1318,7 +1278,6 @@ class CommonFunctions:
                 extract_neft_colon_category
             )
             df.update(NEFT_colon)
-
         def extract_nefto_union_category(description):
             try:
                 name_part = description.split("nefto-")[1]
@@ -1326,7 +1285,6 @@ class CommonFunctions:
                 return name_without_numbers.strip()
             except IndexError:
                 return "Suspense"  # Or any other default value you prefer
-
         NEFTO = df[df["Description"].str.contains("nefto-", na=False)]
         if not NEFTO.empty:
             NEFTO = NEFTO[
@@ -1337,7 +1295,6 @@ class CommonFunctions:
             ]
             NEFTO["Category"] = NEFTO["Description"].apply(extract_nefto_union_category)
             df.update(NEFTO)
-
         def extract_rtgso_union_category(description):
             try:
                 name_part = description.split("rtgso-")[1]
@@ -1345,7 +1302,6 @@ class CommonFunctions:
                 return name_without_numbers.strip()
             except IndexError:
                 return "Suspense"
-
         RTGSO = df[df["Description"].str.contains("rtgso-", na=False)]
         if not RTGSO.empty:
             RTGSO = RTGSO[
@@ -1356,14 +1312,12 @@ class CommonFunctions:
             ]
             RTGSO["Category"] = RTGSO["Description"].apply(extract_rtgso_union_category)
             df.update(RTGSO)
-
         def extract_rtgsfr_category(description):
             try:
                 category_part = description.split("rtgsfr:")[1].split("/")[0]
                 return category_part
             except IndexError:
                 return "Suspense"
-
         RTGSFR = df[df["Description"].str.contains("rtgsfr:", na=False)]
         if not RTGSFR.empty:
             RTGSFR = RTGSFR[
@@ -1374,7 +1328,6 @@ class CommonFunctions:
             ]
             RTGSFR["Category"] = RTGSFR["Description"].apply(extract_rtgsfr_category)
             df.update(RTGSFR)
-
         def extract_rtgso_union_category(description):
             try:
                 name_part = description.split("rtgs:")[1]
@@ -1382,7 +1335,6 @@ class CommonFunctions:
                 return name_without_numbers.strip()
             except IndexError:
                 return "Suspense"
-
         RTGSO = df[df["Description"].str.contains("rtgs:", na=False)]
         if not RTGSO.empty:
             RTGSO = RTGSO[
@@ -1393,7 +1345,6 @@ class CommonFunctions:
             ]
             RTGSO["Category"] = RTGSO["Description"].apply(extract_rtgso_union_category)
             df.update(RTGSO)
-
         rtgs_ib = df[df["Description"].str.contains("ib/rtgs/", na=False)]
         rtgs_ib = rtgs_ib[
             ~rtgs_ib["Category"].str.contains(
@@ -1402,17 +1353,14 @@ class CommonFunctions:
             )
         ]
         if not rtgs_ib.empty:
-
             def extract_category(description):
                 parts = description.split("/")
                 return (
                     parts[3] if len(parts) > 3 else "Suspense"
                 )  # Default value for descriptions without enough parts
-
             rtgs_names = rtgs_ib["Description"].apply(extract_category)
             rtgs_ib["Category"] = rtgs_names
             df.update(rtgs_ib)
-
         NEFT_ib = df[df["Description"].str.contains("ib/neft/", na=False)]
         if not NEFT_ib.empty:
             NEFT_ib = NEFT_ib[
@@ -1420,17 +1368,14 @@ class CommonFunctions:
                     "Redemption, Dividend & Interest,Salary Paid,Salary Received"
                 )
             ]
-
             def extract_category(description):
                 parts = description.split("/")
                 return (
                     parts[3] if len(parts) > 3 else "Suspense"
                 )  # Default value for descriptions without enough parts
-
             neft_names = NEFT_ib["Description"].apply(extract_category)
             NEFT_ib["Category"] = neft_names
             df.update(NEFT_ib)
-
         NEFT = df[df["Description"].str.contains("neft/mb/ax", na=False)]
         if not NEFT.empty:
             NEFT = NEFT[
@@ -1448,14 +1393,12 @@ class CommonFunctions:
             NEFT['Entity'] = neft_names
             df.update(NEFT)
             print(df)
-
         def extract_keyword_from_description(description):
             parts = description.split("--")
             if len(parts) < 2:
                 return None
             words = parts[0].split("-")
             return max(words, key=len, default=None)
-
         NEFT_entries = df[df["Description"].str.contains("neft-", na=False)]
         NEFT_entries = NEFT_entries[
             ~NEFT_entries["Category"].str.contains(
@@ -1469,7 +1412,6 @@ class CommonFunctions:
                     df.at[idx, "Category"] = keyword
                 else:
                     df.at[idx, "Category"] = "Suspense"
-
         def extract_neft_io_category(description):
             try:
                 category_part = description.split("-")[3]
@@ -1478,7 +1420,6 @@ class CommonFunctions:
                 return category_part
             except IndexError:
                 return "Suspense"
-
         NEFT_IO = df[
             df["Description"].str.contains("neft-", na=False)
             & df["Category"].str.contains("Suspense", na=False)
@@ -1493,7 +1434,6 @@ class CommonFunctions:
             NEFT_IO = NEFT_IO[~NEFT_IO["Category"].str.contains("Creditor")]
             NEFT_IO["Category"] = NEFT_IO["Description"].apply(extract_neft_io_category)
             df.update(NEFT_IO)
-
         def extract_neft_hdfc_cr_category(description):
             parts = description.split("-")
             if len(parts) > 2:
@@ -1501,7 +1441,6 @@ class CommonFunctions:
                 return re.sub(r'\d+$', '', parts[2]).strip()
             else:
                 return "Suspense"  # Default value for descriptions without enough parts
-
         NEFT_HDFC_CR = df[df["Description"].str.contains("neftcr", na=False)]
         if not NEFT_HDFC_CR.empty:
             NEFT_HDFC_CR = NEFT_HDFC_CR[
@@ -1515,7 +1454,6 @@ class CommonFunctions:
             NEFT_HDFC_CR["Category"] = neft_names
             NEFT_HDFC_CR["Entity"] = neft_names
             df.update(NEFT_HDFC_CR)
-
         NEFT_HDFC_DR = df[df["Description"].str.contains("neftdr", na=False)]
         if not NEFT_HDFC_DR.empty:
             NEFT_HDFC_DR = NEFT_HDFC_DR[
@@ -1523,7 +1461,6 @@ class CommonFunctions:
                     "Redemption, Dividend & Interest,Salary Paid,Salary Received"
                 )
             ]
-
             def extract_category(description):
                 try:
                     if "-" in description:
@@ -1533,12 +1470,10 @@ class CommonFunctions:
                         return description
                 except IndexError:
                     return "Suspense"
-
             neft_names = NEFT_HDFC_DR["Description"].apply(extract_category)
             NEFT_HDFC_DR["Category"] = neft_names
             NEFT_HDFC_DR["Entity"] = neft_names
             df.update(NEFT_HDFC_DR)
-
         NEFT_thane = df[df["Description"].str.contains("toneft", na=False)]
         if not NEFT_thane.empty:
             NEFT_thane = NEFT_thane[
@@ -1546,17 +1481,14 @@ class CommonFunctions:
                     "Redemption, Dividend & Interest,Salary Paid,Salary Received"
                 )
             ]
-
             def extract_category(description):
                 try:
                     return description.split("/")[1]
                 except IndexError:
                     return "Suspense"  # Default to 'Suspense' in case of IndexError
-
             neft_thane_names = NEFT_thane["Description"].apply(extract_category)
             NEFT_thane["Category"] = neft_thane_names
             df.update(NEFT_thane)
-
         NEFT_UCO = df[
             (df["Description"].str.contains("neft/", na=False))
             & (df["Category"] == "Suspense")
@@ -1569,17 +1501,14 @@ class CommonFunctions:
             ]
             NEFT_1 = NEFT_1[~NEFT_1["Category"].str.contains("Debtor")]
             NEFT_1 = NEFT_1[~NEFT_1["Category"].str.contains("Creditor")]
-
             def extract_category(description):
                 try:
                     return description.split("/")[1]
                 except IndexError:
                     return "Suspense"  # Default to 'Suspense' in case of IndexError
-
             neft_uco_names = NEFT_1["Description"].apply(extract_category)
             NEFT_1["Category"] = neft_uco_names
             df.update(NEFT_1)
-
         def extract_net_neft_category(description):
             try:
                 # Split by 'rtgsfr:' and take the first part after it
@@ -1588,7 +1517,6 @@ class CommonFunctions:
             except IndexError:
                 # In case of an IndexError, return 'Suspense'
                 return "Suspense"
-
         net_neft = df[df["Description"].str.contains("net/neft/", na=False)]
         net_neft = net_neft[
             ~net_neft["Category"].str.contains(
@@ -1600,14 +1528,12 @@ class CommonFunctions:
                 extract_net_neft_category
             )
             df.update(net_neft)
-
         def extract_nft_category(description):
             try:
                 category_part = description.split("nft/")[1].split("/")[0]
                 return category_part
             except IndexError:
                 return "Suspense"
-
         nft_neft = df[df["Description"].str.contains("nft/", na=False)]
         nft_neft = nft_neft[
             ~nft_neft["Category"].str.contains(
@@ -1617,7 +1543,6 @@ class CommonFunctions:
         if not nft_neft.empty:
             nft_neft["Category"] = nft_neft["Description"].apply(extract_nft_category)
             df.update(nft_neft)
-
         def extract_bob_neft_category(description):
             try:
                 category_part = description.split("-")[2]
@@ -1626,7 +1551,6 @@ class CommonFunctions:
                 return category_part
             except IndexError:
                 return "Suspense"
-
         NEFT_BOB = df[df["Description"].str.contains("neft-", na=False)]
         if not NEFT_BOB.empty:
             NEFT_BOB = NEFT_BOB[
@@ -1640,7 +1564,6 @@ class CommonFunctions:
                 extract_bob_neft_category
             )
             df.update(NEFT_BOB)
-
         def extract_neft_category(description):
             try:
                 name_part = description.split("-")[3]
@@ -1649,7 +1572,6 @@ class CommonFunctions:
                 return name_part
             except IndexError:
                 return "Suspense"
-
         NEFT_IO = df[
             df["Description"].str.contains("neft-", na=False)
             & df["Category"].str.contains("Suspense", na=False)
@@ -1664,14 +1586,12 @@ class CommonFunctions:
             NEFT_IO = NEFT_IO[~NEFT_IO["Category"].str.contains("Creditor")]
             NEFT_IO["Category"] = NEFT_IO["Description"].apply(extract_neft_category)
             df.update(NEFT_IO)
-
         def extract_net_neft_category(description):
             try:
                 category_part = description.split("net-neft-")[1].split("-")[3]
                 return category_part
             except IndexError:
                 return "Suspense"
-
         NEFT = df[df["Description"].str.contains("net-neft-", na=False)]
         NEFT = NEFT[
             ~NEFT["Category"].str.contains(
@@ -1681,14 +1601,12 @@ class CommonFunctions:
         if not NEFT.empty:
             NEFT["Category"] = NEFT["Description"].apply(extract_net_neft_category)
             df.update(NEFT)
-
         def extract_neft_name(description):
             try:
                 name_part = description.split("neft-")[1].split("/")[0]
                 return name_part
             except IndexError:
                 return "Suspense"
-
         NEFT_Kar = df[
             df["Description"].str.contains("neft-", na=False)
             & df["Category"].str.contains("Suspense", na=False)
@@ -1701,7 +1619,6 @@ class CommonFunctions:
         if not NEFT_Kar.empty:
             NEFT_Kar["Category"] = NEFT_Kar["Description"].apply(extract_neft_name)
             df.update(NEFT_Kar)
-
         def extract_category_neft_sbi(description):
             if "totransfer-neft" in description:
                 parts = description.split("-")
@@ -1717,23 +1634,20 @@ class CommonFunctions:
                         return category_part
                 except IndexError:
                     return "Suspense"
-
-        neft_SBI = df[df["Description"].str.contains("totransfer-neft", na=False)]
-        neft_SBI = neft_SBI[
-            ~neft_SBI["Category"].str.contains(
-                "Redemption, Dividend & Interest|Bank Interest Received,Salary Paid,Salary Received"
-            )
-        ]
-        if not neft_SBI.empty:
-            neft_SBI["Category"] = neft_SBI["Description"].apply(
-                extract_category_neft_sbi
-            )
-            df.update(neft_SBI)
-
+        # neft_SBI = df[df["Description"].str.contains("totransfer-neft", na=False)]
+        # neft_SBI = neft_SBI[
+        #     ~neft_SBI["Category"].str.contains(
+        #         "Redemption, Dividend & Interest|Bank Interest Received,Salary Paid,Salary Received"
+        #     )
+        # ]
+        # if not neft_SBI.empty:
+        #     neft_SBI["Category"] = neft_SBI["Description"].apply(
+        #         extract_category_neft_sbi
+        #     )
+        #     df.update(neft_SBI)
         def filter_emi_transactions(df):
             # Convert 'Debit' to numeric, coercing errors to NaN
             df["Debit"] = pd.to_numeric(df["Debit"], errors="coerce")
-
             # Define the pattern for EMI-related keywords
             keywords = [
                 "emi",
@@ -1776,32 +1690,25 @@ class CommonFunctions:
                 "achracpc",
             ]
             pattern = r"(" + "|".join(keywords) + r")"
-
             # Filter for transactions containing the keywords
             emi_transactions = df[
                 df["Description"].str.contains(pattern, case=False, regex=True)
                 & (~df["Debit"].isnull())
                 & (df["Debit"] > 0)
             ]
-
             # Find repeated transactions with the same debit value
             repeated_emi = emi_transactions[
                 emi_transactions.duplicated(subset=["Debit"], keep=False)
             ]
-
             # Exclude transactions with values ending in '000' and values <= 1000
             filtered_emi_indices = repeated_emi[
                 ~repeated_emi["Debit"].astype(str).str.endswith("000")
                 & (repeated_emi["Debit"] > 1000)
             ].index
-
             # Categorize as 'Probable EMI'
             df.loc[filtered_emi_indices, "Category"] = "Probable EMI"
-
             return df
-
         filter_emi_transactions(df)
-
         def Bounce(df):
             keywords = ["return", "Bounce", "i/wchqreturn", "out-chqreturn"]
             pattern = r"\b(" + "|".join(keywords) + r")\b"
@@ -1811,23 +1718,18 @@ class CommonFunctions:
             ] = "Bounce"
             # print(df)
             return df
-
         Bounce(df)
-
         # Iterate through the rows of df2
         for _, keyword_row in df2.iterrows():
             mask = df["Description"].str.contains(
                 keyword_row["Description"], case=False, na=False
             )
-
             if keyword_row["Debit / Credit"] == "Debit":
                 mask = mask & (df["Debit"] > 0)  # check if Debit is greater than 0
             elif keyword_row["Debit / Credit"] == "Credit":
                 mask = mask & (df["Credit"] > 0)  # check if Credit is greater than 0
-
             # Update the category for matching transactions
             df.loc[mask, "Category"] = keyword_row["Category"]
-
         # df = df[['Value Date', 'Description', 'Debit', 'Credit', 'Balance', 'Category', 'Bank']]
         #####
         MPS = df[
@@ -1840,7 +1742,6 @@ class CommonFunctions:
                     df.at[idx, "Category"] = "UPI-Cr"
                 elif row["Debit"] > 0:
                     df.at[idx, "Category"] = "UPI-Dr"
-
         Salary_credit = (
             (df["Description"].str.contains("imps|neft|rtgs", case=False, na=False))
             & (df["Description"].str.contains("salary", case=False, na=False))
@@ -1853,14 +1754,12 @@ class CommonFunctions:
         )
         df.loc[Salary_credit, "Category"] = "Salary Received"
         df.loc[Salary_debit, "Category"] = "Salary Paid"
-
         mask_withdrawal = (
             df["Description"].str.contains(
                 "eaw-|nwd-|atw-|tocash", case=False, na=False
             )
         ) & (df["Debit"] > 0)
         df.loc[mask_withdrawal, "Category"] = "Cash Withdrawal"
-
         General_insurance = [
             "acko",
             "adityabirlahealth",
@@ -1899,7 +1798,6 @@ class CommonFunctions:
             & (df["Debit"] > 0),
             "Category",
         ] = "General insurance"
-
         online_shopping_keywords = [
             "amazon",
             "bigbasket",
@@ -1920,16 +1818,13 @@ class CommonFunctions:
             & (df["Debit"] > 0),
             "Category",
         ] = "Online Shopping"
-
         INB = df[df["Description"].str.contains("inb/|inb-td/", na=False)]
-
         INB = INB[~INB["Description"].str.contains("gsttaxpayments", na=False)]
         INB = INB[
             ~INB["Category"].str.contains(
                 "Salary Paid|Salary Received|GST Paid", na=False
             )
         ]
-
         if not INB.empty:
             INB["Category"] = INB["Description"].apply(
                 lambda x: (
@@ -1947,29 +1842,23 @@ class CommonFunctions:
                     else x
                 )
             )
-
             df.update(INB)
-
         BIL_IMB_entries = df[df["Description"].str.contains("bil/imb/", na=False)]
         BIL_IMB_entries = BIL_IMB_entries[
             ~BIL_IMB_entries["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not BIL_IMB_entries.empty:
-
             def extract_name_from_bilimb(description):
                 parts = description.split("/")
                 if len(parts) >= 4:
                     return parts[3]
                 return None
-
             for idx, row in BIL_IMB_entries.iterrows():
                 name = extract_name_from_bilimb(row["Description"])
-
                 if name and not name.isdigit():
                     df.at[idx, "Category"] = name
                 else:
                     df.at[idx, "Category"] = "Suspense"
-
         ECS = df[df["Description"].str.contains("ecs/", na=False)]
         ECS = ECS[~ECS["Category"].str.contains("Salary Paid,Salary Received")]
         if not ECS.empty:
@@ -1978,11 +1867,9 @@ class CommonFunctions:
             ECS_names = ECS["Description"].apply(lambda x: x.split("/")[1])
             ECS["Category"] = ECS_names
             df.update(ECS)
-
         MPS = df[df["Description"].str.contains("MPS/", na=False)]
         if not ECS.empty:
             ECS = ECS[~ECS["Description"].str.contains("imps/")]
-
         IMPS_HDFC = df[df["Description"].str.contains("imps", na=False)]
         IMPS_HDFC = IMPS_HDFC[
             ~IMPS_HDFC["Category"].str.contains("Salary Paid,Salary Received")
@@ -1993,7 +1880,6 @@ class CommonFunctions:
             IMPS_HDFC["Category"] = Ext
             IMPS_HDFC["Entity"] = Ext
             df.update(IMPS_HDFC)
-
         imps_rib = df[
             df["Description"].str.contains("imps-rib|imps-inet|imps-cib", na=False)
         ]
@@ -2003,8 +1889,8 @@ class CommonFunctions:
         if not imps_rib.empty:
             imps_rib_name = imps_rib["Description"].apply(lambda x: x.split("/")[3])
             imps_rib["Category"] = imps_rib_name
+            imps_rib["Entity"] = imps_rib_name
             df.update(imps_rib)
-
         imps_mob = df[df["Description"].str.contains("imps-mob/", na=False)]
         imps_mob = imps_mob[
             ~imps_mob["Category"].str.contains("Salary Paid,Salary Received")
@@ -2012,14 +1898,13 @@ class CommonFunctions:
         if not imps_mob.empty:
             imps_mob_name = imps_mob["Description"].apply(lambda x: x.split("/")[3])
             imps_mob["Category"] = imps_mob_name
+            imps_mob["Entity"] = imps_mob_name
             df.update(imps_mob)
-
         # imps_idfc = df[df["Description"].str.contains("imps/", na=False)]
         # if not imps_idfc.empty:
         #     imps_idfc_name = imps_idfc['Description'].apply(lambda x: x.split('/')[2])
         #     imps_idfc['Category'] = imps_idfc_name
         #     df.update(imps_idfc)
-
         def extract_imps_hdfc_category(description):
             try:
                 name_part = description.split("/")[2]
@@ -2028,7 +1913,6 @@ class CommonFunctions:
                 return name_part
             except IndexError:
                 return "Suspense"
-
         imps_idfc = df[df["Description"].str.contains("imps/", na=False)]
         imps_idfc = imps_idfc[
             ~imps_idfc["Category"].str.contains("Salary Paid,Salary Received")
@@ -2038,7 +1922,6 @@ class CommonFunctions:
                 extract_imps_hdfc_category
             )
             df.update(imps_idfc)
-
         def extract_category_axis(x):
             try:
                 category_part = x.split("/")[3]
@@ -2047,7 +1930,6 @@ class CommonFunctions:
                 return category_part
             except IndexError:
                 return "Suspense"
-
         def extract_entity_axis(x):
             try:
                 category_part = x.split("/")[3]
@@ -2056,7 +1938,6 @@ class CommonFunctions:
                 return category_part
             except IndexError:
                 return ""
-
         imps_axis = df[df["Description"].str.contains("imps/p2a", na=False)]
         imps_axis = imps_axis[
             ~imps_axis["Category"].str.contains("Salary Paid","Salary Received")
@@ -2069,29 +1950,45 @@ class CommonFunctions:
                 extract_entity_axis
             )
             df.update(imps_axis)
-
-        def extract_category_axis(x):
+        def extract_category_axis_combined(x):
             try:
-                category_part = x.split("/")[3]
-                category_cleaned = "".join(
-                    filter(lambda char: not char.isdigit(), category_part)
-                )
-                if not category_cleaned:
-                    return "Suspense"
-                return category_cleaned
-            except IndexError:
+                try:
+                    category_part = x.split("/")[3]  # Extract the 4th part (index 3)
+                    category_cleaned = "".join(
+                        filter(lambda char: not char.isdigit(), category_part)
+                    )
+                    if category_cleaned:
+                        return category_cleaned
+                except IndexError:
+                    pass  # Fall back to new logic if the original logic fails
+                parts = x.split("/")
+                if len(parts) > 3:
+                    category_part = parts[3]
+                    category_cleaned = "".join(
+                        filter(lambda char: not char.isdigit(), category_part)
+                    )
+                    if category_cleaned:
+                        return category_cleaned
+                if len(parts) > 4:
+                    possible_name = parts[4]
+                    if possible_name.isalpha():
+                        return possible_name  # Return the name if it's valid
                 return "Suspense"
-
+            except Exception as e:
+                print(f"Error processing description: {x}, Error: {str(e)}")
+                return "Suspense"
         imps_axis = df[df["Description"].str.contains("mmt/imps", na=False)]
         imps_axis = imps_axis[
             ~imps_axis["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not imps_axis.empty:
             imps_axis["Category"] = imps_axis["Description"].apply(
-                extract_category_axis
+                extract_category_axis_combined
+            )
+            imps_axis["Entity"] = imps_axis["Description"].apply(
+                extract_category_axis_combined
             )
             df.update(imps_axis)
-
         imps_fed = df[df["Description"].str.contains("ftimps", na=False)]
         imps_fed = imps_fed[
             ~imps_fed["Category"].str.contains("Salary Paid,Salary Received")
@@ -2100,19 +1997,16 @@ class CommonFunctions:
             imps_rib_name = imps_fed["Description"].apply(lambda x: x.split("/")[3])
             imps_fed["Category"] = imps_rib_name
             df.update(imps_fed)
-
         # imps_svc = df[df["Description"].str.contains("byimps", na=False)]
         # if not imps_svc.empty:
         #     imps_svc_name = imps_svc['Description'].apply(lambda x: x.split('-')[2])
         #     imps_svc['Category'] = imps_svc_name
         #     df.update(imps_svc)
-
         def safe_extract_category(description):
             try:
                 return description.split("-")[2]
             except IndexError:
                 return "Suspense"
-
         imps_svc = df[df["Description"].str.contains("byimps", na=False)]
         imps_svc = imps_svc[
             ~imps_svc["Category"].str.contains("Salary Paid,Salary Received")
@@ -2122,7 +2016,6 @@ class CommonFunctions:
             imps_svc["Category"] = imps_svc["Description"].apply(safe_extract_category)
             # Update the original DataFrame
             df.update(imps_svc)
-
         # SBI
         def extract_category_imps_sbi(description):
             try:
@@ -2134,22 +2027,23 @@ class CommonFunctions:
                     return category_part
             except IndexError:
                 return "Suspense"
-
         imps_SBI = df[
             df["Description"].str.contains("totransfer-inbimps/p2a/", na=False)
         ]
         imps_SBI = imps_SBI[
-            ~imps_SBI["Category"].str.contains("Salary Paid,Salary Received")
+            ~imps_SBI["Category"].str.contains("Salary Paid","Salary Received")
         ]
         if not imps_SBI.empty:
             # Apply the custom function to extract categories
             imps_SBI["Category"] = imps_SBI["Description"].apply(
                 extract_category_imps_sbi
             )
+            imps_SBI["Entity"] = imps_SBI["Description"].apply(
+                extract_category_imps_sbi
+            )
             df.update(imps_SBI)
-
         MOB = df[df["Description"].str.contains("mob/tpft/", na=False)]
-        MOB = MOB[~MOB["Category"].str.contains("Salary Paid,Salary Received")]
+        MOB = MOB[~MOB["Category"].str.contains("Salary Paid","Salary Received")]
         if not MOB.empty:
             MOB_names = MOB["Description"].apply(
                 lambda x: (
@@ -2158,7 +2052,6 @@ class CommonFunctions:
             )
             MOB["Category"] = MOB_names
             df.update(MOB)
-
         MOB_1 = df[df["Description"].str.contains("mob/selfft/", na=False)]
         if "Category" in MOB_1.columns:  # Ensure 'Category' column exists
             MOB_1 = MOB_1[~MOB_1["Category"].str.contains("Salary Paid|Salary Received", na=False)]
@@ -2170,13 +2063,11 @@ class CommonFunctions:
             )
             MOB_1["Category"] = MOB_names1
             df.update(MOB_1)
-
         # BRN_clg = df[df["Description"].str.contains("brn-clg-chqpaidto", na=False)]
         # if not BRN_clg.empty:
         #     BRN_clg_names = BRN_clg['Description'].apply(lambda x: x.split('to ')[-1].split('/')[0].strip())
         #     BRN_clg['Category'] = BRN_clg_names
         #     df.update(BRN_clg)
-
         BRN_clg = df[df["Description"].str.contains("brn-clg-chqpaidto", na=False)]
         BRN_clg = BRN_clg[
             ~BRN_clg["Category"].str.contains("Salary Paid","Salary Received")
@@ -2190,7 +2081,6 @@ class CommonFunctions:
                 lambda x: x.split("brn-clg-chqpaidto")[-1].split("/")[0].strip()
             )
             df.update(BRN_clg)
-
         def extract_category_ben(x):
             try:
                 category_part = x.split("/")[3]
@@ -2199,7 +2089,6 @@ class CommonFunctions:
                 return category_part
             except IndexError:
                 return "Suspense"
-
         imps_ben = df[df["Description"].str.contains("imps/ben/", na=False)]
         imps_ben = imps_ben[
             ~imps_ben["Category"].str.contains("Salary Paid,Salary Received")
@@ -2207,7 +2096,6 @@ class CommonFunctions:
         if not imps_ben.empty:
             imps_ben["Category"] = imps_ben["Description"].apply(extract_category_ben)
             df.update(imps_ben)
-
         def extract_sentimps_text_after_numeric(description):
             try:
                 # Find the position of the "sentimps" prefix
@@ -2229,7 +2117,6 @@ class CommonFunctions:
                 return "Suspense"
             except Exception as e:
                 return "Suspense"
-
         imps_new = df[df["Description"].str.contains("sentimps", na=False)]
         imps_new = imps_new[
             ~imps_new["Category"].str.contains("Salary Paid,Salary Received")
@@ -2239,7 +2126,6 @@ class CommonFunctions:
                 extract_sentimps_text_after_numeric
             )
             df.update(imps_new)
-
         # Filter rows containing "idfcfirstb" in the Description
         Loan = df[df["Description"].str.contains("idfcfirstb|krazybees", na=False)]
         if not Loan.empty:
@@ -2249,7 +2135,6 @@ class CommonFunctions:
                 & (df["Credit"] > 0),
                 "Category",
             ] = "Loan"
-
         BRN = df[
             (
                 df["Description"].str.contains("brn-flexi")
@@ -2259,14 +2144,12 @@ class CommonFunctions:
         ]
         if not BRN.empty:
             df.loc[BRN.index, "Category"] = "Redemption of Investment"
-
         RTGS = df[df["Description"].str.contains("rtgs/", na=False)]
         RTGS = RTGS[~RTGS["Category"].str.contains("Salary Paid,Salary Received")]
         if not RTGS.empty:
             RTGS_names = RTGS["Description"].apply(lambda x: x.split("/")[2])
             RTGS["Category"] = RTGS_names
             df.update(RTGS)
-
         RTGS_HDFC_CR = df[df["Description"].str.contains("rtgscr", na=False)]
         RTGS_HDFC_CR = RTGS_HDFC_CR[
             ~RTGS_HDFC_CR["Category"].str.contains("Salary Paid,Salary Received")
@@ -2275,15 +2158,12 @@ class CommonFunctions:
             RTGS_names = RTGS_HDFC_CR["Description"].apply(lambda x: x.split("-")[2])
             RTGS_HDFC_CR["Category"] = RTGS_names
             RTGS_HDFC_CR["Entity"] = RTGS_names
-
             df.update(RTGS_HDFC_CR)
-
         def extract_rtgs_category(description):
             try:
                 return description.split("-")[2]
             except IndexError:
                 return "Suspense"
-
         RTGS_HDFC_DR = df[
             df["Description"].str.contains("rtgsdr", na=False)
             | df["Description"].str.contains("rtgs-", na=False)
@@ -2300,7 +2180,6 @@ class CommonFunctions:
                 extract_rtgs_category
             )
             df.update(RTGS_HDFC_DR)
-
         RTGS_DCB = df[df["Description"].str.contains("inrtgs", na=False)]
         RTGS_DCB = RTGS_DCB[
             ~RTGS_DCB["Category"].str.contains("Salary Paid,Salary Received")
@@ -2309,61 +2188,50 @@ class CommonFunctions:
             RTGS_name = RTGS_DCB["Description"].apply(lambda x: x.split("/")[1])
             RTGS_DCB["Category"] = RTGS_name
             df.update(RTGS_DCB)
-
         RTGS_DCB = df[df["Description"].str.contains("tortgs", na=False)]
         RTGS_DCB = RTGS_DCB[
             ~RTGS_DCB["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not RTGS_DCB.empty:
-
             def extract_category(description):
                 try:
                     return description.split("/")[1]
                 except IndexError:
                     return "Suspense"
-
             RTGS_name = RTGS_DCB["Description"].apply(extract_category)
             RTGS_DCB["Category"] = RTGS_name
             df.update(RTGS_DCB)
-
         toib_svc = df[df["Description"].str.contains("toib", na=False)]
         toib_svc = toib_svc[
             ~toib_svc["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not toib_svc.empty:
-
             def extract_category_svc(description):
                 try:
                     return description.split("-")[2]
                 except IndexError:
                     return "Suspense"
-
             toib_svc_names = toib_svc["Description"].apply(extract_category_svc)
             toib_svc["Category"] = toib_svc_names
             df.update(toib_svc)
-
         BYNEFTID_DCB = df[df["Description"].str.contains("byneftid", na=False)]
         BYNEFTID_DCB = BYNEFTID_DCB[
             ~BYNEFTID_DCB["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not BYNEFTID_DCB.empty:
-
             def extract_category(description):
                 try:
                     return description.split("from")[1].split("]")[0]
                 except IndexError:
                     return "Suspense"  # We return "Unknown" if the format is incorrect
-
             BYNEFTID_name = BYNEFTID_DCB["Description"].apply(extract_category)
             BYNEFTID_DCB["Category"] = BYNEFTID_name
             df.update(BYNEFTID_DCB)
-
         BYRTGSID_DCB = df[df["Description"].str.contains("byrtgsid", na=False)]
         BYRTGSID_DCB = BYRTGSID_DCB[
             ~BYRTGSID_DCB["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not BYRTGSID_DCB.empty:
-
             def extract_name_from_description(description):
                 try:
                     return "".join(
@@ -2371,19 +2239,16 @@ class CommonFunctions:
                     )
                 except IndexError:
                     return "Suspense"  # We return "Unknown" if the format is incorrect
-
             BYRTGSID_name = BYRTGSID_DCB["Description"].apply(
                 extract_name_from_description
             )
             BYRTGSID_DCB["Category"] = BYRTGSID_name
             df.update(BYRTGSID_DCB)
-
         BYCLG_DCB = df[df["Description"].str.contains("byclg:", na=False)]
         BYCLG_DCB = BYCLG_DCB[
             ~BYCLG_DCB["Category"].str.contains("Salary Paid,Salary Received")
         ]
         if not BYCLG_DCB.empty:
-
             def extract_name_from_description(description):
                 try:
                     name_part = description.split("byclg:")[1]
@@ -2391,14 +2256,12 @@ class CommonFunctions:
                     return name
                 except IndexError:
                     return "Suspense"  # We return "Unknown" if the format is incorrect
-
             BYCLG_name = BYCLG_DCB["Description"].apply(extract_name_from_description)
             BYCLG_DCB["Category"] = BYCLG_name
             df.update(BYCLG_DCB)
-
         CASHDEP = df[
             df["Description"].str.contains(
-                "cashdep|bytransfer|byclearing/|atr/", na=False
+                "cashdep|byclearing/|atr/", na=False
             )
         ]
         if not CASHDEP.empty:
@@ -2407,13 +2270,10 @@ class CommonFunctions:
                 for s in CASHDEP["Description"]
                 if re.search(r"CASHDEP(.*?)-", s)
             ]
-
             # Update the Category column of CASHDEP_ZAHIRDAHISAR with the extracted names
             CASHDEP["Category"] = "Cash Deposits"
-
             # Update the original dataframe df with the modified rows from CASHDEP_ZAHIRDAHISAR
             df.update(CASHDEP)
-
         def extract_rtgs_name_jankalyan(description):
             if "rtgs" in description.lower():
                 try:
@@ -2426,7 +2286,6 @@ class CommonFunctions:
                 except IndexError:
                     return "Suspense"
             # Removed the else condition
-
         # Applying the function to the DataFrame
         RTGS_jankalyan = df[
             (df["Description"].str.contains("rtgs", case=False, na=False))
@@ -2440,7 +2299,6 @@ class CommonFunctions:
                 extract_rtgs_name_jankalyan
             )
             df.update(RTGS_jankalyan)
-
         def extract_neft_jankalyan(description):
             if "neft" in description.lower():
                 try:
@@ -2452,7 +2310,6 @@ class CommonFunctions:
                         return "Suspense"
                 except IndexError:
                     return "Suspense"
-
         NEFT = df[
             (df["Description"].str.contains("neft", case=False, na=False))
             & (df["Category"] == "Suspense")
@@ -2461,7 +2318,6 @@ class CommonFunctions:
         if not NEFT.empty:
             NEFT["Category"] = NEFT["Description"].apply(extract_neft_jankalyan)
             df.update(NEFT)
-
         def extract_imps_category(description):
             if "imps[" in description.lower():
                 try:
@@ -2477,7 +2333,6 @@ class CommonFunctions:
                         return "Suspense"
                 except IndexError:
                     return "Suspense"
-
         IMPS = df[
             (df["Description"].str.contains("imps\[", case=False, na=False))
             & (df["Category"] == "Suspense")
@@ -2486,10 +2341,8 @@ class CommonFunctions:
         if not IMPS.empty:
             IMPS["Category"] = IMPS["Description"].apply(extract_imps_category)
             df.update(IMPS)
-
         # df = categorize_name_transactions(df)
         PF = df[df["Description"].str.contains("providentfund", na=False)]
-
         if not PF.empty:
             # Update the Category for the filtered rows
             df.loc[
@@ -2497,7 +2350,6 @@ class CommonFunctions:
                 & (df["Credit"] > 0),
                 "Category",
             ] = "Provident Fund"
-
         Salary_credit = (
             (df["Description"].str.contains("mmt/imps", case=False, na=False))
             & (df["Description"].str.contains("salary", case=False, na=False))
@@ -2510,74 +2362,59 @@ class CommonFunctions:
         )
         df.loc[Salary_credit, "Category"] = "Salary Received"
         df.loc[Salary_debit, "Category"] = "Salary Paid"
-
-        last_move = r"(imps|neft|rtgs)"
-        df.loc[
-            (df["Description"].str.contains(last_move, regex=True))
-            & (df["Debit"] > 0)
-            & (df["Category"] == "Suspense"),
-            "Category",
-        ] = "Creditor"
-        df.loc[
-            (df["Description"].str.contains(last_move, regex=True))
-            & (df["Credit"] > 0)
-            & (df["Category"] == "Suspense"),
-            "Category",
-        ] = "Debtor"
-
+        # last_move = r"(imps|neft|rtgs)"
+        # df.loc[
+        #     (df["Description"].str.contains(last_move, regex=True))
+        #     & (df["Debit"] > 0)
+        #     & (df["Category"] == "Suspense"),
+        #     "Category",
+        # ] = "Creditor"
+        # df.loc[
+        #     (df["Description"].str.contains(last_move, regex=True))
+        #     & (df["Credit"] > 0)
+        #     & (df["Category"] == "Suspense"),
+        #     "Category",
+        # ] = "Debtor"
         # Preprocess the DataFrame
         df = self.preprocess_df(df)
         print(df)
         labels = ["person", "org"]
         confidence_threshold = 0.2  # Adjust as needed
-
         # Define categories to include
-        categories_to_include = ["upi-cr", "upi-dr", 'debtor', 'creditor', 'departmental stores', 'donation', 'loan',
-                                 'loan given', 'rent paid']
-
+        categories_to_include = ["upi-cr", "upi-dr", 'departmental stores', 'donation', 'loan',
+                                'loan given', 'rent paid']
         # Keywords to include in the logic
         keywords_to_include = [
-            "toib-", "brn-clg-chq", "mmt/imps", "neftdr", "nft/", "mob/tpft",
-            "nlcindialtd", "tortgs", "rtgsdr", "mob/tpft/", "imb/", "imps",
-            "imps/p2a", "mob/selfft/", "inb/", "inb-", "chqpaid", "fundtrf", "iconn",
-            "imps-cib", "imps-inet", "imps-rib", "imps-mob", "inft", "mbk/xfer",
-            "payc", "r-utr", "vmt-icon", "chqpaid", "byclg", "rtgs", "neftn", "inb-",
-            "neft-barb", "ecs/", "googleindiadigital", "one97communicationslimited",
-            "toib-", "mmt/imps", "neftcr", "imps", "tortgs", "rtgs", "rtgscr",
-            "ecs/", "mob/tpft/", "imb/", "mob/selfft/", "inb/", "imps-mob", "nft/",
-            "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment"
+            "imps-cib", "imps-inet", "imps-rib", "imps-mob",
+            "neft-barb","imps", "tortgs", "rtgs", "imps-mob","inb-", "neft-"
         ]
-
+        categories_to_exclude = ["suspense"]
         def extract_entities(row):
             # Skip rows where Entity is already populated
             if row['Entity']:
                 return row['Entity']
-
+            if row['Category'] in categories_to_exclude:
+                return row['Entity']  # Skip processing and return existing value
             # Check if the category is relevant or if keywords are present in the description
             is_category_included = row['Category'] in categories_to_include
             is_keyword_present = any(keyword.lower() in row['Description'].lower() for keyword in keywords_to_include)
-
             # If neither condition is met, return the existing Entity value (even if it's empty)
             if not is_category_included and not is_keyword_present:
                 return row['Entity']  # Return the existing value
-
             text = row['Description_processed']
             if text == '':
                 return ''  # Return an empty string for Entity if the description is empty
             print(text)
             # Predict entities using the model
             entities = model.predict_entities(text, labels)
-
             # Filter entities based on confidence threshold
             filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]
-
             # Return the entity text if any entities are found
             if filtered_entities:
                 highest_score_entity = max(filtered_entities, key=lambda x: x['score'])
                 return highest_score_entity['text']  # Return only the Entity text
             else:
                 return ''  # Return an empty string if no entities are found
-
         def apply_regex_to_empty_entities_axis(row):
             if row['Entity'] == '' and row['Category'] in categories_to_include:
                 if "upi/p2a" in row['Description'] or "upi/p2m" in row['Description']:
@@ -2585,35 +2422,85 @@ class CommonFunctions:
                     if match:
                         return match.group(1)
             return row['Entity']
-
         def apply_regex_to_empty_entities_hdfc(row):
             if row['Entity'] == '' and row['Category'] in categories_to_include:
-                # Check if 'upi-' is present in the description
                 if "upi-" in row['Description']:
-                    # Match the name immediately after 'upi-' using regex
                     match = re.search(r'(?<=upi-)([a-zA-Z]+)', row['Description'])
                     if match:
-                        return match.group(1)  # Extract and return the matched name
-            return row['Entity']  # Return the existing value if no match is found
-
+                        return match.group(1)
+            return row['Entity']
+        def apply_regex_to_empty_entities_sbi(row):
+            if row['Entity'] == '' and row['Category'] in categories_to_include:
+                if "totransfer-upi" in row['Description'] or "bytransfer-upi" in row['Description']:
+                    match = re.search(r'(totransfer|bytransfer)-upi/[cd]r/\d+/([a-zA-Z]+)/', row['Description'])
+                    if match:
+                        return match.group(2)
+            return row['Entity']
+        def apply_regex_to_empty_entities_kotak(row):
+            if row['Entity'] == '' and row['Category'] in categories_to_include:
+                # Check if 'upi/' is in the description
+                if "upi/" in row['Description']:
+                    # Match the name immediately after 'upi/'
+                    match = re.search(r'upi/([a-zA-Z.]+)', row['Description'])
+                    if match:
+                        # Clean the name by removing special characters and numbers
+                        name = re.sub(r'[^a-zA-Z]', '', match.group(1))  # Keep only alphabetic characters
+                        return name if name else "Suspense"  # Return 'Suspense' if the name is empty
+            return row['Entity']
+        def extract_name_from_neft(description):
+            try:
+                matches = re.findall(r'[a-zA-Z]+', description)
+                if matches:
+                    longest_match = max(matches, key=len)
+                    return longest_match
+                return "Suspense"  # Fallback if no name is found
+            except Exception:
+                return "Suspense"  # Fallback for errors
+        NEFT_STATEMENTS = df[df["Description"].str.contains("neft", na=False)]
+        if not NEFT_STATEMENTS.empty:
+            NEFT_STATEMENTS["Entity"] = NEFT_STATEMENTS["Description"].apply(extract_name_from_neft)
+            df.update(NEFT_STATEMENTS)
+        def apply_regex_to_empty_entities_rbl(row):
+            if row['Entity'] == '' and row['Category'] in categories_to_include:
+                if "upi/" in row['Description']:
+                    match = re.search(r'upi/\d+/\w+/([a-zA-Z0-9@.]+)', row['Description'])
+                    if match:
+                        # Extract the raw name
+                        raw_name = match.group(1)
+                        # Remove numeric and '@' characters
+                        cleaned_name = re.sub(r'[0-9@]', '', raw_name)
+                        return cleaned_name
+            return row['Entity']
+        def apply_regex_to_empty_entities_idfc(row):
+            if row['Entity'] == '' and row['Category'] in categories_to_include:
+                print(f"Processing Row: {row['Description']} with Category: {row['Category']}")
+                if "upi/mob" in row['Description']:
+                    match = re.search(r'upi/mob/\d+/([\w]+)', row['Description'])
+                    if match:
+                        raw_name = match.group(1)
+                        cleaned_name = re.sub(r'[0-9@]', '', raw_name)
+                        print(f"Extracted Name: {cleaned_name}")
+                        return cleaned_name
+                    else:
+                        print("No Match Found")
+            return row['Entity']
         # Step 1: Apply regex logic first
         df['Entity'] = df.apply(apply_regex_to_empty_entities_axis, axis=1)
         df['Entity'] = df.apply(apply_regex_to_empty_entities_hdfc, axis=1)
-
-
+        df['Entity'] = df.apply(apply_regex_to_empty_entities_sbi, axis=1)
+        df['Entity'] = df.apply(apply_regex_to_empty_entities_kotak, axis=1)
+        df['Entity'] = df.apply(apply_regex_to_empty_entities_rbl, axis=1)
+        df['Entity'] = df.apply(apply_regex_to_empty_entities_idfc, axis=1)
+        print("apply",df)
         # Step 2: Apply model-based extraction only to rows with empty Entity
         df['Entity'] = df.apply(extract_entities, axis=1)
-
         # Drop the intermediate column if not needed
         df.drop(columns=['Description_processed'], inplace=True)
-
-        # Return the updated DataFrame
-        return df
-
         df["Balance"] = x  # Manish
-
         return df
 
+
+ 
     ##SHEETS
     def process_name_n_num_df(self, data):
         name_n_num_df = pd.DataFrame(data, columns=['Account Number', 'Account Name', 'Bank'])

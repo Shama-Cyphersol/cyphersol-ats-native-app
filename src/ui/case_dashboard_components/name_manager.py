@@ -85,6 +85,7 @@ class SimilarNameGroups(QMainWindow):
             self.unselected_groups = similar_names_groups["original_groups"]
         else:
             self.unselected_groups = similar_names_groups["unselected_groups"]
+
         self.final_merged_status = similar_names_groups["final_merged_status"]
 
         # print("merged groups", self.merged_groups)
@@ -407,8 +408,9 @@ class SimilarNameGroups(QMainWindow):
 
             groups_to_merge = self.merged_groups
             for group in self.unselected_groups:
-                for item in group:
-                    groups_to_merge.append([item])
+                if group != None:
+                    for item in group:
+                        groups_to_merge.append([item])
 
             new_process_df = replace_entities(process_df,groups_to_merge)
             print("Replaced entities Got new process df, now updating process df and running refresh function")
@@ -451,6 +453,8 @@ class SimilarNameGroups(QMainWindow):
             return
         
         for i, group in enumerate(self.unselected_groups):
+            if group == None:
+                continue
             group_box = QGroupBox(f"Similar Names Group {i + 1}")
             group_layout = QVBoxLayout()
             group_layout.setSpacing(8)
@@ -689,7 +693,7 @@ class SimilarNameGroups(QMainWindow):
 
     def show_success_message(self, message):
         """Show styled success message"""
-        msg = QMessageBox(self)
+        msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setWindowTitle("Success")
         msg.setText(message)

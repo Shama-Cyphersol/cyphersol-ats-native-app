@@ -1,85 +1,64 @@
 [
     {
-        "case_id": "ATS_unit_1_00002",
+        "case_id": "ATS_unit_1_00015",
         "file_names": [
-            "C:/Users/qures/Downloads/axisbank (1) (1).pdf",
-            "C:/Users/qures/Downloads/axisbank (1) (1).pdf",
-            "C:/Users/qures/Downloads/axisbank (1) (1).pdf"
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf"
         ],
         "start_date": "",
         "end_date": "",
-        "report_name": "Report_ATS_unit_1_00002",
+        "report_name": "Report_ATS_unit_1_00015",
         "individual_names": {
             "Name": [
-                "MIRAJ MADHAV RAHANE",
-                "MIRAJ MADHAV RAHANE",
-                "MIRAJ MADHAV RAHANE"
+                "PRATIK N TRIVEDI"
             ],
             "Acc Number": []
         },
-        "date": "05-12-2024"
+        "date": "07-12-2024"
     },
     {
-        "case_id": "ATS_unit_1_00001",
+        "case_id": "ATS_unit_1_00014",
         "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf"
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/52 Kotak bank account statement - Apr 23 to Mar 24.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/1729246140556GXSgCdfsjES2JHVT.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/Account_stmt_XX0133_26072024.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/Copy of Copy of IDFC FIRST Bank (1).pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/Hdfc_Acct Statement_XX5750_25102024-25102023.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/ICICI Bank Statement_1st Apr to 16th Oct 2024.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/MS. MEHAK MATTRESS AND CLOTH STORES.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/Aiyaz hdf 23.pdf",
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/hdfc poojan.pdf"
         ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_ATS_unit_1_00001",
+        "start_date": "-",
+        "end_date": "-",
+        "report_name": "Report_ATS_unit_1_00014",
         "individual_names": {
             "Name": [
-                "AIYAZ ANWAR QURESHI"
+                "Mr. PRATIK NILESH  TRIVEDI",
+                "CKYCR Number",
+                "LOWER MOHALLA ROHA RAIGAD",
+                "LOWER MOHALLA ROHA RAIGAD",
+                "MR. ASHISH PARAMHANS CHAUHAN",
+                "PRATIK N TRIVEDI",
+                "AIYAZ ANWAR QURESHI",
+                "MS. MEHAK MATTRESS AND CLOTH STORES",
+                "AIYAZ ANWAR QURESHI",
+                "POOJAN ANWAR QURESHI"
             ],
             "Acc Number": [
+                "27517",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
+                "10031489251",
                 "1637 PLOT NO"
             ]
         },
-        "date": "04-12-2024"
-    },
-    {
-        "case_id": "CA_ID_BCZV8JZ9A7KNP7W2",
-        "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
-            "C:/Users/qures/Downloads/hdfc poojan.pdf"
-        ],
-        "start_date": "-",
-        "end_date": "-",
-        "report_name": "Report_CA_ID_BCZV8JZ9A7KNP7W2",
-        "individual_names": {
-            "Name": [
-                "AIYAZ ANWAR QURESHI",
-                "POOJAN MANISH VIG"
-            ],
-            "Acc Number": [
-                "121212121211212",
-                "50100575475700"
-            ]
-        },
-        "date": "30-11-2024"
-    },
-    {
-        "case_id": "CA_ID_Q7IHPUDFL4S81DU8",
-        "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
-            "C:/Users/qures/Downloads/hdfc poojan.pdf",
-            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
-        ],
-        "start_date": "-",
-        "end_date": "-",
-        "report_name": "Report_CA_ID_Q7IHPUDFL4S81DU8",
-        "individual_names": {
-            "Name": [
-                "Aiyaz Qureshi",
-                "POOJAN MANISH VIG",
-                "AIYAZ ANWAR QURESHI"
-            ],
-            "Acc Number": [
-                "23232323",
-                "50100575475700",
-                "777701063118898"
-            ]
-        },
-        "date": "30-11-2024"
+        "date": "07-12-2024"
     }
 ]

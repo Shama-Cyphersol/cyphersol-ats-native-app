@@ -278,9 +278,9 @@ def get_last_serial_number():
 
 def update_serial_number_history(old_serial_number):
     serial_number = get_last_serial_number()
-    print("old_serial_number",old_serial_number)
+    # print("old_serial_number",old_serial_number)
     old_serial_number = int(old_serial_number)
-    print("old_serial_number",old_serial_number)
+    # print("old_serial_number",old_serial_number)
     if serial_number == old_serial_number:
         print("updating serial number")
         serial_number = [serial_number+1]
@@ -306,3 +306,6 @@ def update_serial_number_history(old_serial_number):
 # cases = load_all_case_data()
 # for case in cases:
 #     acc_numbers = case["individual_names"]["Acc Number"]
+
+# obj = find_merge_name_object("ATS_unit_1_00014")
+# print(obj.keys())

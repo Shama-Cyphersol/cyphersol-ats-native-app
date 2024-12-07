@@ -260,6 +260,7 @@ class IndividualDashboard(QMainWindow):
 
         self.content_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout = QVBoxLayout(self.content_container)
+        self.trace_layout()
         self.content_layout.setContentsMargins(20, 20, 20, 20)
         self.content_layout.setSpacing(20)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -328,3 +329,6 @@ class IndividualDashboard(QMainWindow):
         
         # Add stretch at the bottom to push content to the top and allow scroll if necessary
         self.content_layout.addStretch()
+
+    def trace_layout(self):
+        self.content_layout.destroyed.connect(lambda: print("Content layout deleted!"))

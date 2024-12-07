@@ -515,9 +515,9 @@ class ReportGeneratorTab(QWidget):
             QTimer.singleShot(100, self.process_form)
             
     def process_form(self):
-        start = time.time()
+            start = time.time()
 
-        try:
+        # try:
             # Get the form data
             pdf_paths = self.selected_files
             # password = self.password.text()
@@ -606,22 +606,10 @@ class ReportGeneratorTab(QWidget):
                         msg_box.setIcon(QMessageBox.Icon.Warning)
                         msg_box.exec()
 
-            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data)
+            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data,ner_results)
             result = converter.start_extraction()
 
-            if len(result["pdf_paths_not_extracted"]) > 0:
-                # For error message
-                msg_box = QMessageBox(self)
-                msg_box.setStyleSheet("""
-                    QMessageBox QLabel {
-                        color: black;
-                    }
-                """)
-                msg_box.setWindowTitle("Error")
-                msg_box.setText(f"Error extracting PDFs: {result['pdf_paths_not_extracted']}")
-                msg_box.setIcon(QMessageBox.Icon.Critical)
-                msg_box.exec()
-                return
+        
             
             group_of_similar_entities = self.get_similar_names(self.case_id,result)
             len_similar_groups = len(group_of_similar_entities["original_groups"])
@@ -651,25 +639,40 @@ class ReportGeneratorTab(QWidget):
             msg_box.setIcon(QMessageBox.Icon.NoIcon)
             msg_box.exec()
 
-        except Exception as e:
-            print("An error occurred while processing:", e) 
-            # For error message
-            msg_box = QMessageBox(self)
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: white;
-                }
-                QMessageBox QLabel {
-                    color: black;
-                }
-            """)
-            msg_box.setWindowTitle("Error")
-            print(e)
-            msg_box.setText(f"An error occurred while processing: {str(e)}")
-            msg_box.setIcon(QMessageBox.Icon.Critical)
-            msg_box.exec()
+            if len(result["pdf_paths_not_extracted"]) > 0:
+                # For error message
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Exception")
+                pdf_paths = ", ".join(result["pdf_paths_not_extracted"])
+                msg_box.setText(f"Following Bank statements are not processed due to some exception - {pdf_paths}")
+                msg_box.setIcon(QMessageBox.Icon.Information)
+                msg_box.exec()
 
-        finally:
+        # except Exception as e:
+            
+        #     print("An error occurred while processing:", e) 
+        #     # For error message
+        #     msg_box = QMessageBox(self)
+        #     msg_box.setStyleSheet("""
+        #         QMessageBox {
+        #             background-color: white;
+        #         }
+        #         QMessageBox QLabel {
+        #             color: black;
+        #         }
+        #     """)
+        #     msg_box.setWindowTitle("Error")
+        #     print(e)
+        #     msg_box.setText(f"An error occurred while processing: {str(e)}")
+        #     msg_box.setIcon(QMessageBox.Icon.Critical)
+        #     msg_box.exec()
+
+        # finally:
             # Always clean up the spinner
             if hasattr(self, 'spinner_movie'):
                 self.spinner_movie.stop()
@@ -735,7 +738,7 @@ class ReportGeneratorTab(QWidget):
             "original_groups":similar_groups,
             "merged_groups":[],
             "unselected_groups":[],
-            "final_mergewd_status":False
+            "final_merged_status":False
         }
 
         create_name_merge_object(obj)
