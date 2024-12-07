@@ -177,6 +177,7 @@ class CommonFunctions:
             try:
                 idf, text = self.extractor.extract_with_test_cases(bank, pdf_path, pdf_password, CA_ID)
                 name_n_num = self.extract_account_details(text)
+                print("After extract_with_test_cases")
 
             except Exception as e:
                 print(e)
@@ -213,6 +214,7 @@ class CommonFunctions:
             )
 
         idf = self.add_start_n_end_date(idf, start_date, end_date, bank)
+        print("After add_start_n_end_date")
 
         # Delete file from temporary folder
         # if os.path.exists(pdf_path):

@@ -232,12 +232,16 @@ class CABankStatement:
             start_date = self.start_date[i]
             end_date = self.end_date[i]
             acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
-
+            print("Acc Number and name: ", acc_name_n_num)
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")
             self.current_progress += 1
+            print(f"Extracting {bank} bank statement")
+            start = time.time()
             dfs[bank], name_dfs[bank] = self.commoner.extraction_process(bank, pdf_path, pdf_password, start_date,
                                                                          end_date)
-            name_dfs[bank] = acc_name_n_num[bank]
+            print("Extracted")
+            print("Name DFS: ", name_dfs[bank])
+            name_dfs[bank] = acc_name_n_num
             
             end = time.time()
             print(f"Time taken to extract bank statement: {end - start} seconds")

@@ -577,10 +577,14 @@ class ReportGeneratorTab(QWidget):
             for pdf in pdf_paths:
                 result = pdf_to_name(pdf)
                 for entity in result:
+                    name = "Unknown"
+                    acc_number = "Unknown"
                     if entity["label"] == "PER":
-                        ner_results["Name"].append(entity["text"] or "Unknown")
+                        name = entity["text"]
                     elif entity["label"] == "ACC_NO":
-                        ner_results["Acc Number"].append(entity["text"] or "Unknown")
+                        acc_number = entity["text"]
+                    ner_results["Name"].append(name)
+                    ner_results["Acc Number"].append(acc_number)
                         
             print("Ner results", ner_results)
             # Process bank statements
@@ -606,7 +610,7 @@ class ReportGeneratorTab(QWidget):
                         msg_box.setIcon(QMessageBox.Icon.Warning)
                         msg_box.exec()
 
-            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data)
+            converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data, ner_results)
             result = converter.start_extraction()
             
             group_of_similar_entities = self.get_similar_names(self.case_id,result)

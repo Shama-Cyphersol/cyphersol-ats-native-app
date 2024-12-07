@@ -1,17 +1,2 @@
 [
-    {
-        "case_id": "ATS_1_00002",
-        "file_names": [
-            "C:/Users/admin/Downloads/Axis bank AC statement.pdf"
-        ],
-        "start_date": "",
-        "end_date": "",
-        "individual_names": {
-            "Name": [
-                "ARKA BISWAS"
-            ],
-            "Acc Number": ["425453958312"]
-        },
-        "date": "05-12-2024"
-    }
 ]

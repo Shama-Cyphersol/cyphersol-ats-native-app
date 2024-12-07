@@ -684,6 +684,7 @@ class ExtractionOnly:
             final_df = self.cleaning(new_df)
 
         print(final_df.head(50))
+        print("At the end of model for pdf")
         return final_df
 
     def old_bank_extraction(self, page_path):
@@ -696,6 +697,8 @@ class ExtractionOnly:
         # Compile regex patterns for date and balance keywords for fast searching
         date_pattern = re.compile(r'\b(date|value date|value)\b', re.IGNORECASE)
         balance_pattern = re.compile(r'\b(balance|total amount)\b', re.IGNORECASE)
+
+        print("Pdf Path is:", pdf_path)
 
         try:
             # Open the PDF and determine which pages to check
@@ -757,7 +760,9 @@ class ExtractionOnly:
                 )
 
                 # Define output path for the cropped page
-                adf = pdf_path.replace("saved_pdf\\", "").replace(".pdf", "")
+                # adf = pdf_path.replace("saved_pdf", "").replace(".pdf", "")
+                adf = os.path.basename(pdf_path).replace(".pdf", "")
+                print("adf is:", adf)
                 output_page_path = os.path.join(
                     os.path.dirname(pdf_path),
                     f"{ca_id}_{adf}_{selected_page_num + 1}_crop.pdf"
