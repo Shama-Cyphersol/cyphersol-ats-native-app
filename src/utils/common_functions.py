@@ -260,66 +260,69 @@ class CommonFunctions:
         #     raise ValueError(f"Unsupported file extension: {extension}")
 
         return extension
-
+    
     def extraction_process(self, bank, pdf_path, pdf_password, start_date, end_date):
-        bank = re.sub(r"\d+", "", bank)
-        # timestamp = int(timezone.localtime().timestamp())
-        CA_ID = self.CA_ID
-        ext = self.extract_extension(pdf_path)
+        
+        # Default return values for error handling
+        empty_idf = pd.DataFrame()
+        default_name_n_num = ["_", "XXXXXXXXXX"]
 
-        if ext == ".pdf":
-            try:
-                idf, text = self.extractor.extract_with_test_cases(bank, pdf_path, pdf_password, CA_ID)
-                name_n_num = self.extract_account_details(text)
+        try:
+            bank = re.sub(r"\d+", "", bank)
+            timestamp = int(timezone.localtime().timestamp())
+            CA_ID = self.CA_ID
+            ext = self.extract_extension(pdf_path)
 
-            except Exception as e:
-                print(e)
-                raise ValueError("Error extracting data from the PDF.")
+            if ext == ".pdf":
+                try:
+                    idf, text = self.extractor.extract_with_test_cases(bank, pdf_path, pdf_password, CA_ID)
+                    name_n_num = self.extract_account_details(text)
+                except Exception as e:
+                    # Handle PDF extraction failure
+                    return empty_idf, default_name_n_num
 
-        elif ext == ".csv":
-            df = pd.read_csv(pdf_path)
-            df.loc[0] = df.columns
-            df.columns = range(df.shape[1])
-            start_index = df.apply(lambda row: (row.astype(str).str.contains("date", case=False).any() and
-                                               row.astype(str).str.contains("balance|total amount",
-                                                                            case=False).any()) or
-                                              row.astype(str).str.contains("balance|total amount", case=False).any(),
-                                  axis=1).idxmax()
-            df = df.loc[start_index:] if start_index is not None else pd.DataFrame()
-            idf = self.extractor.model_for_pdf(df)
-            name_n_num = self.extract_account_details(
-                self.extract_text_from_file(pdf_path)
-            )
+            elif ext == ".csv":
+                try:
+                    df = pd.read_csv(pdf_path)
+                    df.loc[0] = df.columns
+                    df.columns = range(df.shape[1])
+                    start_index = df.apply(lambda row: (row.astype(str).str.contains("date", case=False).any() and
+                                                    row.astype(str).str.contains("balance|total amount",
+                                                                                    case=False).any()) or
+                                                    row.astype(str).str.contains("balance|total amount", case=False).any(),
+                                        axis=1).idxmax()
+                    df = df.loc[start_index:] if start_index is not None else pd.DataFrame()
+                    idf = self.extractor.model_for_pdf(df)
+                    name_n_num = self.extract_account_details(self.extract_text_from_file(pdf_path))
+                except Exception as e:
+                    # Handle CSV extraction failure
+                    return empty_idf, default_name_n_num
 
-        else:
-            df = pd.read_excel(pdf_path)
-            df.loc[0] = df.columns
-            df.columns = range(df.shape[1])
-            start_index = df.apply(lambda row: (row.astype(str).str.contains("date", case=False).any() and
-                                               row.astype(str).str.contains("balance|total amount",
-                                                                            case=False).any()) or
-                                              row.astype(str).str.contains("balance|total amount", case=False).any(),
-                                  axis=1).idxmax()
-            df = df.loc[start_index:] if start_index is not None else pd.DataFrame()
-            idf = self.extractor.model_for_pdf(df)
-            name_n_num = self.extract_account_details(
-                self.extract_text_from_file(pdf_path)
-            )
+            else:
+                try:
+                    df = pd.read_excel(pdf_path)
+                    df.loc[0] = df.columns
+                    df.columns = range(df.shape[1])
+                    start_index = df.apply(lambda row: (row.astype(str).str.contains("date", case=False).any() and
+                                                    row.astype(str).str.contains("balance|total amount",
+                                                                                    case=False).any()) or
+                                                    row.astype(str).str.contains("balance|total amount", case=False).any(),
+                                        axis=1).idxmax()
+                    df = df.loc[start_index:] if start_index is not None else pd.DataFrame()
+                    idf = self.extractor.model_for_pdf(df)
+                    name_n_num = self.extract_account_details(self.extract_text_from_file(pdf_path))
+                except Exception as e:
+                    # Handle Excel extraction failure
+                    return empty_idf, default_name_n_num
 
-        idf = self.add_start_n_end_date(idf, start_date, end_date, bank)
+            # Add start and end date
+            idf = self.add_start_n_end_date(idf, start_date, end_date, bank)
 
-        # Delete file from temporary folder
-        # if os.path.exists(pdf_path):
-        #     try:
-        #         os.remove(pdf_path)
-        #         print(f"Deleted temporary file: {pdf_path}")
-        #     except Exception as cleanup_error:
-        #         print(f"Error deleting file {pdf_path}: {cleanup_error}")
-        # else:
-        #     print(f"Temporary file not found: {pdf_path}")
+        except Exception as e:
+            # Catch all other errors
+            return empty_idf, default_name_n_num
 
         return idf, name_n_num
-
     ##EOD
     def monthly(self, df):
         # add a new row with the average of month values in each column
@@ -916,7 +919,7 @@ class CommonFunctions:
         payment = principal * r / (1 - (1 + r) ** -n)
         # print("pmt_bl", payment)
         return payment
-
+    
     def preprocess_df(self,df):
         # Convert columns to lowercase
         for col in df.columns:
@@ -966,142 +969,6 @@ class CommonFunctions:
             "paytm", "okpaytm","pytm",
             "phonepe",
             "gpay", "googlepay","amazonupi"
-            "amazonpay",
-            "mobikwik",
-            "freecharge",
-            "cred",
-            "billdesk",
-            "citruspay", "citrus",
-            "cashfree",
-            "instamojo",
-            "payoneer",
-            "razorpay", "razor",
-            "bhim",
-            "nsdl",
-            "traces",
-
-            # Tax and Financial Terms
-            "incometax",
-            "itrfees",
-            "cbdt",
-            "dtax",
-
-            # UPI Handles and Prefixes
-            "okaxis", "okicici", "okhdfc", "okhdfcbank",
-            "oksbi", "okyesbank", "okkotak", "okbob", "okpnb",
-            "okunionbank", "okcanara", "okboi", "okiob",
-            "idfcbank", "idfc",
-            "ach/",
-            "gib/",
-            "upi/p2m", "paytmqr", "paytm","p2a",'p2m',"paytmpay","p m"
-
-            # Common Misspellings or Typos
-            "icide",  # Typo for ICICI
-            "axie",  # Typo for Axis
-            "hdffc",  # Typo for HDFC
-            "okic", "oki", "okhdf", "okaxi", "okax",
-            "rev-", "okbizaxis", "yesupi", "yblupi",
-            "idfcfirstbanklimi", "utib", "barb", "eaw-",
-            "okbizicici", "sbin", "-utib", "ybl", "yesb",
-
-            # Other Related Terms
-            "paymentoncred", "paymentoncredit", "creditpayment",
-
-            #creditor and detors
-            "toib-", "brn-clg-chq", "mmt/imps", "neftdr", "neft/mb/", "nft/", "mob/tpft",
-            "nlcindialtd", "neft/mb/ax", "tortgs", "rtgsdr", "mob/tpft/", "imb/", "imps",
-            "imps/p2a", "mob/selfft/", "inb/", "inb-", "chqpaid", "fundtrf", "iconn",
-            "imps-cib", "imps-inet", "imps-rib", "imps-mob", "inft", "mbk/xfer", "neft",
-            "payc", "r-utr", "vmt-icon", "chqpaid", "byclg", "rtgs", "neftn", "inb-",
-            "neft-barb", "ecs/", "googleindiadigital", "one97communicationslimited",
-            "toib-", "neft", "mmt/imps", "neftcr", "imps", "tortgs", "rtgs", "rtgscr",
-            "ecs/", "mob/tpft/", "imb/", "mob/selfft/", "inb/", "imps-mob", "nft/",
-            "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment"
-        ]
-        # Preprocessing function for 'Description'
-        def preprocess_description(description):
-            # Handle missing or empty descriptions
-            if pd.isnull(description) or description.strip() == '':
-                return ''
-
-            # Remove special characters but keep slashes (/)
-            clean_description = re.sub(r'[^a-zA-Z/\s]', ' ', description)
-
-            # Exclude keywords
-            for keyword in exclude_keywords:
-                pattern = rf'\b{re.escape(keyword)}\b'  # Ensure full word matching and escape special characters
-                clean_description = re.sub(pattern, '', clean_description, flags=re.IGNORECASE)
-
-            # Clean up extra spaces after removing keywords
-            clean_description = re.sub(r'\s+', ' ', clean_description).strip()
-
-            def remove_keywords(text, keywords):
-                for keyword in keywords:
-                    # If the keyword contains non-word characters, don't use word boundaries
-                    if re.search(r'\W', keyword):
-                        pattern = re.escape(keyword)
-                    else:
-                        pattern = r'\b' + re.escape(keyword) + r'\b'
-                    text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-                return text
-
-            clean_description = remove_keywords(clean_description, exclude_keywords)
-            # Convert to lowercase
-            clean_description = clean_description.lower()
-
-            return clean_description
-
-        # Apply the preprocessing to 'Description' column
-        df['Description_processed'] = df['Description'].apply(preprocess_description)
-
-        return df        # Convert columns to lowercase
-        for col in df.columns:
-            if df[col].dtype == "object":
-                df[col] = df[col].str.lower()
-
-        # Remove spaces from 'Description'
-        df["Description"] = df["Description"].str.replace(" ", "")
-
-        # Define keywords to exclude
-        exclude_keywords = [
-            # Major Indian Banks
-            "sbi", "statebankofindia", "statebank",
-            "pnb", "punjabnationalbank",
-            "bob", "bankofbaroda",
-            "canara", "canarabank",
-            "unionbank", "unionbankofindia",
-            "boi", "bankofindia", "indianbank",
-            "centralbank", "centralbankofindia",
-            "iob", "indianoverseasbank", "indianoverseas",
-            "uco", "ucobank",
-            "bankofmaharashtra", "maharashtrabank",
-            "psb", "punjabandsindbank",
-            "hdfc", "hdfcbank", "hdfcbankltd", "hdfcbanklimited",
-            "icici", "icic", "icicibank", "icicibankltd", "icicibanklimited",
-            "axis", "axisbank", "axisbankltd", "axisbanklimited",
-            "kotak", "kotakbank", "kotakmahindrabank",
-            "yesbank", "yesbankltd", "yesbanklimited",
-            "idbi", "idbibank", "idbibankltd", "idbibanklimited",
-            "idfc", "idfcfirstbank", "idfcfirst",
-            "indusind", "indusindbank",
-            "bandhan", "bandhanbank",
-            "rblbank",
-            "dhanlaxmi", "dhanlaxmibank",
-            "federal", "federalbank",
-            "southindianbank",
-            "karurvysyabank", "karurvysya",
-            "cityunionbank",
-            "jkbank", "jammukashmirbank",
-            "dcbbank",
-            "lakshmivilasbank",
-            "dbsbank",
-
-            # Payment Processors and Wallets
-            "upi",
-            "upi-"
-            "paytm", "okpaytm",
-            "phonepe",
-            "gpay", "googlepay",
             "amazonpay",
             "mobikwik",
             "freecharge",

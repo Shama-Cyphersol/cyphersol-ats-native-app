@@ -258,10 +258,13 @@ class CashFlowNetwork(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.stacked_widget.currentIndex() == 0:  # Only update if showing graph
+        if self.stacked_widget.currentIndex() == 0 and self.canvas is not None:  # Only update if showing graph
             self.update_graph()
 
     def create_graph(self):
+        if self.canvas is None or not self.isVisible():
+            print("returning from create_graph as canvas is None ")
+            return  # Prevent further execution if canvas is not valid
         self.figure.clear()
         
         # Create main axes for the graph

@@ -608,6 +608,20 @@ class ReportGeneratorTab(QWidget):
 
             converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data)
             result = converter.start_extraction()
+
+            if len(result["pdf_paths_not_extracted"]) > 0:
+                # For error message
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Error")
+                msg_box.setText(f"Error extracting PDFs: {result['pdf_paths_not_extracted']}")
+                msg_box.setIcon(QMessageBox.Icon.Critical)
+                msg_box.exec()
+                return
             
             group_of_similar_entities = self.get_similar_names(self.case_id,result)
             len_similar_groups = len(group_of_similar_entities["original_groups"])
@@ -721,6 +735,7 @@ class ReportGeneratorTab(QWidget):
             "original_groups":similar_groups,
             "merged_groups":[],
             "unselected_groups":[],
+            "final_mergewd_status":False
         }
 
         create_name_merge_object(obj)

@@ -37,10 +37,10 @@ class WebBridge(QObject):
 
 
 class AccountNumberAndNameManager(QMainWindow):
-    def __init__(self, case_id,refresh_case_data):
+    def __init__(self, case_id,refresh_case_dashboard):
         super().__init__()
         self.case_id = case_id
-        self.refresh_case_data = refresh_case_data
+        self.refresh_case_dashboard = refresh_case_dashboard
         self.data = load_case_data(case_id)
         
         print("Data:", self.data)
@@ -209,9 +209,6 @@ class AccountNumberAndNameManager(QMainWindow):
                 #submitButton:hover {{
                     background-color: #2980b9;
                 }}
-                #submitButton:active {{
-                    transform: translateY(1px);
-                }}
             </style>
             <script>
                 let bridge = null;
@@ -360,7 +357,7 @@ class AccountNumberAndNameManager(QMainWindow):
             
 
             response = update_case_data(self.case_id,self.data)
-            self.refresh_case_data(self.data)
+            self.refresh_case_dashboard(new_case_data=self.data,source="AccountNumberAndNameManager")
             print("Updated Data:", self.data)
 
             process_df = get_process_df(self.case_id)

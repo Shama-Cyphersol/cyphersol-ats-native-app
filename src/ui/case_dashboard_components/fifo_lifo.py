@@ -6,6 +6,8 @@ from PyQt6.QtWebChannel import QWebChannel
 import pandas as pd
 import sys
 import json
+from src.utils.refresh import lifo_fifo
+from src.utils.json_logic import get_process_df
 
 
 dummy_data = {
@@ -117,27 +119,18 @@ class FIFO_LFIO_Analysis(QWidget):
         self.result = result
         self.case_id = case_id
         self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
+        print
         # self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
         self.layout = QVBoxLayout()
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_area.setWidget(scroll_widget)
-
-        # print("lifo_fifo_analysis_data ",self.lifo_fifo_analysis_data)
+        self.scroll_area.setWidget(scroll_widget)
 
         # Check if lifo_fifo_analysis_data is empty
-        self.is_data_empty = False
-        try:
-            if self.lifo_fifo_analysis_data.empty:
-                self.is_data_empty = True
-        except:
-            if not self.lifo_fifo_analysis_data:
-                self.is_data_empty = True
-                
-        if self.is_data_empty:
+        if not self.lifo_fifo_analysis_data:
             no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
             no_data_label.setStyleSheet("""
                 color: #555;
@@ -150,20 +143,20 @@ class FIFO_LFIO_Analysis(QWidget):
             # scroll_area.setMinimumHeight(500)
 
         else:
-            # self.create_dropdowns()
+            self.create_dropdowns()
             for key, value in self.lifo_fifo_analysis_data.items():
                 accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
                 scroll_layout.addWidget(accordion_item)
             
             # scroll_area.setMinimumHeight(2500)
             # set scroll_area hieght such that to fit all content
-            scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
+            self.scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
             scroll_layout.addStretch(1)
-            self.layout.addWidget(scroll_area)
+            self.layout.addWidget(self.scroll_area)
             
         self.setLayout(self.layout)
 
-        
+    
     def create_dropdowns(self):
         class Handler(QObject):
             def __init__(self, parent=None):
@@ -173,8 +166,38 @@ class FIFO_LFIO_Analysis(QWidget):
             @pyqtSlot(str)
             def handleFilters(self, filters_json):
                 filters = json.loads(filters_json)
-                self.widget.apply_filters(filters)
+                self.apply_filters(filters)
+            
+            def update_accordion_content(self):
+                self.widget.layout.removeWidget(self.widget.scroll_area)
+                scroll_widget = QWidget()
+                scroll_layout = QVBoxLayout(scroll_widget)
                 
+                for key, value in self.widget.lifo_fifo_analysis_data.items():
+                    accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
+                    scroll_layout.addWidget(accordion_item)
+                
+                self.widget.scroll_area.setWidget(scroll_widget)
+                self.widget.scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
+                
+                self.widget.layout.addWidget(self.widget.scroll_area)
+                self.widget.setLayout(self.widget.layout)
+
+            def apply_filters(self, filters):
+                    entities = filters['entities']
+                    print("Entities:", entities)
+                    process_df = get_process_df(self.widget.case_id)
+                    # print("Process df:", process_df.head())
+                        
+                    filtered_result = lifo_fifo(df=process_df, entities_of_interest=entities)
+                    print("\nFiltered result:", filtered_result)
+                    
+                    self.widget.lifo_fifo_analysis_data = filtered_result
+
+                    # print("\nUpdated LIFO FIFO data:", self.widget.lifo_fifo_analysis_data)
+                    self.update_accordion_content()
+
+        
         self.web_view = QWebEngineView()
         self.channel = QWebChannel(self.web_view.page())
         self.handler = Handler(self)
@@ -184,6 +207,8 @@ class FIFO_LFIO_Analysis(QWidget):
         entities = sorted(self.result["cummalative_df"]["entity_df"]['Entity'].dropna().unique())
 
         entity_options = '\n'.join([f'<option value="{entity}">{entity}</option>' for entity in entities])
+
+        # self.update_accordion_content(self)
 
         html_content = f"""
         <!DOCTYPE html>

@@ -2,8 +2,9 @@ from PyQt6.QtWidgets import QApplication, QVBoxLayout,QMessageBox, QDialog, QFil
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import pyqtSlot, QObject
-from utils.json_logic import load_all_case_data, load_case_data
-
+from utils.json_logic import load_all_case_data, load_case_data, get_process_df
+from utils.refresh import create_excel_with_sheets
+import os
 
 class ReportsTab(QDialog):
     def __init__(self):
@@ -34,6 +35,17 @@ class ReportsTab(QDialog):
     def generate_reports_html(self, reports_data):
         # Include the WebChannel setup in the HTML
         rows = ""
+        # for i, report in enumerate(reports_data):
+        #     rows += f"""
+        #         <tr>
+        #             <td>{i + 1}</td>
+        #             <td>{report.get('date', '')}</td>
+        #             <td>{report.get('case_id', '')}</td>
+        #             <td>{report.get('report_name', '')}</td>
+        #             <td><button onclick="qtWidget.viewDetails('{report.get('case_id', '')}')">View Details</button></td>
+        #         </tr>
+        #     """
+
         for i, report in enumerate(reports_data):
             rows += f"""
                 <tr>
@@ -41,7 +53,7 @@ class ReportsTab(QDialog):
                     <td>{report.get('date', '')}</td>
                     <td>{report.get('case_id', '')}</td>
                     <td>{report.get('report_name', '')}</td>
-                    <td><button onclick="qtWidget.viewDetails('{report.get('case_id', '')}')">View Details</button></td>
+                    <td><button onclick="qtWidget.downloadAllinOneReport('{report.get('case_id', '')}')">Download Report</button></td>
                 </tr>
             """
 
@@ -123,6 +135,60 @@ class ReportsTab(QDialog):
         case_data = load_case_data(case_id)
         html = self.generate_individuals_html(case_id, case_data)
         self.web_view.setHtml(html)
+    
+    @pyqtSlot(str)
+    def downloadAllinOneReport(self, case_id):
+        folder_path = os.path.join(os.path.dirname(__file__),"..","data","reports")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        file_path = os.path.join(folder_path, f"case_{case_id}_report.xlsx")
+
+        # check if the file already exists or not 
+        if not os.path.exists(file_path):
+            self.create_all_in_one_report(case_id, file_path)
+
+        # make that file downloadable
+        save_file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Save  Report", 
+            file_path, 
+            "Excel Files (*.xlsx);"
+        )
+        if save_file_path:
+            try:
+                with open(file_path, 'rb') as f:
+                    with open(save_file_path, 'wb') as f2:
+                        f2.write(f.read())
+                        
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Success")
+                msg_box.setText(f"Report for case {case_id} has been saved to {save_file_path}")
+                msg_box.setIcon(QMessageBox.Icon.NoIcon)
+                msg_box.exec()
+              
+            except Exception as e:
+
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Download Failed")
+                msg_box.setText(f"Could not save report: {str(e)}")
+                msg_box.setIcon(QMessageBox.Icon.Warning)
+                msg_box.exec()
+
+
+    def create_all_in_one_report(self, case_id,file_path):
+        # Generate and load individuals table for the clicked case_id
+        process_df = get_process_df(case_id)
+        create_excel_with_sheets(process_df,file_path)
 
     def generate_individuals_html(self, case_id, case_data):
         rows = ""

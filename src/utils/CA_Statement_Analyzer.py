@@ -224,18 +224,26 @@ class CABankStatement:
         name_dfs = {}
         i = 0
 
+        pdf_paths_not_extracted = []
+
         for bank in self.bank_names:
             bank = str(f"{bank}{i}")
             pdf_path = self.pdf_paths[i]
             pdf_password = self.pdf_passwords[i]
             start_date = self.start_date[i]
             end_date = self.end_date[i]
+            acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
 
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")
             self.current_progress += 1
-            start = time.time()
             dfs[bank], name_dfs[bank] = self.commoner.extraction_process(bank, pdf_path, pdf_password, start_date,
                                                                          end_date)
+            name_dfs[bank] = acc_name_n_num[bank]
+
+            # Check if the extracted dataframe is empty
+            if dfs[bank].empty:
+                pdf_paths_not_extracted.append(pdf_path)
+
             end = time.time()
             print(f"Time taken to extract bank statement: {end - start} seconds")
             self.progress_function(self.current_progress, self.total_progress,
@@ -276,8 +284,7 @@ class CABankStatement:
             print(f"Failed to remove '{folder_path}': {e}")
 
         # return (self.account_number, self.current_progress)
-        return {"single_df":single_df, "cummalative_df":cummalative_df}
-
+        return {"single_df":single_df, "cummalative_df":cummalative_df, 'pdf_paths_not_extracted': pdf_paths_not_extracted}
 ### --------------------------------------------------------------------------------------------------------- ###
 #
 # settings.configure(USE_TZ=True)

@@ -1,13 +1,11 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
-                             QScrollArea, QDialog,QPushButton,QSplitter,QSizePolicy)
+                             QScrollArea, QDialog,QPushButton,QMessageBox,QSplitter,QSizePolicy)
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt,QEvent
 from utils.json_logic import *
 from functools import partial
 from utils.json_logic import delete_name_merge_object
 from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
-
-# from .case_dashboard_components.entity import create_entity_distribution_chart
 # from .case_dashboard_components.individual_table import create_individual_dashboard_table
 # from .case_dashboard_components.link_analysis import LinkAnalysisWidget
 # from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
@@ -51,6 +49,7 @@ class SidebarButton(QPushButton):
                 border-left: 3px solid transparent;
             }
         """)
+        
 
 class CaseDashboard(QWidget):
     def __init__(self, case_id):
@@ -60,34 +59,95 @@ class CaseDashboard(QWidget):
         self.case_result = load_result(self.case_id)
         self.buttons = {}  # Store buttons for management
         self.section_widgets = {}  # Store section widgets
+        self._widget_refs = {}
+
         self.current_section_label = None  # Store current section label
-        self.sidebar_options_disabled = True
+        self.disabled_buttons = []
+        # self.sidebar_options_disabled = True
+        similar_names_groups = find_merge_name_object(self.case_id)
+        if similar_names_groups==None or similar_names_groups["final_merged_status"] == False:
+                self.disabled_buttons = ["Link Analysis", "Bi-Directional Analysis", "FIFO LIFO","Fund Tracking","Entites Distribution","Network Graph"]
 
          # Lazy loading mapping
         self.lazy_categories = {
             "Name Manager": self.lazy_load_name_manager,
             "Acc No and Name Manager": self.lazy_load_account_manager,
+            # "Network Graph": create_network_graph(self.case_result),
             "Network Graph": self.lazy_load_network_graph,
             "Entites Distribution": self.lazy_load_entity_distribution,
             "Individual Table": self.lazy_load_individual_table,
             "Link Analysis": self.lazy_load_link_analysis,
             "Bi-Directional Analysis": self.lazy_load_bidirectional_analysis,
-            "FIFO LIFO": self.lazy_load_fifo_lifo
+            "FIFO LIFO": self.lazy_load_fifo_lifo,
+            "Fund Tracking": self.lazy_load_fund_tracking
         }
         
         self.init_ui()
 
     def lazy_load_network_graph(self):
-        from .case_dashboard_components.network import create_network_graph
-        return create_network_graph(result=self.case_result)
+        from .case_dashboard_components.CashFlowNetwork import CashFlowNetwork
+        try:
+            process_df = self.case_result["cummalative_df"]["process_df"]
+            # More robust filtering
+            filtered_df = process_df[['Name', 'Value Date', 'Debit', 'Credit', 'Entity']]
+            filtered_df = filtered_df[filtered_df['Entity'].notna() & (filtered_df['Entity'] != '')]
+            
+            # Check if filtered DataFrame is not empty before creating CashFlowNetwork
+            if not filtered_df.empty:
+                return CashFlowNetwork(filtered_df)
+            else:
+                # Return a message or a placeholder widget
+                from PyQt6.QtWidgets import QLabel
+                return QLabel("No entities found for network graph.")
+        
+        except Exception as e:
+            from PyQt6.QtWidgets import QLabel
+            print(f"Error in network graph: {e}")
+            return QLabel(f"Error loading network graph: {str(e)}")
 
     def lazy_load_entity_distribution(self):
-        from .case_dashboard_components.entity import create_entity_distribution_chart
-        return create_entity_distribution_chart(self.case_result)
+        from .case_dashboard_components.entity import EntityDistributionChart
+        
+        try:
+            entity_df = self.case_result["cummalative_df"]["entity_df"]
+            
+            # More robust filtering
+            entity_df = entity_df[entity_df['Entity'].notna() & (entity_df['Entity'] != '')]
+            entity_df = entity_df[entity_df.iloc[:, 0] != ""]
+            
+            # Check if DataFrame is not empty before processing
+            if not entity_df.empty:
+                # Take top 10 entities by frequency
+                entity_df_10 = entity_df.nlargest(10, entity_df.columns[1]) if len(entity_df) > 10 else entity_df
+
+                all_transactions = self.case_result["cummalative_df"]["process_df"]
+                all_transactions = all_transactions[all_transactions['Entity'].notna() & (all_transactions['Entity'] != '')]
+
+                return EntityDistributionChart(data={
+                    "piechart_data": entity_df_10,
+                    "table_data": entity_df,
+                    "all_transactions": all_transactions
+                })
+            else:
+                # Return a message or a placeholder widget
+                return QLabel("No entities found for distribution chart.")
+        
+        except Exception as e:
+            print(f"Error in entity distribution: {e}")
+            return QLabel(f"Error loading entity distribution: {str(e)}")
 
     def lazy_load_individual_table(self):
-        from .case_dashboard_components.individual_table import create_individual_dashboard_table
-        return create_individual_dashboard_table(self.case)
+        from .case_dashboard_components.individual_table import create_individual_dashboard_table,IndividualDashboardTable
+        data = []
+        for i in range(len(self.case["individual_names"]["Name"])):
+            data.append({
+                "Name": self.case["individual_names"]["Name"][i],
+                "Account Number": self.case["individual_names"]["Acc Number"][i],
+                "Pdf Path": self.case["file_names"][i],
+                "row_id": i
+            })
+        
+        return IndividualDashboardTable(data,self.case_id)
 
     def lazy_load_link_analysis(self):
         from .case_dashboard_components.link_analysis import LinkAnalysisWidget
@@ -103,12 +163,16 @@ class CaseDashboard(QWidget):
 
     def lazy_load_name_manager(self):
         from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
-        return SimilarNameGroups(self.case_id, self)
+        return SimilarNameGroups(case_id=self.case_id,parent= self,refresh_case_dashboard=self.refresh_case_dashboard)
 
     def lazy_load_account_manager(self):
         from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
-        return AccountNumberAndNameManager(self.case_id,self.refresh_case_data)
+        return AccountNumberAndNameManager(self.case_id,self.refresh_case_dashboard)
     
+    def lazy_load_fund_tracking(self):
+        from src.ui.case_dashboard_components.fund_tracking import FundTrackingComponent
+        return FundTrackingComponent(self.case_id,self.case_result["cummalative_df"]["process_df"])
+        
 
     def init_ui(self):
         self.showFullScreen()  # Make window fullscreen
@@ -139,7 +203,7 @@ class CaseDashboard(QWidget):
         main_layout.addWidget(splitter, stretch=1)
 
         # Set default section to open
-        self.showSection("Name Manager", SimilarNameGroups(self.case_id, self))
+        self.showSection("Name Manager", SimilarNameGroups(case_id=self.case_id,parent= self,refresh_case_dashboard=self.refresh_case_dashboard))
 
         self.setLayout(main_layout)
     
@@ -204,18 +268,92 @@ class CaseDashboard(QWidget):
         for category in self.categories:
             # Create button for each category
             btn = SidebarButton(category)
-            if self.sidebar_options_disabled and (category is not "Name Manager" and not "Acc No and Name Manager"):
-                btn.setEnabled(False)
-                btn.setCheckable(False)
-            else:
-                btn.clicked.connect(partial(self.showSection, category))
+
+            if category in self.disabled_buttons:
+                btn.setDisabled(True)
+                btn.installEventFilter(self)
+
+            # else:
+            btn.clicked.connect(partial(self.showSection, category))
             self.buttons[category] = btn
             sidebar_layout.addWidget(btn)
 
         sidebar_layout.addStretch()
         return sidebar
+    
+    def eventFilter(self, obj, event):
+        # Check if the object is a disabled button and the event is a mouse press
+        if (isinstance(obj, SidebarButton) and obj.isEnabled() == False and 
+            event.type() == QEvent.Type.MouseButtonPress):
+            
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Warning")
+            msg_box.setText("Please Merge Similar Names first from Name Manager Tab in order to get accurate Analysis.")
+            msg_box.setIcon(QMessageBox.Icon.Warning)
 
-   
+            # Create custom buttons with specific text
+            btn_styles = """
+                QPushButton {
+                    border-radius: 5px;
+                    padding: 6px 10px;
+                    font-weight: 400;
+                    border: 1px solid #999999;
+                }
+                QPushButton:hover {
+                }
+            """
+            merge_now_button = QPushButton("Merge Names Now")
+            merge_now_button.setStyleSheet(btn_styles+"""
+            QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                }            
+            """)
+            merge_later_button = QPushButton("Merge Names Later")
+            merge_later_button.setStyleSheet(btn_styles+"""
+            QPushButton {
+                    background-color: #c0392b;
+                    color: white;
+                }            
+            """)
+
+            # Add the custom buttons to the message box
+            msg_box.addButton(merge_now_button, QMessageBox.ButtonRole.AcceptRole)
+            msg_box.addButton(merge_later_button, QMessageBox.ButtonRole.RejectRole)
+            msg_box.setDefaultButton(merge_now_button)  # Set default button
+            msg_box.setEscapeButton(merge_now_button)  # Set escape button
+            
+
+            reply = msg_box.exec()
+            clicked_button = msg_box.clickedButton()
+
+            # Check which button was clicked
+            if clicked_button  == merge_now_button:
+                # Redirect to Name Manager tab
+                self.showSection("Name Manager", SimilarNameGroups(case_id=self.case_id,parent= self,refresh_case_dashboard=self.refresh_case_dashboard))
+
+            elif clicked_button  == merge_later_button:
+                # Enable all previously disabled buttons
+               self.enable_disabled_options()
+               
+            # Return True to indicate the event has been handled
+            return True
+        
+        # Let the default event handling continue for other events
+        return super().eventFilter(obj, event)
+
+    def enable_disabled_options(self):
+        for category in self.disabled_buttons:
+            if category in self.buttons:
+                self.buttons[category].setEnabled(True) 
+                self.buttons[category].removeEventFilter(self)
+        self.disabled_buttons = []  # Clear the list after enabling
+
     def createContentArea(self):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
@@ -307,55 +445,90 @@ class CaseDashboard(QWidget):
         dialog.exec()
 
     def showSection(self, section_name, widget_class):
-        for btn in self.buttons.values():
-            btn.setChecked(False)
-        self.buttons[section_name].setChecked(True)
+        try:
+            for btn in self.buttons.values():
+                btn.setChecked(False)
+            self.buttons[section_name].setChecked(True)
 
-        if section_name == "Acc No and Name Manager":
-            self.current_section_label.setText("Account Number and Name Manager")
-        else:
-            self.current_section_label.setText(section_name)
-
-        # if section_name in self.section_widgets:
-        #     widget = self.section_widgets[section_name]
-        # else:
-        #     widget = widget_class
-        #     self.section_widgets[section_name] = widget
-
-        # Lazy load the widget if it doesn't exist
-        if section_name not in self.section_widgets:
-            # Use the lazy loading function to create the widget
-            widget = self.lazy_categories[section_name]()
-            self.section_widgets[section_name] = widget
-
-        # Get the widget (either newly created or existing)
-        widget = self.section_widgets[section_name]
-
-        if section_name == "Name Manager" or section_name == "Acc No and Name Manager":
-            widget.setMinimumHeight(int(self.height()*0.8))
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
-        # Clear the content layout
-        while self.content_layout.count():
-            item = self.content_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
-        
-        self.content_layout.addWidget(widget)
-        
-        self.content_layout.addStretch()
+            if section_name == "Acc No and Name Manager":
+                self.current_section_label.setText("Account Number and Name Manager")
+            else:
+                self.current_section_label.setText(section_name)
 
-    def refresh_case_data(self,new_case_data):
-        self.case = new_case_data
-        self.section_widgets["Network Graph"] = self.lazy_load_network_graph()
-        self.section_widgets["Entites Distribution"] = self.lazy_load_bidirectional_analysis()
-        self.section_widgets["Individual Table"] = self.lazy_load_individual_table()
-        self.section_widgets["Link Analysis"] = self.lazy_load_link_analysis()
-        self.section_widgets["Bi-Directional Analysis"] = self.lazy_load_bidirectional_analysis()
-        self.section_widgets["FIFO LIFO"] = self.lazy_load_fifo_lifo()
-        delete_name_merge_object(self.case_id)
-        self.section_widgets["Name Manager"] = self.lazy_load_name_manager()
+            # if section_name in self.section_widgets:
+            #     widget = self.section_widgets[section_name]
+            # else:
+            #     widget = widget_class
+            #     self.section_widgets[section_name] = widget
 
+            # Lazy load the widget if it doesn't exist
+            # if section_name not in self.section_widgets :
+            #     # Use the lazy loading function to create the widget
+            #     widget = self.lazy_categories[section_name]()
+            #     self._widget_refs[section_name] = widget
+            #     self.section_widgets[section_name] = widget
+
+            # # Get the widget (either newly created or existing)
+            # widget = self.section_widgets[section_name] 
+            if section_name in self.section_widgets:
+                widget = self.section_widgets[section_name]
+            else:
+                widget = self.lazy_categories[section_name]()
+                self.section_widgets[section_name] = widget
+            
+            # Set minimum height for specific sections
+            if section_name in ["Name Manager", "Acc No and Name Manager"]:
+                widget.setMinimumHeight(int(self.height()*0.8))
+            
+            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            
+            # Clear the content layout
+            while self.content_layout.count():
+                item = self.content_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+                
+            self.content_layout.addWidget(widget)
+            
+            self.content_layout.addStretch()
+
+        except Exception as e:
+                import traceback
+                print(f"Error in showSection: {e}")
+                print(traceback.format_exc())
+
+                # Fallback error handling
+                from PyQt6.QtWidgets import QLabel, QMessageBox
+                error_label = QLabel(f"Error loading section: {str(e)}")
+                
+                # Show error message box
+                error_box = QMessageBox()
+                error_box.setIcon(QMessageBox.Icon.Critical)
+                error_box.setText("Error Loading Section")
+                error_box.setInformativeText(str(e))
+                error_box.setWindowTitle("Section Loading Error")
+                error_box.exec()
+        
+                
+    def refresh_case_dashboard(self,source,new_case_data=None):
+        # refresh this page
+        # if source == "SimilarNameGroups":
+        #     self.enable_disabled_options()
+
+        # self.section_widgets["Name Manager"] = self.lazy_load_name_manager()
+        # self.section_widgets["Acc No and Name Manager"] = self.lazy_load_account_manager()
+        # self.section_widgets["Network Graph"] = self.lazy_load_network_graph()
+        # self.section_widgets["Entites Distribution"] = self.lazy_load_entity_distribution()
+        # self.section_widgets["Individual Table"] = self.lazy_load_individual_table()
+        # self.section_widgets["Link Analysis"] = self.lazy_load_link_analysis()
+        # self.section_widgets["Bi-Directional Analysis"] = self.lazy_load_bidirectional_analysis()
+        # self.section_widgets["FIFO LIFO"] = self.lazy_load_fifo_lifo()
+        # if source == "AccountNumberAndNameManager":
+        #     self.case = new_case_data
+        #     delete_name_merge_object(self.case_id)
+
+        pass
         # self.section_widgets=self.lazy_categories
 
      

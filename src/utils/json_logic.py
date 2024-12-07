@@ -289,9 +289,10 @@ def update_serial_number_history(old_serial_number):
 
 
 
-# test = load_result("CA_ID_JG5DYO7CDVYWQB46")
-# cummalative_df =  test["single_df"]["C2"]
-# print(cummalative_df)
+# test = load_result("CA_ID_BCZV8JZ9A7KNP7W2")
+# cummalative_df =  test["cummalative_df"]["process_df"]
+# cummalative_df.to_excel("delhey.xlsx")
+# print(cummalative_df.head(15))
 
 # test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
 # test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]

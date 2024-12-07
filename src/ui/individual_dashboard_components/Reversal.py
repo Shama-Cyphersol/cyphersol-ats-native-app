@@ -114,7 +114,6 @@ class Reversal(QMainWindow):
                 }}
                 
                 .stat-card:hover {{
-                    transform: translateY(-5px);
                     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
                 }}
                 
@@ -167,15 +166,6 @@ class Reversal(QMainWindow):
                     margin-top: 10px;
                 }}
 
-                @keyframes pulse {{
-                    0% {{ transform: scale(1); }}
-                    50% {{ transform: scale(1.02); }}
-                    100% {{ transform: scale(1); }}
-                }}
-                
-                .pulse {{
-                    animation: pulse 2s infinite;
-                }}
             </style>
         </head>
         <body>
@@ -481,9 +471,9 @@ class Reversal(QMainWindow):
                     filteredData = data.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.debit.toLowerCase().includes(searchTerm) ||
-                               row.credit.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm);
                     }});
                     

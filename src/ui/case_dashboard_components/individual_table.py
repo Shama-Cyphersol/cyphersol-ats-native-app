@@ -354,6 +354,7 @@ class IndividualDashboardTable(QWidget):
         )
         
         new_window = QDialog(self)
+        new_window.setWindowTitle("Individual Dashboard")
         new_window.setModal(False)
         new_window.showMaximized()
         

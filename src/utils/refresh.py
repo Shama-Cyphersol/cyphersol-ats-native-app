@@ -895,133 +895,144 @@ def pmt_bl(self):
     return payment
 
 def preprocess_df(df):
-    # Convert columns to lowercase
-    for col in df.columns:
-        if df[col].dtype == "object":
-            df[col] = df[col].str.lower()
+        # Convert columns to lowercase
+        for col in df.columns:
+            if df[col].dtype == "object":
+                df[col] = df[col].str.lower()
 
-    # Remove spaces from 'Description'
-    df["Description"] = df["Description"].str.replace(" ", "")
+        # Remove spaces from 'Description'
+        df["Description"] = df["Description"].str.replace(" ", "")
 
-    # Define keywords to exclude
-    exclude_keywords = [
-# Major Indian Banks and their variations
-"sbi", "statebankofindia", "statebank",
-"pnb", "punjabnationalbank",
-"bob", "bankofbaroda",
-    "canara", "canarabank",
-    "unionbank", "unionbankofindia",
-    "boi", "bankofindia","indianbank",
-"centralbank", "centralbankofindia",
-"iob", "indianoverseasbank", "indianoverseas",
-"uco", "ucobank",
-"bankofmaharashtra", "maharashtrabank",
-"psb", "punjabandsindbank",
-    "hdfc", "hdfcbank", "hdfcbankltd", "hdfcbanklimited",
-    "icici","icic", "icicibank", "icicibankltd", "icicibanklimited",
-    "axis", "axisbank", "axisbankltd", "axisbanklimited",
-    "kotak", "kotakbank", "kotakmahindrabank",
-    "yesbank", "yesbankltd", "yesbanklimited",
-    "idbi", "idbibank", "idbibankltd", "idbibanklimited",
-    "idfc", "idfcfirstbank", "idfcfirst",
-    "indusind","indusindbank",
-    "bandhan", "bandhanbank",
-    "rbl", "rblbank",
-    "dhanlaxmi", "dhanlaxmibank",
-    "federal", "federalbank",
-    "southindianbank",
-    "karurvysyabank", "karurvysya",
-    "cityunionbank",
-    "jkbank", "jammukashmirbank",
-    "dcbbank",
-    "lakshmivilasbank",
-    "dbsbank","axisb","okbizaxis","fcbank",""
+        # Define keywords to exclude
+        exclude_keywords = [
+            # Major Indian Banks
+            "sbi", "statebankofindia", "statebank",
+            "pnb", "punjabnationalbank",
+            "bob", "bankofbaroda",
+            "canara", "canarabank",
+            "unionbank", "unionbankofindia",
+            "boi", "bankofindia", "indianbank",
+            "centralbank", "centralbankofindia",
+            "iob", "indianoverseasbank", "indianoverseas",
+            "uco", "ucobank",
+            "bankofmaharashtra", "maharashtrabank",
+            "psb", "punjabandsindbank",
+            "hdfc", "hdfcbank", "hdfcbankltd", "hdfcbanklimited",
+            "icici", "icic", "icicibank", "icicibankltd", "icicibanklimited",
+            "axis", "axisbank", "axisbankltd", "axisbanklimited",
+            "kotak", "kotakbank", "kotakmahindrabank",
+            "yesbank", "yesbankltd", "yesbanklimited",
+            "idbi", "idbibank", "idbibankltd", "idbibanklimited",
+            "idfc", "idfcfirstbank", "idfcfirst",
+            "indusind", "indusindbank",
+            "bandhan", "bandhanbank",
+            "rblbank",
+            "dhanlaxmi", "dhanlaxmibank",
+            "federal", "federalbank",
+            "southindianbank",
+            "karurvysyabank", "karurvysya",
+            "cityunionbank",
+            "jkbank", "jammukashmirbank",
+            "dcbbank",
+            "lakshmivilasbank",
+            "dbsbank",
 
-# Payment Processors and Wallets
-"upi",
-"paytm", "okpaytm",
-"phonepe",
-"gpay", "googlepay",
-"amazonpay",
-"mobikwik",
-"freecharge",
+            # Payment Processors and Wallets
+            "upi",
+            "upi-"
+            "paytm", "okpaytm","pytm",
+            "phonepe",
+            "gpay", "googlepay","amazonupi"
+            "amazonpay",
+            "mobikwik",
+            "freecharge",
+            "cred",
+            "billdesk",
+            "citruspay", "citrus",
+            "cashfree",
+            "instamojo",
+            "payoneer",
+            "razorpay", "razor",
+            "bhim",
+            "nsdl",
+            "traces",
 
-"cred",
-"billdesk",
-    "citruspay", "citrus",
-"cashfree",
-"instamojo",
-"payoneer",
-"razorpay", "razor",
-"bhim",
-"nsdl",
-"traces",
+            # Tax and Financial Terms
+            "incometax",
+            "itrfees",
+            "cbdt",
+            "dtax",
 
-# Tax and Financial Terms
-"incometax",
-"itrfees",
-"cbdt", 
-"dtax",
+            # UPI Handles and Prefixes
+            "okaxis", "okicici", "okhdfc", "okhdfcbank",
+            "oksbi", "okyesbank", "okkotak", "okbob", "okpnb",
+            "okunionbank", "okcanara", "okboi", "okiob",
+            "idfcbank", "idfc",
+            "ach/",
+            "gib/",
+            "upi/p2m", "paytmqr", "paytm","p2a",'p2m',"paytmpay","p m"
 
-# UPI Handles and Prefixes
-"okaxis", "okicici", "okhdfc", "okhdfcbank",
-"oksbi", "okyesbank", "okkotak", "okbob", "okpnb",
-"okunionbank", "okcanara", "okboi", "okiob",
-"idfcbank", "idfc",
-"ach/",
-"gib/",
-"upi/","paytmqr"
+            # Common Misspellings or Typos
+            "icide",  # Typo for ICICI
+            "axie",  # Typo for Axis
+            "hdffc",  # Typo for HDFC
+            "okic", "oki", "okhdf", "okaxi", "okax",
+            "rev-", "okbizaxis", "yesupi", "yblupi",
+            "idfcfirstbanklimi", "utib", "barb", "eaw-",
+            "okbizicici", "sbin", "-utib", "ybl", "yesb",
 
-# Common Misspellings or Typos
-"icide",  # typo for ICICI
-"axie",   # typo for Axis
-"hdffc",  # typo for HDFC
-"okic", "oki", "okhdf", "okaxi", "okax","imps","rev-","neftcr","okbizaxis","yesupi","yblupi","idfcfirstbanklimi","utib","barb","eaw-","okbizicici","rev-","sbin","-utib","ybl","yesb",""
+            # Other Related Terms
+            "paymentoncred", "paymentoncredit", "creditpayment",
 
-# Other Related Terms
-"paymentoncred", "paymentoncredit", "creditpayment",
-]
+            #creditor and detors
+            "toib-", "brn-clg-chq", "mmt/imps", "neftdr", "neft/mb/", "nft/", "mob/tpft",
+            "nlcindialtd", "neft/mb/ax", "tortgs", "rtgsdr", "mob/tpft/", "imb/", "imps",
+            "imps/p2a", "mob/selfft/", "inb/", "inb-", "chqpaid", "fundtrf", "iconn",
+            "imps-cib", "imps-inet", "imps-rib", "imps-mob", "inft", "mbk/xfer", "neft",
+            "payc", "r-utr", "vmt-icon", "chqpaid", "byclg", "rtgs", "neftn", "inb-",
+            "neft-barb", "ecs/", "googleindiadigital", "one97communicationslimited",
+            "toib-", "neft", "mmt/imps", "neftcr", "imps", "tortgs", "rtgs", "rtgscr",
+            "ecs/", "mob/tpft/", "imb/", "mob/selfft/", "inb/", "imps-mob", "nft/",
+            "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment"
+        ]
+        # Preprocessing function for 'Description'
+        def preprocess_description(description):
+            # Handle missing or empty descriptions
+            if pd.isnull(description) or description.strip() == '':
+                return ''
 
-    # Preprocessing function for 'Description'
-    def preprocess_description(description):
-        # Handle missing or empty descriptions
-        if pd.isnull(description) or description.strip() == '':
-            return ''
+            # Remove special characters but keep slashes (/)
+            clean_description = re.sub(r'[^a-zA-Z/\s]', ' ', description)
 
-        # Remove special characters but keep slashes (/)
-        clean_description = re.sub(r'[^a-zA-Z/\s]', ' ', description)
+            # Exclude keywords
+            for keyword in exclude_keywords:
+                pattern = rf'\b{re.escape(keyword)}\b'  # Ensure full word matching and escape special characters
+                clean_description = re.sub(pattern, '', clean_description, flags=re.IGNORECASE)
 
-        # Exclude keywords
-        for keyword in exclude_keywords:
-            pattern = rf'\b{re.escape(keyword)}\b'  # Ensure full word matching and escape special characters
-            clean_description = re.sub(pattern, '', clean_description, flags=re.IGNORECASE)
+            # Clean up extra spaces after removing keywords
+            clean_description = re.sub(r'\s+', ' ', clean_description).strip()
 
-        # Clean up extra spaces after removing keywords
-        clean_description = re.sub(r'\s+', ' ', clean_description).strip()
+            def remove_keywords(text, keywords):
+                for keyword in keywords:
+                    # If the keyword contains non-word characters, don't use word boundaries
+                    if re.search(r'\W', keyword):
+                        pattern = re.escape(keyword)
+                    else:
+                        pattern = r'\b' + re.escape(keyword) + r'\b'
+                    text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+                return text
 
-        def remove_keywords(text, keywords):
-            for keyword in keywords:
-                # If the keyword contains non-word characters, don't use word boundaries
-                if re.search(r'\W', keyword):
-                    pattern = re.escape(keyword)
-                else:
-                    pattern = r'\b' + re.escape(keyword) + r'\b'
-                text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-            return text
+            clean_description = remove_keywords(clean_description, exclude_keywords)
+            # Convert to lowercase
+            clean_description = clean_description.lower()
 
-        clean_description = remove_keywords(clean_description, exclude_keywords)
-        # Convert to lowercase
-        clean_description = clean_description.lower()
+            return clean_description
 
-        return clean_description
+        # Apply the preprocessing to 'Description' column
+        df['Description_processed'] = df['Description'].apply(preprocess_description)
 
-    # Apply the preprocessing to 'Description' column
-    df['Description_processed'] = df['Description'].apply(preprocess_description)
-
-
-    return df
-
-def category_add_ca(df):
+        return df
+def category_add_ca( df):
     x = df["Balance"]
     des = df['Description']
     df["Debit"] = pd.to_numeric(df["Debit"], errors="coerce")
@@ -1037,42 +1048,6 @@ def category_add_ca(df):
     df["Category"] = "Suspense"
     df["Entity"] = ""
 
-    df = preprocess_df(df)
-
-    # Initialize 'Category' and 'Entity' columns
-    df["Category"] = "Suspense"
-    df["Entity"] = ""
-
-    labels = ["person"]
-    confidence_threshold = 0.2  # Adjust as needed
-
-    # Function to extract entities and update the DataFrame
-    def extract_entities(row):
-        text = row['Description_processed']
-        if text == '':
-            return pd.Series({'Entity': '', 'Category': row['Category']})
-
-        # Predict entities using the model
-        entities = model.predict_entities(text, labels)
-
-        # Filter entities based on confidence threshold
-        filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]
-
-        # Update 'Entity' and 'Category' if entities are found
-        if filtered_entities:
-            highest_score_entity = max(filtered_entities, key=lambda x: x['score'])
-            entity_text = highest_score_entity['text']
-            category_label = highest_score_entity['label']
-            return pd.Series({'Entity': entity_text, 'Category': category_label})
-        else:
-            return pd.Series({'Entity': '', 'Category': row['Category']})
-
-    # Apply the entity extraction function to each row
-    df[['Entity', 'Category']] = df.apply(extract_entities, axis=1)
-
-    # Drop the 'Description_processed' column if no longer needed
-    df.drop(columns=['Description_processed'], inplace=True)
-    # print(df)
 
     pos_pattern = r"^pos.*"
     df.loc[
@@ -1278,6 +1253,7 @@ def category_add_ca(df):
         try:
             neft_names = NEFT_1["Description"].apply(lambda x: x.split("/")[2])
             NEFT_1["Category"] = neft_names
+            NEFT_1["Entity"] = neft_names
         except Exception as e:
             print("Error in splitting NEFT names: ", e)
         # NEFT_1['Category'] = neft_names
@@ -1435,16 +1411,16 @@ def category_add_ca(df):
                 "Redemption, Dividend & Interest,Salary Paid,Salary Received"
             )
         ]
-
         def extract_category(description):
             parts = description.split("/")
             return (
                 parts[3] if len(parts) > 3 else "Suspense"
-            )  # Default value for descriptions without enough parts
-
+            )
         neft_names = NEFT["Description"].apply(extract_category)
         NEFT["Category"] = neft_names
+        NEFT['Entity'] = neft_names
         df.update(NEFT)
+        print(df)
 
     def extract_keyword_from_description(description):
         parts = description.split("--")
@@ -1493,9 +1469,11 @@ def category_add_ca(df):
 
     def extract_neft_hdfc_cr_category(description):
         parts = description.split("-")
-        return (
-            parts[2] if len(parts) > 2 else "Suspense"
-        )  # Default value for descriptions without enough parts
+        if len(parts) > 2:
+            # Remove trailing numbers from the extracted part
+            return re.sub(r'\d+$', '', parts[2]).strip()
+        else:
+            return "Suspense"  # Default value for descriptions without enough parts
 
     NEFT_HDFC_CR = df[df["Description"].str.contains("neftcr", na=False)]
     if not NEFT_HDFC_CR.empty:
@@ -1508,6 +1486,7 @@ def category_add_ca(df):
             extract_neft_hdfc_cr_category
         )
         NEFT_HDFC_CR["Category"] = neft_names
+        NEFT_HDFC_CR["Entity"] = neft_names
         df.update(NEFT_HDFC_CR)
 
     NEFT_HDFC_DR = df[df["Description"].str.contains("neftdr", na=False)]
@@ -1520,14 +1499,17 @@ def category_add_ca(df):
 
         def extract_category(description):
             try:
-                return (
-                    description.split("-")[2] if "-" in description else description
-                )
+                if "-" in description:
+                    # Extract the third part and remove trailing numbers
+                    return re.sub(r'\d+$', '', description.split("-")[2]).strip()
+                else:
+                    return description
             except IndexError:
                 return "Suspense"
 
         neft_names = NEFT_HDFC_DR["Description"].apply(extract_category)
         NEFT_HDFC_DR["Category"] = neft_names
+        NEFT_HDFC_DR["Entity"] = neft_names
         df.update(NEFT_HDFC_DR)
 
     NEFT_thane = df[df["Description"].str.contains("toneft", na=False)]
@@ -1555,7 +1537,7 @@ def category_add_ca(df):
     if not NEFT_UCO.empty:
         NEFT_1 = NEFT_UCO[
             ~NEFT_UCO["Category"].str.contains(
-                "Redemption, Dividend & Interest,Salary Paid,Salary Received"
+                "Redemption, Dividend & Interest","Salary Paid","Salary Received"
             )
         ]
         NEFT_1 = NEFT_1[~NEFT_1["Category"].str.contains("Debtor")]
@@ -1929,6 +1911,15 @@ def category_add_ca(df):
                 else x.split("/")[1] if len(x.split("/")) > 1 else x
             )
         )
+        INB["Entity"] = INB["Description"].apply(
+            lambda x: (
+                x.split("/")[2]
+                if (("inb/ift/" in x or "inb/" in x) and len(x.split("/")) > 2)
+                else x.split("/")[1]
+                if len(x.split("/")) > 1
+                else x
+            )
+        )
 
         df.update(INB)
 
@@ -1973,6 +1964,7 @@ def category_add_ca(df):
         pattern = r"imps-\d+-(.*?)-"
         Ext = IMPS_HDFC["Description"].str.extract(pattern)
         IMPS_HDFC["Category"] = Ext
+        IMPS_HDFC["Entity"] = Ext
         df.update(IMPS_HDFC)
 
     imps_rib = df[
@@ -2029,13 +2021,25 @@ def category_add_ca(df):
         except IndexError:
             return "Suspense"
 
+    def extract_entity_axis(x):
+        try:
+            category_part = x.split("/")[3]
+            if any(char.isdigit() for char in category_part):
+                return ""
+            return category_part
+        except IndexError:
+            return ""
+
     imps_axis = df[df["Description"].str.contains("imps/p2a", na=False)]
     imps_axis = imps_axis[
-        ~imps_axis["Category"].str.contains("Salary Paid,Salary Received")
+        ~imps_axis["Category"].str.contains("Salary Paid","Salary Received")
     ]
     if not imps_axis.empty:
         imps_axis["Category"] = imps_axis["Description"].apply(
             extract_category_axis
+        )
+        imps_axis["Entity"] = imps_axis["Description"].apply(
+            extract_entity_axis
         )
         df.update(imps_axis)
 
@@ -2129,7 +2133,8 @@ def category_add_ca(df):
         df.update(MOB)
 
     MOB_1 = df[df["Description"].str.contains("mob/selfft/", na=False)]
-    MOB_1 = MOB_1[~MOB["Category"].str.contains("Salary Paid,Salary Received")]
+    if "Category" in MOB_1.columns:  # Ensure 'Category' column exists
+        MOB_1 = MOB_1[~MOB_1["Category"].str.contains("Salary Paid|Salary Received", na=False)]
     if not MOB_1.empty:
         MOB_names1 = MOB_1["Description"].apply(
             lambda x: (
@@ -2147,11 +2152,14 @@ def category_add_ca(df):
 
     BRN_clg = df[df["Description"].str.contains("brn-clg-chqpaidto", na=False)]
     BRN_clg = BRN_clg[
-        ~BRN_clg["Category"].str.contains("Salary Paid,Salary Received")
+        ~BRN_clg["Category"].str.contains("Salary Paid","Salary Received")
     ]
     if not BRN_clg.empty:
         # This lambda function extracts the category name based on your statement structure
         BRN_clg["Category"] = BRN_clg["Description"].apply(
+            lambda x: x.split("brn-clg-chqpaidto")[-1].split("/")[0].strip()
+        )
+        BRN_clg["Entity"] = BRN_clg["Description"].apply(
             lambda x: x.split("brn-clg-chqpaidto")[-1].split("/")[0].strip()
         )
         df.update(BRN_clg)
@@ -2239,6 +2247,8 @@ def category_add_ca(df):
     if not RTGS_HDFC_CR.empty:
         RTGS_names = RTGS_HDFC_CR["Description"].apply(lambda x: x.split("-")[2])
         RTGS_HDFC_CR["Category"] = RTGS_names
+        RTGS_HDFC_CR["Entity"] = RTGS_names
+
         df.update(RTGS_HDFC_CR)
 
     def extract_rtgs_category(description):
@@ -2257,6 +2267,9 @@ def category_add_ca(df):
     if not RTGS_HDFC_DR.empty:
         # Apply the custom function to extract RTGS names
         RTGS_HDFC_DR["Category"] = RTGS_HDFC_DR["Description"].apply(
+            extract_rtgs_category
+        )
+        RTGS_HDFC_DR["Entity"] = RTGS_HDFC_DR["Description"].apply(
             extract_rtgs_category
         )
         df.update(RTGS_HDFC_DR)
@@ -2485,37 +2498,92 @@ def category_add_ca(df):
         "Category",
     ] = "Debtor"
 
+    # Preprocess the DataFrame
+    df = preprocess_df(df)
+    print(df)
+    labels = ["person", "org"]
+    confidence_threshold = 0.2  # Adjust as needed
+
+    # Define categories to include
+    categories_to_include = ["upi-cr", "upi-dr", 'debtor', 'creditor', 'departmental stores', 'donation', 'loan',
+                                'loan given', 'rent paid']
+
+    # Keywords to include in the logic
+    keywords_to_include = [
+        "toib-", "brn-clg-chq", "mmt/imps", "neftdr", "nft/", "mob/tpft",
+        "nlcindialtd", "tortgs", "rtgsdr", "mob/tpft/", "imb/", "imps",
+        "imps/p2a", "mob/selfft/", "inb/", "inb-", "chqpaid", "fundtrf", "iconn",
+        "imps-cib", "imps-inet", "imps-rib", "imps-mob", "inft", "mbk/xfer",
+        "payc", "r-utr", "vmt-icon", "chqpaid", "byclg", "rtgs", "neftn", "inb-",
+        "neft-barb", "ecs/", "googleindiadigital", "one97communicationslimited",
+        "toib-", "mmt/imps", "neftcr", "imps", "tortgs", "rtgs", "rtgscr",
+        "ecs/", "mob/tpft/", "imb/", "mob/selfft/", "inb/", "imps-mob", "nft/",
+        "byclg", "inb-", "neft-", "googleindiadigital", "gsttaxpayment"
+    ]
+
+    def extract_entities(row):
+        # Skip rows where Entity is already populated
+        if row['Entity']:
+            return row['Entity']
+
+        # Check if the category is relevant or if keywords are present in the description
+        is_category_included = row['Category'] in categories_to_include
+        is_keyword_present = any(keyword.lower() in row['Description'].lower() for keyword in keywords_to_include)
+
+        # If neither condition is met, return the existing Entity value (even if it's empty)
+        if not is_category_included and not is_keyword_present:
+            return row['Entity']  # Return the existing value
+
+        text = row['Description_processed']
+        if text == '':
+            return ''  # Return an empty string for Entity if the description is empty
+        print(text)
+        # Predict entities using the model
+        entities = model.predict_entities(text, labels)
+
+        # Filter entities based on confidence threshold
+        filtered_entities = [entity for entity in entities if entity["score"] >= confidence_threshold]
+
+        # Return the entity text if any entities are found
+        if filtered_entities:
+            highest_score_entity = max(filtered_entities, key=lambda x: x['score'])
+            return highest_score_entity['text']  # Return only the Entity text
+        else:
+            return ''  # Return an empty string if no entities are found
+
+    def apply_regex_to_empty_entities_axis(row):
+        if row['Entity'] == '' and row['Category'] in categories_to_include:
+            if "upi/p2a" in row['Description'] or "upi/p2m" in row['Description']:
+                match = re.search(r'upi/p2[am]/\d+/(\w+)/', row['Description'])
+                if match:
+                    return match.group(1)
+        return row['Entity']
+
+    def apply_regex_to_empty_entities_hdfc(row):
+        if row['Entity'] == '' and row['Category'] in categories_to_include:
+            # Check if 'upi-' is present in the description
+            if "upi-" in row['Description']:
+                # Match the name immediately after 'upi-' using regex
+                match = re.search(r'(?<=upi-)([a-zA-Z]+)', row['Description'])
+                if match:
+                    return match.group(1)  # Extract and return the matched name
+        return row['Entity']  # Return the existing value if no match is found
+
+    # Step 1: Apply regex logic first
+    df['Entity'] = df.apply(apply_regex_to_empty_entities_axis, axis=1)
+    df['Entity'] = df.apply(apply_regex_to_empty_entities_hdfc, axis=1)
+
+
+    # Step 2: Apply model-based extraction only to rows with empty Entity
+    df['Entity'] = df.apply(extract_entities, axis=1)
+
+    # Drop the intermediate column if not needed
+    df.drop(columns=['Description_processed'], inplace=True)
+
+    # Return the updated DataFrame
+    return df
+
     df["Balance"] = x  # Manish
-    def map_entities(df, mapping_dict):
-        """
-        Replace values in the 'Entity' column based on a mapping dictionary
-        
-        Parameters:
-        df (pandas.DataFrame): DataFrame containing 'Entity' column
-        mapping_dict (dict): Dictionary with current names as keys and new names as values
-        
-        Returns:
-        pandas.DataFrame: DataFrame with updated Entity values
-        """
-        # Create a copy to avoid modifying the original DataFrame
-        df_mapped = df.copy()
-        
-        # Replace values using the mapping dictionary
-        df_mapped['Entity'] = df_mapped['Entity'].replace(mapping_dict)
-        
-        return df_mapped
-
-    mapping = {
-        'poojan': 'poojanmanishvig',
-        'vigpoojanmanish': 'poojanmanishvig',
-        'poojanvig': 'poojanmanishvig',
-        'mraiyazanwarqures':"aiyazanwarqureshi",
-        'queshiaiyazanwar':"aiyazanwarqureshi",
-        
-    }
-
-    # Apply the mapping
-    df = map_entities(df, mapping)
 
     return df
 
@@ -5155,7 +5223,8 @@ def forward_analysis(process_df):
     return forward_df
     
 
-def get_funds(process_df, row_number):
+def fund_tracking_get_funds(process_df, row_number):
+
     # Convert Value Date to datetime
     process_df["Value Date"] = pd.to_datetime(process_df["Value Date"])
     
@@ -5172,3 +5241,27 @@ def get_funds(process_df, row_number):
     sender_df = forward_analysis(sender_df)
     
     return sender_df
+
+
+# Function to create Excel with combined and individual sheets
+def create_excel_with_sheets(dataframe, file_name="transactions.xlsx"):
+    # Create a Pandas Excel writer using OpenPyXL as the engine
+    with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
+        # Write the combined dataframe to the first sheet
+        dataframe.to_excel(writer, sheet_name='Combined Transactions', index=False)
+        
+        # Get unique names from the 'Name' column
+        unique_names = dataframe['Name'].unique()
+        
+        # Write individual transactions for each unique name
+        for name in unique_names:
+            individual_df = dataframe[dataframe['Name'] == name]
+            sheet_name = f"{name} Transactions"
+            
+            # Truncate sheet name to 31 characters if needed
+            if len(sheet_name) > 31:
+                sheet_name = sheet_name[:31]
+            
+            individual_df.to_excel(writer, sheet_name=sheet_name, index=False)
+    
+    print(f"Excel file '{file_name}' created successfully.")

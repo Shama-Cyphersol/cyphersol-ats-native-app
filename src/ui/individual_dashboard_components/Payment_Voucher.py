@@ -208,9 +208,9 @@ class PaymentVoucherDashboard(QMainWindow):
 
                     // Update summary stats
                     document.getElementById('totalAmount').textContent = 
-                        '₹' + (data.totalAmount ? data.totalAmount.toLocaleString('en-IN') : '0');
+                         (data.totalAmount ? data.totalAmount.toLocaleString('en-IN') : '0');
                     document.getElementById('avgTransaction').textContent = 
-                        '₹' + (data.avgTransaction ? data.avgTransaction.toLocaleString('en-IN') : '0');
+                         (data.avgTransaction ? data.avgTransaction.toLocaleString('en-IN') : '0');
                     document.getElementById('transactionCount').textContent = 
                         data.transactionCount ? data.transactionCount : '0';
                 }

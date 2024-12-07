@@ -209,7 +209,7 @@ class SuspenseCredit(QWidget):
                     filteredData = data.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.credit.toLowerCase().includes(searchTerm);
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm);
                     }});
                     
                     currentPage = 1;

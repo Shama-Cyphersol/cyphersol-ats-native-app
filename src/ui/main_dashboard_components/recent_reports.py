@@ -487,7 +487,7 @@ class RecentReportsTable:
         msg.setIcon(QMessageBox.Icon.NoIcon)
         msg.setWindowTitle("Confirm Delete")
         msg.setText(f"Are you sure you want to delete case - {case_id} ?")
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg.setStyleSheet(f"""
             QMessageBox {{
                 background-color: white;
@@ -516,7 +516,8 @@ class RecentReportsTable:
         """)
         
         reply = msg.exec()
-        if reply == QMessageBox.StandardButton.Ok:
+        print("reply",reply)
+        if reply == QMessageBox.StandardButton.Yes:
             print(f"Deleting case: {case_id}")
             delete_case_data(case_id)
 
@@ -558,6 +559,7 @@ class RecentReportsTable:
             
     def handle_upload_additional_pdf(self, row, case_id):
         file_names, _ = QFileDialog.getOpenFileNames(
+            None,
             "Upload PDF Report",
             "",
             "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
@@ -636,21 +638,30 @@ class RecentReportsTable:
                 save_result(case_id,data)
                 update_case_data(case_id, case_data)
                 
-                success_message = f'<p style="color: black;">PDF successfully uploaded for Case ID: {case_id}</p>'
-                QMessageBox.information(
-                    self,
-                    "Success",
-                    success_message
-                )
+                msg_box = QMessageBox()
+                msg_box.setStyleSheet("""
+                    QMessageBox {{
+                        background-color: white;
+                    }}
+                    QMessageBox QLabel {{
+                        color: black;
+                    }}
+                """)
+                msg_box.setWindowTitle("Success")
+                msg_box.setText(f"PDF successfully uploaded for Case ID: {case_id}")
+                msg_box.setIcon(QMessageBox.Icon.NoIcon)
+                msg_box.exec()
                 
             except Exception as e:
                 print(e)
-                msg_box = QMessageBox(self)
+                msg_box = QMessageBox()
                 msg_box.setStyleSheet("""
-                    
-                    QMessageBox QLabel {
+                    QMessageBox {{
+                        background-color: white;
+                    }}
+                    QMessageBox QLabel {{
                         color: black;
-                    }
+                    }}
                 """)
                 msg_box.setWindowTitle("Warning")
                 msg_box.setText(f"Failed to upload PDF: {str(e)}")
