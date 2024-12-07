@@ -7,7 +7,6 @@ import json
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel
 
-
 class LinkAnalysisWidget(QWidget):
     def __init__(self, result,case_id,parent=None):
         super().__init__(parent)
@@ -103,7 +102,6 @@ class LinkAnalysisWidget(QWidget):
                     padding: 0;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     background: var(--background);
-                    height: 100vh;
                 }}
 
                 .filters-container {{
@@ -193,6 +191,15 @@ class LinkAnalysisWidget(QWidget):
                     z-index: 1000;
                     background: white;
                 }}
+                .filter-groups {{
+                    display: flex;
+                    flex: 1;
+                    margin-right: 1rem;
+                }}
+                .filter-group {{
+                    flex: 1;
+                    margin-right: 1rem;
+                }}
                 .select2-results__option {{
                     padding: 0.5rem;
                 }}
@@ -216,6 +223,7 @@ class LinkAnalysisWidget(QWidget):
                     font-size: 0.875rem;
                     cursor: pointer;
                     transition: all 0.2s;
+                    max-width: 10rem;
                 }}
 
                 .apply-btn {{
@@ -239,17 +247,19 @@ class LinkAnalysisWidget(QWidget):
         </head>
         <body>
             <div class="filters-container">
-                <div class="filter-group">
-                    <label for="name-dropdown">Names</label>
-                    <select id="name-dropdown" multiple="multiple">
-                        {name_options}
+                <div class="filter-groups">
+                    <div class="filter-group">
+                        <label for="name-dropdown">Names</label>
+                        <select id="name-dropdown" multiple="multiple">
+                            {name_options}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="entity-dropdown">Entities</label>
+                        <select id="entity-dropdown" multiple="multiple">
+                            {entity_options}
                     </select>
-                </div>
-                <div class="filter-group">
-                    <label for="entity-dropdown">Entities</label>
-                    <select id="entity-dropdown" multiple="multiple">
-                        {entity_options}
-                    </select>
+                    </div>
                 </div>
                 <div class="buttons-container">
                     <button class="button apply-btn" onclick="applyFilters()">Apply Filters</button>
@@ -321,7 +331,7 @@ class LinkAnalysisWidget(QWidget):
         """
 
         self.web_view.setHtml(html_content)
-        self.web_view.setFixedHeight(300)  # Increased height to accommodate dropdowns
+        self.web_view.setFixedHeight(250)  # Increased height to accommodate dropdowns
         self.layout.addWidget(self.web_view)
 
     def apply_filters(self, filters):
@@ -399,3 +409,5 @@ class LinkAnalysisWidget(QWidget):
         """)
 
         msg.exec()
+
+        

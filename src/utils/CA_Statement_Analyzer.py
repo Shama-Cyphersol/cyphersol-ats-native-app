@@ -24,7 +24,7 @@ from ..utils.ats_statement_analyzer import ATSFunctions
 
 class CABankStatement:
     def __init__(
-            self, bank_names, pdf_paths, pdf_passwords, start_date, end_date, CA_ID, progress_data, individual_names
+            self, bank_names, pdf_paths, pdf_passwords, start_date, end_date, CA_ID, progress_data,individual_names
     ):
         self.writer = None
         self.bank_names = bank_names
@@ -219,11 +219,14 @@ class CABankStatement:
     
     # @timer_decorator
     def start_extraction(self):
+        start = time.time()
         CA_ID = self.CA_ID
 
         dfs = {}
         name_dfs = {}
         i = 0
+
+        pdf_paths_not_extracted = []
 
         for bank in self.bank_names:
             bank = str(f"{bank}{i}")
@@ -231,18 +234,16 @@ class CABankStatement:
             pdf_password = self.pdf_passwords[i]
             start_date = self.start_date[i]
             end_date = self.end_date[i]
-            acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
-            print("Acc Number and name: ", acc_name_n_num)
+            # acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
+
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")
             self.current_progress += 1
-            print(f"Extracting {bank} bank statement")
-            start = time.time()
             dfs[bank], name_dfs[bank] = self.commoner.extraction_process(bank, pdf_path, pdf_password, start_date,
                                                                          end_date)
-            print("Extracted")
-            print("Name DFS: ", name_dfs[bank])
-            name_dfs[bank] = acc_name_n_num
-            
+            # name_dfs[bank] = acc_name_n_num[bank]
+
+           
+
             end = time.time()
             print(f"Time taken to extract bank statement: {end - start} seconds")
             self.progress_function(self.current_progress, self.total_progress,
@@ -250,7 +251,15 @@ class CABankStatement:
             self.current_progress += 1
             print(f"Extracted {bank} bank statement successfully")
             self.account_number += f"{name_dfs[bank][1][:4]}x{name_dfs[bank][1][-4:]}_"
+            # Check if the extracted dataframe is empty
+            if dfs[bank].empty:
+                pdf_paths_not_extracted.append(pdf_path)
+                del dfs[bank]
+                del name_dfs[bank]
+                
             i += 1
+
+            
 
         print("|------------------------------|")
         print(self.account_number)
@@ -283,8 +292,7 @@ class CABankStatement:
             print(f"Failed to remove '{folder_path}': {e}")
 
         # return (self.account_number, self.current_progress)
-        return {"single_df":single_df, "cummalative_df":cummalative_df}
-
+        return {"single_df":single_df, "cummalative_df":cummalative_df, 'pdf_paths_not_extracted': pdf_paths_not_extracted}
 ### --------------------------------------------------------------------------------------------------------- ###
 #
 # settings.configure(USE_TZ=True)

@@ -45,7 +45,6 @@ class StyledPushButton(QPushButton):
             }}
             QPushButton:pressed {{
                 background-color: {BLUE_COLOR};
-                transform: translateY(1px);
             }}
             QPushButton:disabled {{
                 background-color: #94a3b8;
@@ -70,20 +69,24 @@ class ClickableLabel(QLabel):
         """)
 
 class SimilarNameGroups(QMainWindow):
-    def __init__(self,case_id, parent, similar_names_groups=sample_similar_names):
+    def __init__(self,case_id, parent,refresh_case_dashboard, similar_names_groups=sample_similar_names):
         super().__init__()
         self.setWindowTitle(f"Similar Names Merger for Case Id - {case_id}")
         self.case_id = case_id
+        self.refresh_case_dashboard = refresh_case_dashboard
 
         screen = QApplication.primaryScreen().geometry()
         self.resize(screen.width(), screen.height())
         similar_names_groups = find_merge_name_object(self.case_id)
+        
         self.original_groups = similar_names_groups["original_groups"]
         self.merged_groups = similar_names_groups["merged_groups"]
         if similar_names_groups["unselected_groups"] == [] and similar_names_groups["merged_groups"] == []:
             self.unselected_groups = similar_names_groups["original_groups"]
         else:
             self.unselected_groups = similar_names_groups["unselected_groups"]
+
+        self.final_merged_status = similar_names_groups["final_merged_status"]
 
         # print("merged groups", self.merged_groups)
         # print("Unselected groups", self.unselected_groups)
@@ -309,7 +312,7 @@ class SimilarNameGroups(QMainWindow):
         final_button_container.addStretch()
 
         # Final submit button for merge history page
-        final_merge_btn = StyledPushButton("Final these Groups")
+        final_merge_btn = StyledPushButton("Finalize these Groups")
         final_merge_btn.clicked.connect(self.final_merge_all_groups)
         final_button_container.addWidget(final_merge_btn)
         final_button_container.addStretch()
@@ -357,6 +360,8 @@ class SimilarNameGroups(QMainWindow):
             demerge_label.setForeground(QBrush(QColor(255,0,0)))
             demerge_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.merged_history_table.setItem(row_position, 1, demerge_label)
+            self.merged_history_table.itemClicked.connect(self.handle_row_click)
+
     
     def final_merge_all_groups(self):
 
@@ -403,8 +408,9 @@ class SimilarNameGroups(QMainWindow):
 
             groups_to_merge = self.merged_groups
             for group in self.unselected_groups:
-                for item in group:
-                    groups_to_merge.append([item])
+                if group != None:
+                    for item in group:
+                        groups_to_merge.append([item])
 
             new_process_df = replace_entities(process_df,groups_to_merge)
             print("Replaced entities Got new process df, now updating process df and running refresh function")
@@ -412,7 +418,10 @@ class SimilarNameGroups(QMainWindow):
             print("Updated process df and ran refresh function reponse = ",response)
             if response == True:
                 self.show_success_message("Successfully merged all groups")
-                # self.close()
+                self.final_merged_status = True
+                self.update_json()
+                self.refresh_case_dashboard(source="SimilarNameGroups")
+                   
             else:
                 self.show_error_message("Error while merging groups")
         else:
@@ -444,6 +453,8 @@ class SimilarNameGroups(QMainWindow):
             return
         
         for i, group in enumerate(self.unselected_groups):
+            if group == None:
+                continue
             group_box = QGroupBox(f"Similar Names Group {i + 1}")
             group_layout = QVBoxLayout()
             group_layout.setSpacing(8)
@@ -482,6 +493,7 @@ class SimilarNameGroups(QMainWindow):
         merged_names_object = find_merge_name_object(self.case_id)
         merged_names_object["merged_groups"] = self.merged_groups
         merged_names_object["unselected_groups"] = self.unselected_groups
+        merged_names_object["final_merged_status"] = self.final_merged_status
 
         update_name_merge_object(self.case_id,merged_names_object)
 
@@ -681,7 +693,7 @@ class SimilarNameGroups(QMainWindow):
 
     def show_success_message(self, message):
         """Show styled success message"""
-        msg = QMessageBox(self)
+        msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setWindowTitle("Success")
         msg.setText(message)

@@ -320,9 +320,9 @@ def get_last_serial_number():
 
 def update_serial_number_history(old_serial_number):
     serial_number = get_last_serial_number()
-    print("old_serial_number",old_serial_number)
+    # print("old_serial_number",old_serial_number)
     old_serial_number = int(old_serial_number)
-    print("old_serial_number",old_serial_number)
+    # print("old_serial_number",old_serial_number)
     if serial_number == old_serial_number:
         print("updating serial number")
         serial_number = [serial_number+1]
@@ -331,9 +331,10 @@ def update_serial_number_history(old_serial_number):
 
 
 
-# test = load_result("CA_ID_JG5DYO7CDVYWQB46")
-# cummalative_df =  test["single_df"]["C2"]
-# print(cummalative_df)
+# test = load_result("CA_ID_BCZV8JZ9A7KNP7W2")
+# cummalative_df =  test["cummalative_df"]["process_df"]
+# cummalative_df.to_excel("delhey.xlsx")
+# print(cummalative_df.head(15))
 
 # test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
 # test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
@@ -347,3 +348,6 @@ def update_serial_number_history(old_serial_number):
 # cases = load_all_case_data()
 # for case in cases:
 #     acc_numbers = case["individual_names"]["Acc Number"]
+
+# obj = find_merge_name_object("ATS_unit_1_00014")
+# print(obj.keys())

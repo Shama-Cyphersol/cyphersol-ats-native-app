@@ -19,23 +19,6 @@ class DynamicDataTable(QMainWindow):
         # Main layout
         main_layout = QVBoxLayout()
 
-        # # Dropdowns
-        # self.entity_dropdown = QComboBox(self)
-        # self.entity_dropdown.addItems(self.df["Entity"].unique())
-        # self.entity_dropdown.setEditable(True)
-        # self.entity_dropdown.lineEdit().setPlaceholderText("Select Entities")
-        # self.entity_dropdown.currentTextChanged.connect(self.filter_data)
-        
-        # self.name_dropdown = QComboBox(self)
-        # self.name_dropdown.addItems(self.df["Name"].unique())
-        # self.name_dropdown.setEditable(True)
-        # self.name_dropdown.lineEdit().setPlaceholderText("Select Names")
-        # self.name_dropdown.currentTextChanged.connect(self.filter_data)
-
-        # # Add the comboboxes to the layout
-        # main_layout.addWidget(self.entity_dropdown)
-        # main_layout.addWidget(self.name_dropdown)
-        
         # Web view for table
         self.web_view = QWebEngineView()
         main_layout.addWidget(self.web_view)
@@ -48,27 +31,7 @@ class DynamicDataTable(QMainWindow):
         # Initial table display
         self.create_table()
         return container
-    
-    def filter_data(self):
-        selected_entity = self.entity_dropdown.currentText()
-        selected_name = self.name_dropdown.currentText()
-        
-        # Apply filter based on dropdown selection
-        if selected_entity and selected_name:
-            self.filtered_df = self.df[
-                (self.df["Entity"] == selected_entity) &
-                (self.df["Name"] == selected_name)
-            ]
-        elif selected_entity:
-            self.filtered_df = self.df[self.df["Entity"] == selected_entity]
-        elif selected_name:
-            self.filtered_df = self.df[self.df["Name"] == selected_name]
-        else:
-            self.filtered_df = self.df  # No filtering if nothing is selected
-            
-        # Update table
-        self.create_table()
-    
+
     def create_table(self):
         table_data = []
         for i, (_, row) in enumerate(self.filtered_df.iterrows()):
@@ -261,7 +224,7 @@ class DynamicDataTable(QMainWindow):
                     
                     if (data.length === 0) {{
                         tableBody.innerHTML = `
-                            <tr>
+                            <tr >
                                 <td colspan="${{columns.length}}" class="empty-table">
                                     No data available
                                 </td>

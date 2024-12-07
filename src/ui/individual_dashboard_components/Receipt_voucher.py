@@ -114,7 +114,6 @@ class Receiptvoucher(QMainWindow):
                     transition: transform 0.2s;
                 }}
                 .stat-box:hover {{
-                    transform: translateY(-5px);
                 }}
                 .stat-box h3 {{
                     color: #1a73e8;
@@ -143,17 +142,17 @@ class Receiptvoucher(QMainWindow):
                 </div>
                 <div class="stat-box">
                     <h3>Total Credits</h3>
-                    <p>₹{self.df['Amount'].sum():,.2f}</p>
+                    <p>{self.df['Amount'].sum():,.2f}</p>
                     <div class="trend">+{(self.df['Amount'].sum()/self.df['Amount'].sum()*100):.1f}% vs last month</div>
                 </div>
                 <div class="stat-box">
                     <h3>Average Transaction</h3>
-                    <p>₹{self.df['Amount'].mean():,.2f}</p>
+                    <p>{self.df['Amount'].mean():,.2f}</p>
                     <div class="trend">Typical range: ₹1,000 - ₹300,000</div>
                 </div>
                 <div class="stat-box">
                     <h3>Largest Transaction</h3>
-                    <p>₹{self.df['Amount'].max():,.2f}</p>
+                    <p>{self.df['Amount'].max():,.2f}</p>
                     <div class="trend">On {self.df.loc[self.df['Amount'].idxmax(), 'Date'].strftime('%d-%m-%Y')}</div>
                 </div>
             </div>

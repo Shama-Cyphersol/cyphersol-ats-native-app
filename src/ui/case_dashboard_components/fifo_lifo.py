@@ -6,6 +6,8 @@ from PyQt6.QtWebChannel import QWebChannel
 import pandas as pd
 import sys
 import json
+from src.utils.refresh import lifo_fifo
+from src.utils.json_logic import get_process_df
 
 
 dummy_data = {
@@ -120,24 +122,16 @@ class FIFO_LFIO_Analysis(QWidget):
         # self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
         self.layout = QVBoxLayout()
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable horizontal scrollbar
         scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_area.setWidget(scroll_widget)
-
-        # print("lifo_fifo_analysis_data ",self.lifo_fifo_analysis_data)
+        self.scroll_layout = QVBoxLayout(scroll_widget)
+        self.scroll_area.setWidget(scroll_widget)
 
         # Check if lifo_fifo_analysis_data is empty
-        self.is_data_empty = False
-        try:
-            if self.lifo_fifo_analysis_data.empty:
-                self.is_data_empty = True
-        except:
-            if not self.lifo_fifo_analysis_data:
-                self.is_data_empty = True
-                
-        if self.is_data_empty:
+        if not self.lifo_fifo_analysis_data:
             no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
             no_data_label.setStyleSheet("""
                 color: #555;
@@ -150,20 +144,38 @@ class FIFO_LFIO_Analysis(QWidget):
             # scroll_area.setMinimumHeight(500)
 
         else:
-            # self.create_dropdowns()
+            self.create_dropdowns()
             for key, value in self.lifo_fifo_analysis_data.items():
-                accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
-                scroll_layout.addWidget(accordion_item)
+                accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'], self.adjust_scroll_area_height)
+                self.scroll_layout.addWidget(accordion_item)
             
             # scroll_area.setMinimumHeight(2500)
             # set scroll_area hieght such that to fit all content
-            scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
-            scroll_layout.addStretch(1)
-            self.layout.addWidget(scroll_area)
+            # self.scroll_area.setMinimumHeight(int(self.scroll_layout.sizeHint().height()*1.5))
+            self.scroll_layout.addStretch(1)
+            self.layout.addWidget(self.scroll_area)
             
         self.setLayout(self.layout)
-
+    
+    def adjust_scroll_area_height(self):
+        """
+        Dynamically adjust the height of the scroll area based on the content.
+        """
         
+        if not self.scroll_layout:
+            return  # Bail out if the layout is missing
+
+        total_height = 0
+        for i in range(self.scroll_layout.count()):
+            widget_item = self.scroll_layout.itemAt(i)
+            if widget_item.widget():
+                total_height += widget_item.widget().sizeHint().height()
+        
+        # Add padding for smooth layout adjustments
+        total_height += 10
+        self.scroll_area.setMinimumHeight(total_height)
+
+    
     def create_dropdowns(self):
         class Handler(QObject):
             def __init__(self, parent=None):
@@ -173,8 +185,47 @@ class FIFO_LFIO_Analysis(QWidget):
             @pyqtSlot(str)
             def handleFilters(self, filters_json):
                 filters = json.loads(filters_json)
-                self.widget.apply_filters(filters)
-                
+                self.apply_filters(filters)
+            
+            def update_accordion_content(self):
+                # Remove the old scroll area widget
+                self.widget.layout.removeWidget(self.widget.scroll_area)
+                self.widget.scroll_area.deleteLater()
+
+                # Create a new scroll area and layout
+                self.widget.scroll_area = QScrollArea()
+                self.widget.scroll_area.setWidgetResizable(True)
+                self.widget.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.widget.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                scroll_widget = QWidget()
+                self.widget.scroll_layout = QVBoxLayout(scroll_widget)  # Update the layout reference
+                self.widget.scroll_area.setWidget(scroll_widget)
+
+                # Clear old widgets and layout
+                for key, value in self.widget.lifo_fifo_analysis_data.items():
+                    accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'], self.widget.adjust_scroll_area_height)
+                    self.widget.scroll_layout.addWidget(accordion_item)
+
+                self.widget.scroll_layout.addStretch(1)
+                self.widget.layout.addWidget(self.widget.scroll_area)
+                self.widget.adjust_scroll_area_height()
+
+
+            def apply_filters(self, filters):
+                    entities = filters['entities']
+                    print("Entities:", entities)
+                    process_df = get_process_df(self.widget.case_id)
+                    # print("Process df:", process_df.head())
+                        
+                    filtered_result = lifo_fifo(df=process_df, entities_of_interest=entities)
+                    # print("\nFiltered result:", filtered_result)
+                    
+                    self.widget.lifo_fifo_analysis_data = filtered_result
+
+                    # print("\nUpdated LIFO FIFO data:", self.widget.lifo_fifo_analysis_data)
+                    self.update_accordion_content()
+
+        
         self.web_view = QWebEngineView()
         self.channel = QWebChannel(self.web_view.page())
         self.handler = Handler(self)
@@ -184,6 +235,7 @@ class FIFO_LFIO_Analysis(QWidget):
         entities = sorted(self.result["cummalative_df"]["entity_df"]['Entity'].dropna().unique())
 
         entity_options = '\n'.join([f'<option value="{entity}">{entity}</option>' for entity in entities])
+
 
         html_content = f"""
         <!DOCTYPE html>
@@ -416,8 +468,9 @@ class FIFO_LFIO_Analysis(QWidget):
 
 
 class AccordionItem(QFrame):
-    def __init__(self, title, lifo_data, fifo_data):
+    def __init__(self, title, lifo_data, fifo_data, on_toggle_callback):
         super().__init__()
+        self.on_toggle_callback = on_toggle_callback
         self.setStyleSheet("""
             QFrame {
                 border: 1px solid #3498db;
@@ -432,7 +485,7 @@ class AccordionItem(QFrame):
                 text-align: left;
                 border: none;
                 border-radius: 5px;
-                font-size: 14px;
+                font-size: 18px;
                            
             }
             QPushButton:hover {
@@ -532,6 +585,8 @@ class AccordionItem(QFrame):
         return html
 
     def toggle_content(self):
+        if not self.on_toggle_callback:
+            return
         # Toggle visibility of HTML tables and their titles
         is_visible = not self.lifo_table_view.isVisible()
         
@@ -547,6 +602,7 @@ class AccordionItem(QFrame):
         else:
             self.toggle_button.setText(f"+ {self.toggle_button.text()[2:]}")
 
+        self.on_toggle_callback()
 
 
 if __name__ == "__main__":

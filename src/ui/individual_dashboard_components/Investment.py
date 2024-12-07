@@ -167,8 +167,8 @@ class InvestmentChart(QMainWindow):
             table_data.append({
                 'date': row["Value Date"].strftime("%d-%m-%Y"),
                 'description': row["Description"][:50] + "...",
-                'debit': f"₹{float(row['Debit']):,.2f}",
-                'balance': f"₹{float(row['Balance']):,.2f}",
+                'debit': f"{float(row['Debit']):,.2f}",
+                'balance': f"{float(row['Balance']):,.2f}",
                 'category': row["Category"]
             })
 
@@ -321,8 +321,8 @@ class InvestmentChart(QMainWindow):
                     filteredData = data.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.debit.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm)) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm);
                     }});
                     

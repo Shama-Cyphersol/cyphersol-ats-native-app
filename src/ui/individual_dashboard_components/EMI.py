@@ -166,8 +166,8 @@ class EMITransactionChart(QMainWindow):
             table_data.append({
                 'date': row["Value Date"].strftime("%d-%m-%Y"),
                 'description': row["Description"][:50] + "...",
-                'emi_amount': f"₹{float(row['Debit']):,.2f}",
-                'balance': f"₹{float(row['Balance']):,.2f}",
+                'emi_amount': f"{float(row['Debit']):,.2f}",
+                'balance': f"{float(row['Balance']):,.2f}",
                 'category': row["Category"]
             })
 
@@ -323,7 +323,7 @@ class EMITransactionChart(QMainWindow):
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
                                row.emi_amount.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm);
                     }});
                     

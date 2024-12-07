@@ -79,9 +79,9 @@ class BankTransactionDashboard(QMainWindow):
                 {
                     'date': row["Value Date"].strftime("%d-%m-%Y"),
                     'description': row["Description"],
-                    'debit': f"₹{row['Debit']:.2f}",
-                    'credit': f"₹{row['Credit']:.2f}",
-                    'balance': f"₹{row['Balance']:.2f}",
+                    'debit': f"{row['Debit']:.2f}",
+                    'credit': f"{row['Credit']:.2f}",
+                    'balance': f"{row['Balance']:.2f}",
                     'category':f"{row['Category']}",
                     'entity':f"{row['Entity']}"
                 }
@@ -405,9 +405,9 @@ class BankTransactionDashboard(QMainWindow):
                     filteredData = currentMonthData.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.debit.toLowerCase().includes(searchTerm) ||
-                               row.credit.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm) ||
                                row.entity.toLowerCase().includes(searchTerm);
                     }});

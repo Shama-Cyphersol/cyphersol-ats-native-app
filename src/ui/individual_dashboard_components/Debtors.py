@@ -136,9 +136,9 @@ class DebtorsChart(QMainWindow):
             table_data.append({
                 'date': row["Value Date"].strftime("%d-%m-%Y"),
                 'description': row["Description"],
-                'debit': f"₹{float(row['Debit']):,.2f}",
-                'credit': f"₹{float(row['Credit']):,.2f}",
-                'balance': f"₹{float(row['Balance']):,.2f}",
+                'debit': f"{float(row['Debit']):,.2f}",
+                'credit': f"{float(row['Credit']):,.2f}",
+                'balance': f"{float(row['Balance']):,.2f}",
                 'category': row["Category"]
             })
 
@@ -291,9 +291,9 @@ class DebtorsChart(QMainWindow):
                     filteredData = data.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.debit.toLowerCase().includes(searchTerm) ||
-                               row.credit.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm);
                     }});
                     

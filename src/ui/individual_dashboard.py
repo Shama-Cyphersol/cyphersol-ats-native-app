@@ -28,6 +28,7 @@ from .individual_dashboard_components.foreign_transactions import ForeignTransac
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
+        self.setWindowTitle("Individiual Financial Dashboard")
         self.setCheckable(True)
         self.setFixedHeight(50)
         self.setStyleSheet("""
@@ -71,7 +72,7 @@ class IndividualDashboard(QMainWindow):
         self.initUI()
         
     def initUI(self):
-        self.setWindowTitle(f"Financial Dashboard - {self.name}")
+        self.setWindowTitle(f"Individiual Financial Dashboard - {self.name}")
         self.showFullScreen()  # Make window fullscreen
         
         # Create main widget and layout
@@ -121,7 +122,7 @@ class IndividualDashboard(QMainWindow):
         header.setStyleSheet("background-color: #f8fafc;")
         header_layout = QVBoxLayout(header)
         
-        title = QLabel("Financial Dashboard")
+        title = QLabel("Individiual Financial Dashboard")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
         subtitle = QLabel(f"Name: {self.name}")
         subtitle.setStyleSheet("color: #64748b;padding:4px 0;")
@@ -259,6 +260,7 @@ class IndividualDashboard(QMainWindow):
 
         self.content_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout = QVBoxLayout(self.content_container)
+        self.trace_layout()
         self.content_layout.setContentsMargins(20, 20, 20, 20)
         self.content_layout.setSpacing(20)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -321,9 +323,12 @@ class IndividualDashboard(QMainWindow):
 
         # Set expanding size policy to adjust according to content
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        
+        print("Widget - ",widget)
         # Add the widget to the content layout
         self.content_layout.addWidget(widget)
         
         # Add stretch at the bottom to push content to the top and allow scroll if necessary
         self.content_layout.addStretch()
+
+    def trace_layout(self):
+        self.content_layout.destroyed.connect(lambda: print("Content layout deleted!"))

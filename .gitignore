@@ -183,3 +183,5 @@ alembic.ini
 app_runner.py
 /src/utils/matching_names_model/*
 /src/data/json/*
+/src/data/reports/*
+src/utils/del/*

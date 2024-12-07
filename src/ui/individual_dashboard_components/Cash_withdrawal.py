@@ -175,8 +175,8 @@ class CashWithdrawalChart(QMainWindow):
             table_data.append({
                 'date': row["Value Date"].strftime("%d-%m-%Y"),
                 'description': row["Description"][:50] + "...",  # Truncate long descriptions
-                'credit': f"₹{float(row['Debit']):,.2f}",
-                'balance': f"₹{float(row['Balance']):,.2f}",
+                'credit': f"{float(row['Debit']):,.2f}",
+                'balance': f"{float(row['Balance']):,.2f}",
                 'category': row["Category"]
             })
 
@@ -327,8 +327,8 @@ class CashWithdrawalChart(QMainWindow):
                     filteredData = data.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
-                               row.credit.toLowerCase().includes(searchTerm) ||
-                               row.balance.toLowerCase().includes(searchTerm) ||
+                               row.credit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm);
                     }});
                     
