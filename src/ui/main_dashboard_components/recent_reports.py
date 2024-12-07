@@ -3,10 +3,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
-from apps.report.controllers import *
+# from apps.report.controllers import *
 import sys
-from utils.CA_Statement_Analyzer import CABankStatement
-from utils.json_logic import *
+from ...utils.CA_Statement_Analyzer import CABankStatement
+from ...utils.json_logic import *
 import random
 import string
 from ..case_dashboard import CaseDashboard
@@ -14,10 +14,10 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
-from utils.ner_model import pdf_to_name
+from ...utils.ner_model import pdf_to_name
 from PyQt6.QtGui import QMovie
 import time
-from utils.refresh import add_pdf_extraction
+from ...utils.refresh import add_pdf_extraction
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel

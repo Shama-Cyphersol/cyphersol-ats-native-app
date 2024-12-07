@@ -4,7 +4,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from ..utils.json_logic import *
 from functools import partial
-from utils.json_logic import delete_name_merge_object
+from ..utils.json_logic import delete_name_merge_object
 from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
 
 # from .case_dashboard_components.entity import create_entity_distribution_chart

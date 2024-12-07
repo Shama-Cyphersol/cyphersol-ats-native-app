@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPu
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot, QTimer
-from utils.json_logic import load_case_data,update_case_data,get_process_df,update_process_df
+from ...utils.json_logic import load_case_data,update_case_data,get_process_df,update_process_df
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtCore import QUrl
-from utils.refresh import refresh_name_n_acc_number
+from ...utils.refresh import refresh_name_n_acc_number
 BLUE_COLOR = "#3498db"  
 WHITE_COLOR = "#FFFFFF"
 BACKGROUND_COLOR = "#f8fafc"  # Light gray background

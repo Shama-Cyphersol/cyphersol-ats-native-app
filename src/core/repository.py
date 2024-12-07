@@ -128,6 +128,7 @@ class StatementInfoRepository:
             statement_info = StatementInfo(**statement_info_data)
             self.session.add(statement_info)
             self.session.commit()
+            print("Statement info created successfully:", statement_info)
             return statement_info
         except IntegrityError as e:
             self.session.rollback()
@@ -278,7 +279,7 @@ class CaseRepository:
         :param case_id: ID of the case
         :return: Case object if found, None otherwise
         """
-        return self.session.query(Case).filter_by(id=case_id).first()
+        return self.session.query(Case).filter_by(case_id=case_id).first()
     
     def create_case(self, case_data: dict) -> Optional[Case]:
         """

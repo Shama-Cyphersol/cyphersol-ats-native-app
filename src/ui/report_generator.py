@@ -578,9 +578,9 @@ class ReportGeneratorTab(QWidget):
                 result = pdf_to_name(pdf)
                 for entity in result:
                     if entity["label"] == "PER":
-                        ner_results["Name"].append(entity["text"])
+                        ner_results["Name"].append(entity["text"] or "Unknown")
                     elif entity["label"] == "ACC_NO":
-                        ner_results["Acc Number"].append(entity["text"])
+                        ner_results["Acc Number"].append(entity["text"] or "Unknown")
                         
             print("Ner results", ner_results)
             # Process bank statements
@@ -612,7 +612,7 @@ class ReportGeneratorTab(QWidget):
             group_of_similar_entities = self.get_similar_names(self.case_id,result)
             len_similar_groups = len(group_of_similar_entities["original_groups"])
             # Save the results
-            saved_case_data = save_case_data(self.case_id, pdf_paths, start_date, end_date, ner_results)
+            saved_case_data = save_case_data(self.case_id, pdf_paths, ner_results)
             print("Case data saved", saved_case_data)
             save_result(self.case_id, result)
             print("Result saved ")
@@ -715,7 +715,7 @@ class ReportGeneratorTab(QWidget):
         process_df = data["cummalative_df"]["process_df"]
         unique_values = extract_unique_names_and_entities(process_df)
         similar_groups = group_similar_entities(unique_values)
-
+        print("After group of similar entities", similar_groups)
         obj = {
             "case_id":case_id,
             "original_groups":similar_groups,
@@ -724,6 +724,7 @@ class ReportGeneratorTab(QWidget):
         }
 
         create_name_merge_object(obj)
+        print("After create name merge object")
         group_of_similar_entities = obj
 
         return group_of_similar_entities

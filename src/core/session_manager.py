@@ -78,6 +78,7 @@ class SessionManager:
         try:
             if os.path.exists(cls._session_file):
                 cls._current_user = cls._load_session_from_disk()
+                print("Is logged in ", cls._current_user)
                 return cls._current_user is not None
         except Exception as e:
             print(f"Error checking session: {e}")

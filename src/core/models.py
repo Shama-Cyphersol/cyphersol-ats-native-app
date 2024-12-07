@@ -32,7 +32,7 @@ class Case(Base):
     merged_groups = relationship('MergedGroup', back_populates='case', cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Case(case_id='{self.case_id}', title='{self.title}', user_id={self.user_id})>"
+        return f"<Case(case_id='{self.case_id}', user_id={self.user_id})>"
 
 
 class StatementInfo(Base):
@@ -45,8 +45,8 @@ class StatementInfo(Base):
     ifsc_code = Column(String(50), nullable=False)
     bank_name = Column(String, nullable=False)
     local_filename = Column(String, nullable=False)
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
+    # start_date = Column(Date, nullable=False)
+    # end_date = Column(Date, nullable=False)
 
     case = relationship('Case', back_populates='statements')
 

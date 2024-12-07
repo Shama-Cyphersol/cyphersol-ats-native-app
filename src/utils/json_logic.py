@@ -14,40 +14,50 @@ def ensure_result_directory_exists(directory_path):
         # Create the directory if it doesn't exist
         os.makedirs(directory_path)
 
-def save_case_data(case_id, file_names, start_date, end_date, individual_names):
+def save_case_data(case_id, file_names, individual_names):
     today_date = datetime.now().strftime("%d-%m-%Y")
 
-    total_items = max(len(file_names), len(start_date), len(end_date), len(individual_names))
+    user = SessionManager.get_current_user()
 
-    user = SessionManager.get_current_user()    
-
-    case_info = {
+    case_data = {
         'case_id': case_id,
         "user_id": user.id,
     }
 
-    case = CaseRepository.create_case(case_info)
+    case_repo = CaseRepository()
+    case = case_repo.get_case_by_id(case_id)
+    if not case:
+        print("Case not found. Creating a new case...")
+        case = case_repo.create_case(case_data)
+
+    print("Case created:", case)
+
+    name = individual_names.get("Name") or []
+    acc_number = individual_names.get("Acc Number") or []
+    ifsc_code = individual_names.get("ifsc_code") or []
+    bank_name = individual_names.get("bank_name") or []
+    total_items = max(len(file_names), len(acc_number), len(name), len(ifsc_code), len(bank_name))
 
     for index in range(total_items):
         statement_data = {
-            "case_id": case.id,
-            "account_name": individual_names[index].get("Name") or "" if index < len(individual_names) else "",
-            "account_number": individual_names[index].get("Acc Number") if index < len(individual_names) else "",
-            "local_filename": file_names[index] if index < len(file_names) else "",
-            "start_date": start_date[index] if index < len(start_date) else "",
-            "end_date": end_date[index] if index < len(end_date) else "",
-            "ifsc_code": individual_names[index].get("ifsc_code") or "" if index < len(individual_names) else "",
-            "bank_name": individual_names[index].get("bank_name") or "" if index < len(individual_names) else "",
+            "case_id": case.case_id,
+            "account_name": name[index] or "" if index < len(name) else "",
+            "account_number": acc_number[index] or "" if index < len(acc_number) else "",
+            "local_filename": file_names[index] or "" if index < len(file_names) else "",
+            "ifsc_code": ifsc_code[index] or "" if index < len(ifsc_code) else "",
+            "bank_name": bank_name[index] or "" if index < len(bank_name) else "",
         }
 
-        statement_info = StatementInfoRepository.create_statement_info(statement_data)
+        statement_info = StatementInfoRepository()
+        statement_info = statement_info.create_statement_info(statement_data)
 
     case_data = {
         "case_id": case_id,
         "file_names": file_names,
-        "start_date": start_date,
-        "end_date": end_date,
+        # "start_date": start_date,
+        # "end_date": end_date,
         "individual_names":individual_names,
+        "date": today_date
     }
 
     # if len(file_names) == 1:
@@ -70,7 +80,8 @@ def save_case_data(case_id, file_names, start_date, end_date, individual_names):
     # # Write the updated data back to the file
     # with open("src/data/json/cases.json", "w") as f:
     #     json.dump(existing_data, f, indent=4)
-    # Append the new case data to the beginning of the list
+
+    # # Append the new case data to the beginning of the list
     # existing_data.insert(0, case_data)
     # # existing_data.append( case_data)
 
@@ -164,7 +175,6 @@ def load_result(CA_ID):
     except FileNotFoundError:
         print("File not found.")
         return {}
-    
     
 
 def check_and_add_date():
