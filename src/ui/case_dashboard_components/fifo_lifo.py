@@ -119,14 +119,15 @@ class FIFO_LFIO_Analysis(QWidget):
         self.result = result
         self.case_id = case_id
         self.lifo_fifo_analysis_data = result["cummalative_df"]["fifo"]
-        print
         # self.lifo_fifo_analysis_data = dummy_data
         self.setStyleSheet("background-color: white; color: #3498db;")
         self.layout = QVBoxLayout()
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable horizontal scrollbar
         scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
+        self.scroll_layout = QVBoxLayout(scroll_widget)
         self.scroll_area.setWidget(scroll_widget)
 
         # Check if lifo_fifo_analysis_data is empty
@@ -145,16 +146,34 @@ class FIFO_LFIO_Analysis(QWidget):
         else:
             self.create_dropdowns()
             for key, value in self.lifo_fifo_analysis_data.items():
-                accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
-                scroll_layout.addWidget(accordion_item)
+                accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'], self.adjust_scroll_area_height)
+                self.scroll_layout.addWidget(accordion_item)
             
             # scroll_area.setMinimumHeight(2500)
             # set scroll_area hieght such that to fit all content
-            self.scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
-            scroll_layout.addStretch(1)
+            # self.scroll_area.setMinimumHeight(int(self.scroll_layout.sizeHint().height()*1.5))
+            self.scroll_layout.addStretch(1)
             self.layout.addWidget(self.scroll_area)
             
         self.setLayout(self.layout)
+    
+    def adjust_scroll_area_height(self):
+        """
+        Dynamically adjust the height of the scroll area based on the content.
+        """
+        
+        if not self.scroll_layout:
+            return  # Bail out if the layout is missing
+
+        total_height = 0
+        for i in range(self.scroll_layout.count()):
+            widget_item = self.scroll_layout.itemAt(i)
+            if widget_item.widget():
+                total_height += widget_item.widget().sizeHint().height()
+        
+        # Add padding for smooth layout adjustments
+        total_height += 10
+        self.scroll_area.setMinimumHeight(total_height)
 
     
     def create_dropdowns(self):
@@ -169,19 +188,28 @@ class FIFO_LFIO_Analysis(QWidget):
                 self.apply_filters(filters)
             
             def update_accordion_content(self):
+                # Remove the old scroll area widget
                 self.widget.layout.removeWidget(self.widget.scroll_area)
+                self.widget.scroll_area.deleteLater()
+
+                # Create a new scroll area and layout
+                self.widget.scroll_area = QScrollArea()
+                self.widget.scroll_area.setWidgetResizable(True)
+                self.widget.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.widget.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 scroll_widget = QWidget()
-                scroll_layout = QVBoxLayout(scroll_widget)
-                
-                for key, value in self.widget.lifo_fifo_analysis_data.items():
-                    accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'])
-                    scroll_layout.addWidget(accordion_item)
-                
+                self.widget.scroll_layout = QVBoxLayout(scroll_widget)  # Update the layout reference
                 self.widget.scroll_area.setWidget(scroll_widget)
-                self.widget.scroll_area.setMinimumHeight(int(scroll_layout.sizeHint().height()*1.5))
-                
+
+                # Clear old widgets and layout
+                for key, value in self.widget.lifo_fifo_analysis_data.items():
+                    accordion_item = AccordionItem(key, value['LIFO'], value['FIFO'], self.widget.adjust_scroll_area_height)
+                    self.widget.scroll_layout.addWidget(accordion_item)
+
+                self.widget.scroll_layout.addStretch(1)
                 self.widget.layout.addWidget(self.widget.scroll_area)
-                self.widget.setLayout(self.widget.layout)
+                self.widget.adjust_scroll_area_height()
+
 
             def apply_filters(self, filters):
                     entities = filters['entities']
@@ -190,7 +218,7 @@ class FIFO_LFIO_Analysis(QWidget):
                     # print("Process df:", process_df.head())
                         
                     filtered_result = lifo_fifo(df=process_df, entities_of_interest=entities)
-                    print("\nFiltered result:", filtered_result)
+                    # print("\nFiltered result:", filtered_result)
                     
                     self.widget.lifo_fifo_analysis_data = filtered_result
 
@@ -208,7 +236,6 @@ class FIFO_LFIO_Analysis(QWidget):
 
         entity_options = '\n'.join([f'<option value="{entity}">{entity}</option>' for entity in entities])
 
-        # self.update_accordion_content(self)
 
         html_content = f"""
         <!DOCTYPE html>
@@ -441,8 +468,9 @@ class FIFO_LFIO_Analysis(QWidget):
 
 
 class AccordionItem(QFrame):
-    def __init__(self, title, lifo_data, fifo_data):
+    def __init__(self, title, lifo_data, fifo_data, on_toggle_callback):
         super().__init__()
+        self.on_toggle_callback = on_toggle_callback
         self.setStyleSheet("""
             QFrame {
                 border: 1px solid #3498db;
@@ -457,7 +485,7 @@ class AccordionItem(QFrame):
                 text-align: left;
                 border: none;
                 border-radius: 5px;
-                font-size: 14px;
+                font-size: 18px;
                            
             }
             QPushButton:hover {
@@ -557,6 +585,8 @@ class AccordionItem(QFrame):
         return html
 
     def toggle_content(self):
+        if not self.on_toggle_callback:
+            return
         # Toggle visibility of HTML tables and their titles
         is_visible = not self.lifo_table_view.isVisible()
         
@@ -572,6 +602,7 @@ class AccordionItem(QFrame):
         else:
             self.toggle_button.setText(f"+ {self.toggle_button.text()[2:]}")
 
+        self.on_toggle_callback()
 
 
 if __name__ == "__main__":

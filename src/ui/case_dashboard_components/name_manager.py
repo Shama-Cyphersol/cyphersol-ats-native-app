@@ -311,7 +311,7 @@ class SimilarNameGroups(QMainWindow):
         final_button_container.addStretch()
 
         # Final submit button for merge history page
-        final_merge_btn = StyledPushButton("Final these Groups")
+        final_merge_btn = StyledPushButton("Finalize these Groups")
         final_merge_btn.clicked.connect(self.final_merge_all_groups)
         final_button_container.addWidget(final_merge_btn)
         final_button_container.addStretch()
@@ -359,6 +359,8 @@ class SimilarNameGroups(QMainWindow):
             demerge_label.setForeground(QBrush(QColor(255,0,0)))
             demerge_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.merged_history_table.setItem(row_position, 1, demerge_label)
+            self.merged_history_table.itemClicked.connect(self.handle_row_click)
+
     
     def final_merge_all_groups(self):
 

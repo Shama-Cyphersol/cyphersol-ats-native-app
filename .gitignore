@@ -182,3 +182,5 @@ saved_pdf
 alembic.ini
 /src/utils/matching_names_model/*
 /src/data/json/*
+/src/data/reports/*
+src/utils/del/*
