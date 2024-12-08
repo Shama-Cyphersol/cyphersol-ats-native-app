@@ -1,19 +1,24 @@
 [
     {
-        "case_id": "ATS_unit_1_00015",
+        "case_id": "ATS_unit_1_00023",
         "file_names": [
+            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf",
             "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf"
         ],
         "start_date": "",
         "end_date": "",
-        "report_name": "Report_ATS_unit_1_00015",
+        "report_name": "Report_ATS_unit_1_00023",
         "individual_names": {
             "Name": [
+                "PRATIK N TRIVEDI",
                 "PRATIK N TRIVEDI"
             ],
-            "Acc Number": []
+            "Acc Number": [
+                "XXXXXXXXXXX",
+                "XXXXXXXXXXX"
+            ]
         },
-        "date": "07-12-2024"
+        "date": "08-12-2024"
     },
     {
         "case_id": "ATS_unit_1_00014",

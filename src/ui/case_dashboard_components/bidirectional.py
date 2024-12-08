@@ -1,12 +1,14 @@
 from utils.dynamic_table import DynamicDataTable
 import pickle
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QComboBox, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QComboBox, QLabel, QMessageBox
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot
 import json
 from PyQt6.QtCore import Qt
 import pandas as pd
+from src.utils.refresh import cumulative_bidirectional_analysis
+from src.utils.json_logic import get_process_df
 
 class BiDirectionalAnalysisWidget(QWidget):
     def __init__(self, result,case_id, parent=None):
@@ -36,10 +38,11 @@ class BiDirectionalAnalysisWidget(QWidget):
         if self.is_data_empty:
             self.show_no_data_message()
         else:
-            # self.create_dropdowns()
+            self.create_dropdowns()
             self.create_table()
         
         self.setLayout(self.layout)
+
     def show_no_data_message(self):
             # Create a QLabel with a message directing user to Name Manager
             no_data_label = QLabel(f"No data available. Please go to Name Manager tab and merge names for case id {self.case_id}")
@@ -52,6 +55,7 @@ class BiDirectionalAnalysisWidget(QWidget):
             no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             no_data_label.setWordWrap(True)
             self.layout.addWidget(no_data_label)
+
     def create_table(self):
         self.bidirectional_analysis_table = DynamicDataTable(
             # df=self.bidirectional_analysis_data,
@@ -61,6 +65,38 @@ class BiDirectionalAnalysisWidget(QWidget):
         )
         self.layout.addWidget(self.bidirectional_analysis_table)
         
+    
+    def show_popup(self, message):
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Filter Warning")
+        msg.setText(message)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: #f8fafc;
+                color: #1e293b;
+            }
+            QMessageBox QLabel {
+                color: #1e293b;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #3498db;
+            }
+        """)
+
+        msg.exec()
 
     def create_dropdowns(self):
         class Handler(QObject):
@@ -71,7 +107,25 @@ class BiDirectionalAnalysisWidget(QWidget):
             @pyqtSlot(str)
             def handleFilters(self, filters_json):
                 filters = json.loads(filters_json)
-                self.widget.apply_filters(filters)
+                self.apply_filters(filters)
+
+            def apply_filters(self, filters):
+                entities = filters['entities']
+                # if not entities:  # Check if the list is empty
+                #     self.widget.show_popup("Please select at least one entity")
+                #     return
+                
+                print("Entities:", entities)
+                process_df = get_process_df(self.widget.case_id)
+                    # print("Process df:", process_df.head())
+
+                filtered_result = cumulative_bidirectional_analysis(df=process_df, entities_of_interest=entities)
+
+                self.widget.bidirectional_analysis_data = filtered_result
+
+                # print("\nUpdated LIFO FIFO data:", self.widget.lifo_fifo_analysis_data)
+                self.widget.create_table()
+                print("Filters applied successfully")
 
         self.web_view = QWebEngineView()
         self.channel = QWebChannel(self.web_view.page())

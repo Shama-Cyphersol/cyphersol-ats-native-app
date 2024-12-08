@@ -7,20 +7,11 @@ from apps.report.controllers import *
 import sys
 from utils.CA_Statement_Analyzer import CABankStatement
 from utils.json_logic import *
-import random
-import string
-from .case_dashboard import CaseDashboard
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEnginePage
-from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
-from utils.ner_model import pdf_to_name
-from PyQt6.QtGui import QMovie
+from src.utils.pdf_to_name_and_accno import pdf_to_name_and_accno
 import time
-from utils.refresh import add_pdf_extraction
-from utils.json_logic import get_process_df
 from ui.main_dashboard_components.recent_reports import RecentReportsTable
 from utils.name_merge import *
+from utils.pdf_to_name import extract_entities
 
 class UnitDialog(QDialog):
     def __init__(self, existing_units, parent=None):
@@ -471,7 +462,7 @@ class ReportGeneratorTab(QWidget):
     def browse_files(self,event=None):
         if isinstance(event, bool):  # If called from button click
             pass
-        elif event is not None:  # If called from mouse click
+        elif event != None:  # If called from mouse click
             event.accept()
 
         files, _ = QFileDialog.getOpenFileNames(
@@ -487,37 +478,88 @@ class ReportGeneratorTab(QWidget):
             self.file_display.setText(files_text)
 
     def submit_form_spinner(self):
-            # Create and configure spinner
-            self.spinner_label = QLabel(self)
-            self.spinner_movie = QMovie("assets/spinner.gif")
-            self.spinner_label.setMovie(self.spinner_movie)
-            self.spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.spinner_label.setFixedSize(100, 100)
-            self.spinner_label.setStyleSheet("""
-                QLabel {
-                    background-color: rgba(255, 255, 255, 200);
-                    border-radius: 10px;
-                }
-            """)
+            # # Create and configure spinner
+            # self.spinner_label = QLabel(self)
+            # self.spinner_movie = QMovie("assets/spinner.gif")
+            # self.spinner_label.setMovie(self.spinner_movie)
+            # self.spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # self.spinner_label.setFixedSize(100, 100)
+            # self.spinner_label.setStyleSheet("""
+            #     QLabel {
+            #         background-color: rgba(255, 255, 255, 200);
+            #         border-radius: 10px;
+            #     }
+            # """)
 
-            # Center the spinner in the parent widget
-            self.spinner_label.move(
-                (self.width() - self.spinner_label.width()) // 2,
-                (self.height() - self.spinner_label.height()) // 2,
-            )
+            # # Center the spinner in the parent widget
+            # self.spinner_label.move(
+            #     (self.width() - self.spinner_label.width()) // 2,
+            #     (self.height() - self.spinner_label.height()) // 2,
+            # )
 
-            # Show and start spinner
-            self.spinner_label.show()
-            self.spinner_movie.start()
+            # # Show and start spinner
+            # self.spinner_label.show()
+            # self.spinner_movie.start()
 
-            # Create a QTimer to process the form in the next event loop iteration
-            # start the timer
-            QTimer.singleShot(100, self.process_form)
-            
+            # # Create a QTimer to process the form in the next event loop iteration
+            # # start the timer
+            # QTimer.singleShot(100, self.process_form)
+
+            # Create a QMessageBox for the "Processing" message
+        self.processing_popup = QMessageBox(self)
+        self.processing_popup.setWindowTitle("Processing")
+        self.processing_popup.setText("Please wait while processing...")
+        self.processing_popup.setIcon(QMessageBox.Icon.Information)
+        self.processing_popup.setStandardButtons(QMessageBox.StandardButton.NoButton)
+
+        # Set the stylesheet for QMessageBox components
+        self.processing_popup.setStyleSheet("""
+            QMessageBox {
+                background-color: #ecf0f1;
+            }
+            QMessageBox QLabel {
+                color: #1e293b;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QMessageBox QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                text-align: center;
+                border-radius: 4px;
+                padding: 8px 16px;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #1e90ff;
+            }
+        """)
+
+        # Show the message box
+        self.processing_popup.show()
+        QApplication.processEvents()
+
+        self.process_form()
+
+        QApplication.processEvents()
+        self.processing_popup.close()
+        self.processing_popup.hide()
+
+
+        # QTimer.singleShot(300, self.process_form_and_close)
+
+    def process_form_and_close(self):
+        # Perform your form processing here
+        self.process_form()
+        
+        # Close the processing popup
+        self.processing_popup.close()
+
     def process_form(self):
-            start = time.time()
+        start = time.time()
 
-        # try:
+        try:
             # Get the form data
             pdf_paths = self.selected_files
             # password = self.password.text()
@@ -574,37 +616,66 @@ class ReportGeneratorTab(QWidget):
             }
 
             # Process PDFs with NER
+            person_count = 0
             for pdf in pdf_paths:
-                result = pdf_to_name(pdf)
+                person_count+=1
+                result = pdf_to_name_and_accno(pdf)
+                entites = extract_entities(pdf)
+                fetched_name = ""
+                fetched_acc_num = ""
+
+                print("new ner result Entities:- ", entites)
+                print("old ner results:- ", result)
+
+                if entites:
+                    for entity in entites:
+                        if fetched_name=="":
+                            fetched_name=entity
+
                 for entity in result:
-                    if entity["label"] == "PER":
-                        ner_results["Name"].append(entity["text"])
-                    elif entity["label"] == "ACC_NO":
-                        ner_results["Acc Number"].append(entity["text"])
-                        
+                    if fetched_name=="" and entity["label"] == "PER":
+                        fetched_name = entity["text"]
+                        # ner_results["Name"].append(entity["text"])
+                    if fetched_acc_num=="" and  entity["label"] == "ACC_NO":
+                        fetched_acc_num = entity["text"]
+                        # ner_results["Acc Number"].append(entity["text"])
+                
+                if fetched_name != "":
+                    ner_results["Name"].append(fetched_name)
+                else:
+                    ner_results["Name"].append(f"Person {person_count}")
+                
+                if fetched_acc_num != "":
+                    ner_results["Acc Number"].append(fetched_acc_num)
+                else:
+                    ner_results["Acc Number"].append("XXXXXXXXXXX")
             print("Ner results", ner_results)
             # Process bank statements
 
             # Check by account number that the bank statement is already processed or not
             # get all the account numbers from the json
             cases = load_all_case_data()
+            cases_present_in = []
             for case in cases:
                 acc_numbers = case["individual_names"]["Acc Number"]
                 for acc_number in acc_numbers:
                     if acc_number in ner_results["Acc Number"]:
                         print("Bank statement with account number", acc_number, "is already processed, refer case ID - ", case["case_id"])
-                        # For error message
-                        msg_box = QMessageBox(self)
-                        msg_box.setStyleSheet("""
-                            QMessageBox QLabel {
-                                color: black;
-                            }
-                        """)
-                        msg_box.setWindowTitle("Warning")
-                        case_id = case["case_id"]
-                        msg_box.setText(f"Bank statement with account number {acc_number} is already processed earlier, please refer case ID - {case_id}")
-                        msg_box.setIcon(QMessageBox.Icon.Warning)
-                        msg_box.exec()
+                        cases_present_in.append(case["case_id"])
+            
+            if len(cases_present_in)>0:
+                # For message
+                msg_box = QMessageBox(self)
+                msg_box.setStyleSheet("""
+                    QMessageBox QLabel {
+                        color: black;
+                    }
+                """)
+                msg_box.setWindowTitle("Warning")
+                case_ids = ", ".join(cases_present_in)
+                msg_box.setText(f"Bank statement with account number {acc_number} is already processed earlier, please refer case ID/IDs- {case_ids}")
+                msg_box.setIcon(QMessageBox.Icon.Warning)
+                msg_box.exec()
 
             converter = CABankStatement(bank_names, pdf_paths, password, start_date, end_date, self.case_id, progress_data,ner_results)
             result = converter.start_extraction()
@@ -623,16 +694,31 @@ class ReportGeneratorTab(QWidget):
 
             # Update the table
             self.create_recent_reports_table()
-
+            
             # For success message
             msg_box = QMessageBox(self)
             msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: white;
+               QMessageBox {
+                    background-color: #ecf0f1;
                 }
                 QMessageBox QLabel {
-                    color: black;
+                    color: #1e293b;
+                    font-size: 14px;
+                    padding: 10px;
                 }
+                QPushButton {{
+                    background-color: #3498db;
+                    color: #FFFFFF;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    min-width: 100px;
+                    text-align: center;
+                }}
+                QPushButton:hover {{
+                    background-color:#3498db ;
+                }}
             """)
             msg_box.setWindowTitle("Success")
             msg_box.setText(f"Form submitted and processed successfully! Found {len_similar_groups} similar groups, please check the case dashboard and merge the similar groups.")
@@ -653,26 +739,26 @@ class ReportGeneratorTab(QWidget):
                 msg_box.setIcon(QMessageBox.Icon.Information)
                 msg_box.exec()
 
-        # except Exception as e:
+        except Exception as e:
             
-        #     print("An error occurred while processing:", e) 
-        #     # For error message
-        #     msg_box = QMessageBox(self)
-        #     msg_box.setStyleSheet("""
-        #         QMessageBox {
-        #             background-color: white;
-        #         }
-        #         QMessageBox QLabel {
-        #             color: black;
-        #         }
-        #     """)
-        #     msg_box.setWindowTitle("Error")
-        #     print(e)
-        #     msg_box.setText(f"An error occurred while processing: {str(e)}")
-        #     msg_box.setIcon(QMessageBox.Icon.Critical)
-        #     msg_box.exec()
+            print("An error occurred while processing:", e) 
+            # For error message
+            msg_box = QMessageBox(self)
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: black;
+                }
+            """)
+            msg_box.setWindowTitle("Error")
+            print(e)
+            msg_box.setText(f"An error occurred while processing: {str(e)}")
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+            msg_box.exec()
 
-        # finally:
+        finally:
             # Always clean up the spinner
             if hasattr(self, 'spinner_movie'):
                 self.spinner_movie.stop()
