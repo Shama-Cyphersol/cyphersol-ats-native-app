@@ -100,7 +100,7 @@ def test_single_pdf(model_path: str, pdf_path: str) -> None:
    
     return results
 
-def pdf_to_name(pdf_path: str):
+def pdf_to_name_and_accno(pdf_path: str):
     model_path = "src/utils/trained_model"
     print("pdf_path ", pdf_path)
     

@@ -1,11 +1,9 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget,QMessageBox, QVBoxLayout, QDialog,QFormLayout, QLineEdit, QPushButton, QDateEdit,QMainWindow, QTabWidget,QApplication, QLabel, QFrame, QScrollArea, QHBoxLayout, QTableWidget, QFileDialog,QTableWidgetItem, QHeaderView)
-from PyQt6.QtGui import QFont,QColor,QBrush
 from PyQt6.QtCore import QDate, Qt
 # from apps.report.controllers import *
 import sys
-from ...utils.CA_Statement_Analyzer import CABankStatement
 from ...utils.json_logic import *
 import random
 import string
@@ -14,7 +12,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QUrl, pyqtSlot, QObject,QTimer
-from ...utils.ner_model import pdf_to_name
+from src.utils.pdf_to_name_and_accno import pdf_to_name_and_accno
 from PyQt6.QtGui import QMovie
 import time
 from ...utils.refresh import add_pdf_extraction
@@ -23,6 +21,7 @@ from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot, QUrl
 import json
+from utils.pdf_to_name import extract_entities
 
 class WebBridge(QObject):
     def __init__(self, parent=None):
@@ -564,8 +563,43 @@ class RecentReportsTable:
             "",
             "Supported Files (*.pdf *.xlsx *.xls);;PDF Files (*.pdf);;Excel Files (*.xlsx *.xls)"
         )
+
+        
         
         if file_names:
+            self.processing_popup = QMessageBox()
+            self.processing_popup.setWindowTitle("Processing")
+            self.processing_popup.setText("Please wait while processing...")
+            self.processing_popup.setIcon(QMessageBox.Icon.Information)
+            self.processing_popup.setStandardButtons(QMessageBox.StandardButton.NoButton)
+
+            # Set the stylesheet for QMessageBox components
+            self.processing_popup.setStyleSheet("""
+                QMessageBox {
+                    background-color: #ecf0f1;
+                }
+                QMessageBox QLabel {
+                    color: #1e293b;
+                    font-size: 14px;
+                    padding: 10px;
+                }
+                QMessageBox QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    text-align: center;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    min-width: 80px;
+                }
+                QMessageBox QPushButton:hover {
+                    background-color: #1e90ff;
+                }
+            """)
+
+            # Show the message box
+            self.processing_popup.show()
+
             try:
                 # Add your file handling logic here
                 print(f"Uploading PDF for Case ID: {case_id}")
@@ -596,14 +630,40 @@ class RecentReportsTable:
                 }
 
                 # Process PDFs with NER
+                person_count = 0
                 for pdf in pdf_paths:
-                    result = pdf_to_name(pdf)
+                    person_count+=1
+                    result = pdf_to_name_and_accno(pdf)
+                    entites = extract_entities(pdf)
+                    fetched_name = ""
+                    fetched_acc_num = ""
+
+                    print("new ner result Entities:- ", entites)
+                    print("old ner results:- ", result)
+
+                    if entites:
+                        for entity in entites:
+                            if fetched_name=="":
+                                fetched_name=entity
+
                     for entity in result:
-                        if entity["label"] == "PER":
-                            ner_results["Name"].append(entity["text"])
-                        elif entity["label"] == "ACC_NO":
-                            ner_results["Acc Number"].append(entity["text"])
-                            
+                        if fetched_name=="" and entity["label"] == "PER":
+                            fetched_name = entity["text"]
+                            # ner_results["Name"].append(entity["text"])
+                        if fetched_acc_num=="" and  entity["label"] == "ACC_NO":
+                            fetched_acc_num = entity["text"]
+                            # ner_results["Acc Number"].append(entity["text"])
+                    
+                    if fetched_name != "":
+                        ner_results["Name"].append(fetched_name)
+                    else:
+                        ner_results["Name"].append(f"Person {person_count}")
+                    
+                    if fetched_acc_num != "":
+                        ner_results["Acc Number"].append(fetched_acc_num)
+                    else:
+                        ner_results["Acc Number"].append("XXXXXXXXXXX")
+
                 print("Ner results after additional pdf ", ner_results)
                 case_data = load_case_data(case_id)
 
@@ -651,6 +711,9 @@ class RecentReportsTable:
                 msg_box.setText(f"PDF successfully uploaded for Case ID: {case_id}")
                 msg_box.setIcon(QMessageBox.Icon.NoIcon)
                 msg_box.exec()
+
+                self.processing_popup.close()
+                self.processing_popup.hide()
                 
             except Exception as e:
                 print(e)

@@ -211,6 +211,7 @@ class DynamicDataTableRowClick(QMainWindow):
                 .highlighted:hover {{
                     background-color: #ffe0e9;
                 }}
+                
             </style>
         </head>
         <body>
@@ -391,7 +392,7 @@ class FundTrackingComponent(QWidget):
         # self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setContentsMargins(0,0,0,0)
         # self.layout.setSpacing(10)
-        self.layout.setSpacing(5)
+        self.layout.setSpacing(0)
 
         self.create_filters()
         self.create_table()
@@ -433,22 +434,42 @@ class FundTrackingComponent(QWidget):
             <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
             <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
             <style>
+                /* CSS styles */
                 :root {{
                     --primary-blue: #3498db;
                     --accent-red: #b82214;
                     --border-color: #e2e8f0;
                     --text-color: #1e293b;
-                    --background: #f8fafc;
+                    --background: white;
                 }}
 
                 body {{
-                    margin: 0;
-                    padding: 0;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     background: var(--background);
+                    margin: 20px;
+                    padding: 20px;
                 }}
 
-                
+                .filters-container {{
+                    background: white;
+                    border: 1px solid var(--border-color);
+                    border-radius: 0.375rem;
+                    padding: 1rem;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                }}
+
+                .fields-container {{
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    margin-bottom: 1rem;
+                }}
+
+                .filter-group {{
+                    flex: 1;
+                    min-width: 0;
+                }}
+
                 label {{
                     display: block;
                     font-size: 0.875rem;
@@ -457,90 +478,51 @@ class FundTrackingComponent(QWidget):
                     margin-bottom: 0.5rem;
                 }}
 
-                /* Select2 Customization */
-                .select2-container {{
-                    width: 100% !important;
-                    margin-bottom: 0.5rem;
-                }}
-
-                .select2-container--default .select2-selection--multiple {{
+                #transaction-date,
+                .select2-container--default .select2-selection--single {{
+                    width: 100%;
+                    padding: 0.5rem;
                     border: 1px solid var(--border-color);
                     border-radius: 0.375rem;
-                    min-height: 2.5rem;
-                    padding: 0.25rem;
+                    font-size: 0.875rem;
+                    box-sizing: border-box;
+                    background-color: white;
+                    appearance: none;
                 }}
 
-                .select2-container--default.select2-container--focus .select2-selection--multiple {{
+                #transaction-date::-webkit-calendar-picker-indicator {{
+                    cursor: pointer;
+                    filter: opacity(0.6);
+                    transition: filter 0.2s ease-in-out;
+                }}
+
+                #transaction-date::-webkit-calendar-picker-indicator:hover {{
+                    filter: opacity(1);
+                }}
+
+                #transaction-date:focus,
+                .select2-container--default .select2-selection--single:focus {{
+                    outline: none;
                     border-color: var(--primary-blue);
                     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
                 }}
 
-                .select2-container--default .select2-selection--multiple .select2-selection__choice {{
-                    background-color: var(--primary-blue);
-                    color: white;
-                    border: none;
-                    border-radius: 0.25rem;
-                    padding: 0.25rem 0.5rem;
-                    margin: 0.25rem;
+                .select2-container--default .select2-selection--single {{
+                    height: auto;
                 }}
 
-                .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {{
-                    color: white;
-                    margin-right: 0.5rem;
+                .select2-container--default .select2-selection--single .select2-selection__rendered {{
+                    line-height: 1.5;
+                    padding-left: 0;
                 }}
 
-                .select2-dropdown {{
-                    border-color: var(--border-color);
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                    z-index: 9999;
-                }}
-
-                .select2-container--open .select2-dropdown {{
-                    position: absolute;
-                    z-index: 100000 !important;
-                    background: white;
-                    border: 1px solid #e2e8f0;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                }}
-
-                .select2-container {{
-                    position: relative;
-                    z-index: 10000;
-                }}
-
-                .select2-results {{
-                    max-height: 300px;
-                    overflow-y: auto;
-                }}
-
-                /* Ensure the dropdown container is above other elements */
-                .filters-container {{
-                    position: relative;
-                    z-index: 1000;
-                    background: white;
-                }}
-                .filter-groups {{
-                    display: flex;
-                    flex: 1;
-                    gap: 1rem;
-                    margin-right: 1rem;
-                }}
-                .filter-group {{
-                    flex: 1;
-                    margin-right: 1rem;
-                }}
-                .select2-results__option {{
-                    padding: 0.5rem;
-                }}
-
-                .select2-container--default .select2-results__option--highlighted[aria-selected] {{
-                    background-color: var(--primary-blue);
+                .select2-container--default .select2-selection--single .select2-selection__arrow {{
+                    height: 100%;
                 }}
 
                 .buttons-container {{
                     display: flex;
                     gap: 1rem;
-                    margin-top: 1rem;
                 }}
 
                 .button {{
@@ -552,7 +534,6 @@ class FundTrackingComponent(QWidget):
                     font-size: 0.875rem;
                     cursor: pointer;
                     transition: all 0.2s;
-                    max-width: 10rem;
                 }}
 
                 .apply-btn {{
@@ -561,7 +542,7 @@ class FundTrackingComponent(QWidget):
                 }}
 
                 .apply-btn:hover {{
-                    background: #3498db;
+                    background: #2978b5;
                 }}
 
                 .reset-btn {{
@@ -572,45 +553,36 @@ class FundTrackingComponent(QWidget):
                 .reset-btn:hover {{
                     background: #991b1b;
                 }}
-
-                #transaction-date,#name-dropdown, #entity-dropdown {{
-                    width: 100%;
-                    padding: 0.5rem;
-                    border: 1px solid var(--border-color);
-                    border-radius: 0.375rem;
-                    font-size: 0.875rem;
-                }}
-
-                #name-dropdown, #entity-dropdown {{
-                    width: 100%;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="filters-container">
-                <div class="filter-groups">
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="filters-container">
+            <div class="filter-groups">
+                <div class="fields-container">
                     <div class="filter-group">
                         <label for="transaction-date">Transaction Date</label>
                         <input type="date" id="transaction-date" />
                     </div>
                     <div class="filter-group">
                         <label for="name-dropdown">Names</label>
-                        <select id="name-dropdown" >
+                        <select id="name-dropdown" class="select2">
                             {name_options}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label for="category-dropdown">Categories</label>
-                        <select id="category-dropdown">
+                        <select id="category-dropdown" class="select2">
                             {categories_options}
-                    </select>
+                        </select>
                     </div>
                 </div>
-                <div class="buttons-container">
-                    <button class="button apply-btn" onclick="applyFilters()">Apply Filters</button>
-                    <button class="button reset-btn" onclick="resetFilters()">Reset</button>
-                </div>
             </div>
+            <div class="buttons-container">
+                <button class="button apply-btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="button reset-btn" onclick="resetFilters()">Reset</button>
+            </div>
+        </div>
             <script>
                 let qtChannel = null;
 
@@ -680,7 +652,7 @@ class FundTrackingComponent(QWidget):
         """
 
         self.web_view.setHtml(html_content)
-        self.web_view.setFixedHeight(250)  # Increased height to accommodate dropdowns
+        self.web_view.setFixedHeight(250)  
         self.layout.addWidget(self.web_view)
 
     def create_table(self):

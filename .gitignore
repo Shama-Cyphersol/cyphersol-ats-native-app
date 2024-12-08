@@ -185,3 +185,4 @@ app_runner.py
 /src/data/json/*
 /src/data/reports/*
 src/utils/del/*
+/src/utils/trained_model_lg_v2_final
