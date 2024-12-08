@@ -28,7 +28,7 @@ def group_similar_entities(entity_list):
     df['Cleaned_Entity'] = df['Entity']
 
     # 2. Generate Name Embeddings
-    model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"./matching_names_model")
+    model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"/matching_names_model")
     unique_entities = df['Cleaned_Entity'].unique()
     embeddings = model.encode(unique_entities)
     embedding_df = pd.DataFrame({'Cleaned_Entity': unique_entities, 'Embedding': list(embeddings)})

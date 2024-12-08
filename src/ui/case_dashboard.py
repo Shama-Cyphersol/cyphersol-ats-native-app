@@ -1,17 +1,21 @@
+import traceback
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
-                             QScrollArea, QDialog,QPushButton,QMessageBox,QSplitter,QSizePolicy)
+                             QScrollArea, QDialog,QPushButton,QMessageBox,QSplitter,QSizePolicy, QLabel, QMessageBox)
+
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import Qt,QEvent
 from ..utils.json_logic import *
 from functools import partial
-from ..utils.json_logic import delete_name_merge_object
-from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
-# from .case_dashboard_components.individual_table import create_individual_dashboard_table
-# from .case_dashboard_components.link_analysis import LinkAnalysisWidget
-# from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
-# from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
-# from .case_dashboard_components.name_manager import SimilarNameGroups
-# from .case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+from .case_dashboard_components.individual_table import create_individual_dashboard_table,IndividualDashboardTable
+from .case_dashboard_components.CashFlowNetwork import CashFlowNetwork
+from .case_dashboard_components.entity import EntityDistributionChart
+from .case_dashboard_components.link_analysis import LinkAnalysisWidget
+from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
+from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+from .case_dashboard_components.name_manager import SimilarNameGroups
+from .case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+from .case_dashboard_components.fund_tracking import FundTrackingComponent
+
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -85,7 +89,6 @@ class CaseDashboard(QWidget):
         self.init_ui()
 
     def lazy_load_network_graph(self):
-        from .case_dashboard_components.CashFlowNetwork import CashFlowNetwork
         try:
             process_df = self.case_result["cummalative_df"]["process_df"]
             # More robust filtering
@@ -97,16 +100,13 @@ class CaseDashboard(QWidget):
                 return CashFlowNetwork(filtered_df)
             else:
                 # Return a message or a placeholder widget
-                from PyQt6.QtWidgets import QLabel
                 return QLabel("No entities found for network graph.")
         
         except Exception as e:
-            from PyQt6.QtWidgets import QLabel
             print(f"Error in network graph: {e}")
             return QLabel(f"Error loading network graph: {str(e)}")
 
     def lazy_load_entity_distribution(self):
-        from .case_dashboard_components.entity import EntityDistributionChart
         
         try:
             entity_df = self.case_result["cummalative_df"]["entity_df"]
@@ -137,7 +137,6 @@ class CaseDashboard(QWidget):
             return QLabel(f"Error loading entity distribution: {str(e)}")
 
     def lazy_load_individual_table(self):
-        from .case_dashboard_components.individual_table import create_individual_dashboard_table,IndividualDashboardTable
         data = []
         for i in range(len(self.case["individual_names"]["Name"])):
             data.append({
@@ -150,27 +149,21 @@ class CaseDashboard(QWidget):
         return IndividualDashboardTable(data,self.case_id)
 
     def lazy_load_link_analysis(self):
-        from .case_dashboard_components.link_analysis import LinkAnalysisWidget
         return LinkAnalysisWidget(self.case_result, self.case_id)
 
     def lazy_load_bidirectional_analysis(self):
-        from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
         return BiDirectionalAnalysisWidget(self.case_result, self.case_id)
 
     def lazy_load_fifo_lifo(self):
-        from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
         return FIFO_LFIO_Analysis(self.case_result, self.case_id)
 
     def lazy_load_name_manager(self):
-        from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
         return SimilarNameGroups(case_id=self.case_id,parent= self,refresh_case_dashboard=self.refresh_case_dashboard)
 
     def lazy_load_account_manager(self):
-        from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
         return AccountNumberAndNameManager(self.case_id,self.refresh_case_dashboard)
     
     def lazy_load_fund_tracking(self):
-        from src.ui.case_dashboard_components.fund_tracking import FundTrackingComponent
         return FundTrackingComponent(self.case_id,self.case_result["cummalative_df"]["process_df"])
         
 
@@ -494,12 +487,10 @@ class CaseDashboard(QWidget):
             self.content_layout.addStretch()
 
         except Exception as e:
-                import traceback
                 print(f"Error in showSection: {e}")
                 print(traceback.format_exc())
 
                 # Fallback error handling
-                from PyQt6.QtWidgets import QLabel, QMessageBox
                 error_label = QLabel(f"Error loading section: {str(e)}")
                 
                 # Show error message box

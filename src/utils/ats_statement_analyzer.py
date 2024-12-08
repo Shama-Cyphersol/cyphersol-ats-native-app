@@ -578,7 +578,7 @@ class ATSFunctions:
 
 
     def group_similar_entities(self, entities, low=0.52, high=1.0, weight_semantic=0.6, weight_string=0.4):
-        structure_model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"./matching_names_model")
+        structure_model = SentenceTransformer(os.path.dirname(os.path.abspath(__file__))+"/matching_names_model")
 
         n = len(entities)
         grouped = defaultdict(list)

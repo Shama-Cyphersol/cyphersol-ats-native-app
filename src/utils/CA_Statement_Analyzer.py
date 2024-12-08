@@ -234,6 +234,7 @@ class CABankStatement:
             pdf_password = self.pdf_passwords[i]
             start_date = self.start_date[i]
             end_date = self.end_date[i]
+            
             # acc_name_n_num = [self.individual_names["Name"][i], self.individual_names["Acc Number"][i]]
 
             self.progress_function(self.current_progress, self.total_progress, info=f"Extracting bank statement")

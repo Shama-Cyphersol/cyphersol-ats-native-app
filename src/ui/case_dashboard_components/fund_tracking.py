@@ -6,7 +6,7 @@ import json
 import sys
 import pandas as pd
 from PyQt6.QtWebEngineCore import QWebEnginePage
-from utils.refresh import fund_tracking_get_funds
+from ...utils.refresh import fund_tracking_get_funds
 
 class DynamicDataTableRowClick(QMainWindow):
     def __init__(self, df, handle_row_click,title="",table_for="", rows_per_page=10):

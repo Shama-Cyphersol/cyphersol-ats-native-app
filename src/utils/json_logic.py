@@ -67,27 +67,20 @@ def save_case_data(case_id, file_names, individual_names):
     #     case_data["start_date"] = "-"
     #     case_data["end_date"] = "-"
 
-    # # Read existing data or initialize an empty list
-    # try:
-    #     with open("src/data/json/cases.json", "r") as f:
-    #         existing_data = json.load(f)
-    # except:
-    #     existing_data = []
+    # Read existing data or initialize an empty list
+    try:
+        with open("src/data/json/cases.json", "r") as f:
+            existing_data = json.load(f)
+    except:
+        existing_data = []
 
-    # # Append the new case data to the beginning of the list
+    # Append the new case data to the beginning of the list
+    existing_data.insert(0, case_data)
     # existing_data.append( case_data)
 
-    # # Write the updated data back to the file
-    # with open("src/data/json/cases.json", "w") as f:
-    #     json.dump(existing_data, f, indent=4)
-
-    # # Append the new case data to the beginning of the list
-    # existing_data.insert(0, case_data)
-    # # existing_data.append( case_data)
-
-    # # Write the updated data back to the file
-    # with open("src/data/json/cases.json", "w") as f:
-    #     json.dump(existing_data, f, indent=4)
+    # Write the updated data back to the file
+    with open("src/data/json/cases.json", "w") as f:
+        json.dump(existing_data, f, indent=4)
     
     return case_data
 
