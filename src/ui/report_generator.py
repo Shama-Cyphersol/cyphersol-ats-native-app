@@ -7,11 +7,13 @@ from apps.report.controllers import *
 import sys
 from utils.CA_Statement_Analyzer import CABankStatement
 from utils.json_logic import *
-from src.utils.pdf_to_name_and_accno import pdf_to_name_and_accno
+# from src.utils.pdf_to_name_and_accno import pdf_to_name_and_accno
 import time
 from ui.main_dashboard_components.recent_reports import RecentReportsTable
 from utils.name_merge import *
 from utils.pdf_to_name import extract_entities
+from utils.account_number_ifsc_extraction import extract_accno_ifsc
+
 
 class UnitDialog(QDialog):
     def __init__(self, existing_units, parent=None):
@@ -619,27 +621,20 @@ class ReportGeneratorTab(QWidget):
             person_count = 0
             for pdf in pdf_paths:
                 person_count+=1
-                result = pdf_to_name_and_accno(pdf)
-                entites = extract_entities(pdf)
+                # result = pdf_to_name_and_accno(pdf)
                 fetched_name = ""
                 fetched_acc_num = ""
 
-                print("new ner result Entities:- ", entites)
-                print("old ner results:- ", result)
+                name_entities = extract_entities(pdf)
+                acc_number_ifsc = extract_accno_ifsc(pdf)
 
-                if entites:
-                    for entity in entites:
+                fetched_acc_num=acc_number_ifsc["acc"]
+
+                if name_entities:
+                    for entity in name_entities:
                         if fetched_name=="":
                             fetched_name=entity
 
-                for entity in result:
-                    if fetched_name=="" and entity["label"] == "PER":
-                        fetched_name = entity["text"]
-                        # ner_results["Name"].append(entity["text"])
-                    if fetched_acc_num=="" and  entity["label"] == "ACC_NO":
-                        fetched_acc_num = entity["text"]
-                        # ner_results["Acc Number"].append(entity["text"])
-                
                 if fetched_name != "":
                     ner_results["Name"].append(fetched_name)
                 else:

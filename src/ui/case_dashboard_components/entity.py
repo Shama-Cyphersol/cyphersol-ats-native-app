@@ -9,6 +9,8 @@ from PyQt6.QtCore import QObject, pyqtSlot, QUrl
 import pandas as pd
 import os
 import json
+
+
 def create_entity_distribution_chart(result):
     try:
         entity_df = result["cummalative_df"]["entity_df"]
@@ -22,6 +24,7 @@ def create_entity_distribution_chart(result):
         all_transactions = result["cummalative_df"]["process_df"]
 
         all_transactions = all_transactions[all_transactions['Entity'].notna() & (all_transactions['Entity'] != '')]
+      
 
         return EntityDistributionChart(data={"piechart_data":entity_df_10,"table_data":entity_df,"all_transactions":all_transactions})
     except Exception as e:
@@ -50,7 +53,6 @@ class EntityDistributionChart(QWidget):
         self.piechart_data = data["piechart_data"]
         self.table_data = data["table_data"]
         self.all_transactions = data["all_transactions"]  # Store transactions DataFrame
-
         
         self.current_page = 1
         self.rows_per_page = 10
@@ -109,6 +111,9 @@ class EntityDistributionChart(QWidget):
             transactions_by_entity[entity] = transactions_list
         
 
+        print("all_transactions", transactions_by_entity)
+        print("piechart_data",piechart_data)
+        print("table_data",table_data)
         # Generate HTML content
         html_content = f'''
         <!DOCTYPE html>

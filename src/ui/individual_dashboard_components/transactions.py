@@ -400,13 +400,23 @@ class BankTransactionDashboard(QMainWindow):
                 
                 function handleSearch() {{
                     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                    const currentMonthData = tableData[selectedMonth];
+                    data_to_be_filtered = []
+                    if(selectedMonth.length>1){{
+                        const temp_months_table_data = [];
+                        selectedMonth.forEach(month => {{
+                            temp_months_table_data.push(...tableData[month]);
+                        }});
+                    data_to_be_filtered = temp_months_table_data;
+                        
+                    }}else{{
+                    data_to_be_filtered = tableData[selectedMonth];
+                    }}
                     
-                    filteredData = currentMonthData.filter(row => {{
+                    filteredData = data_to_be_filtered.filter(row => {{
                         return row.date.toLowerCase().includes(searchTerm) ||
                                row.description.toLowerCase().includes(searchTerm) ||
                                row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
-                               row.debit.toLowerCase().replace(",","").includes(searchTerm) ||
+                               row.credit.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.balance.toLowerCase().replace(",","").includes(searchTerm) ||
                                row.category.toLowerCase().includes(searchTerm) ||
                                row.entity.toLowerCase().includes(searchTerm);

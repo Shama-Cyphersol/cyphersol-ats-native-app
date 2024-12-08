@@ -106,6 +106,7 @@ class IndividualDashboardTable(QWidget):
                     border-radius: 10px;
                     overflow: hidden;
                     box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    max-width:100%;
                 }
                 
                 td {
@@ -164,6 +165,19 @@ class IndividualDashboardTable(QWidget):
                     padding: 20px;
                     color: #666;
                     font-style: italic;
+                }
+
+                th:first-child, 
+                td:first-child {
+                    width: 50px; /* Adjust this value as needed */
+                    text-align: center; /* Center-align the serial numbers */
+                    flex-grow: 0;
+                }
+
+                /* Distribute remaining space equally among other columns */
+                th:not(:first-child), 
+                td:not(:first-child) {
+                    width: calc((100% - 50px)
                 }
             </style>
             <script>

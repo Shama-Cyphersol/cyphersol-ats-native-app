@@ -1,17 +1,21 @@
+import traceback
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
-                             QScrollArea, QDialog,QPushButton,QMessageBox,QSplitter,QSizePolicy)
+                             QScrollArea, QDialog,QPushButton,QMessageBox,QSplitter,QSizePolicy, QLabel, QMessageBox)
+
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt,QEvent
 from utils.json_logic import *
 from functools import partial
-from utils.json_logic import delete_name_merge_object
-from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
-# from .case_dashboard_components.individual_table import create_individual_dashboard_table
-# from .case_dashboard_components.link_analysis import LinkAnalysisWidget
-# from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
-# from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
-# from .case_dashboard_components.name_manager import SimilarNameGroups
-# from .case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+from .case_dashboard_components.individual_table import create_individual_dashboard_table,IndividualDashboardTable
+from .case_dashboard_components.CashFlowNetwork import CashFlowNetwork
+from .case_dashboard_components.entity import EntityDistributionChart
+from .case_dashboard_components.link_analysis import LinkAnalysisWidget
+from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
+from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
+from .case_dashboard_components.name_manager import SimilarNameGroups
+from .case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
+from .case_dashboard_components.fund_tracking import FundTrackingComponent
+
 
 class SidebarButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -85,7 +89,6 @@ class CaseDashboard(QWidget):
         self.init_ui()
 
     def lazy_load_network_graph(self):
-        from .case_dashboard_components.CashFlowNetwork import CashFlowNetwork
         try:
             process_df = self.case_result["cummalative_df"]["process_df"]
             # More robust filtering
@@ -97,16 +100,13 @@ class CaseDashboard(QWidget):
                 return CashFlowNetwork(filtered_df)
             else:
                 # Return a message or a placeholder widget
-                from PyQt6.QtWidgets import QLabel
                 return QLabel("No entities found for network graph.")
         
         except Exception as e:
-            from PyQt6.QtWidgets import QLabel
             print(f"Error in network graph: {e}")
             return QLabel(f"Error loading network graph: {str(e)}")
 
     def lazy_load_entity_distribution(self):
-        from .case_dashboard_components.entity import EntityDistributionChart
         
         try:
             entity_df = self.case_result["cummalative_df"]["entity_df"]
@@ -137,7 +137,6 @@ class CaseDashboard(QWidget):
             return QLabel(f"Error loading entity distribution: {str(e)}")
 
     def lazy_load_individual_table(self):
-        from .case_dashboard_components.individual_table import create_individual_dashboard_table,IndividualDashboardTable
         data = []
         for i in range(len(self.case["individual_names"]["Name"])):
             data.append({
@@ -150,27 +149,21 @@ class CaseDashboard(QWidget):
         return IndividualDashboardTable(data,self.case_id)
 
     def lazy_load_link_analysis(self):
-        from .case_dashboard_components.link_analysis import LinkAnalysisWidget
         return LinkAnalysisWidget(self.case_result, self.case_id)
 
     def lazy_load_bidirectional_analysis(self):
-        from .case_dashboard_components.bidirectional import BiDirectionalAnalysisWidget
         return BiDirectionalAnalysisWidget(self.case_result, self.case_id)
 
     def lazy_load_fifo_lifo(self):
-        from .case_dashboard_components.fifo_lifo import FIFO_LFIO_Analysis
         return FIFO_LFIO_Analysis(self.case_result, self.case_id)
 
     def lazy_load_name_manager(self):
-        from src.ui.case_dashboard_components.name_manager import SimilarNameGroups
         return SimilarNameGroups(case_id=self.case_id,parent= self,refresh_case_dashboard=self.refresh_case_dashboard)
 
     def lazy_load_account_manager(self):
-        from src.ui.case_dashboard_components.account_number_and_name_manager import AccountNumberAndNameManager
         return AccountNumberAndNameManager(self.case_id,self.refresh_case_dashboard)
     
     def lazy_load_fund_tracking(self):
-        from src.ui.case_dashboard_components.fund_tracking import FundTrackingComponent
         return FundTrackingComponent(self.case_id,self.case_result["cummalative_df"]["process_df"])
         
 
@@ -494,12 +487,10 @@ class CaseDashboard(QWidget):
             self.content_layout.addStretch()
 
         except Exception as e:
-                import traceback
                 print(f"Error in showSection: {e}")
                 print(traceback.format_exc())
 
                 # Fallback error handling
-                from PyQt6.QtWidgets import QLabel, QMessageBox
                 error_label = QLabel(f"Error loading section: {str(e)}")
                 
                 # Show error message box
@@ -511,7 +502,7 @@ class CaseDashboard(QWidget):
                 error_box.exec()
         
                 
-    def refresh_case_dashboard(self,source,new_case_data=None):
+    # def refresh_case_dashboard(self,source,new_case_data=None):
         # refresh this page
         # if source == "SimilarNameGroups":
         #     self.enable_disabled_options()
@@ -528,9 +519,81 @@ class CaseDashboard(QWidget):
         #     self.case = new_case_data
         #     delete_name_merge_object(self.case_id)
 
-        pass
         # self.section_widgets=self.lazy_categories
 
-     
+    def refresh_case_dashboard(self, source, new_case_data=None):
+        print("=" * 50)
+        print(f"Refreshing Case Dashboard - Source: {source}")
+        print("=" * 50)
+
+        try:
+            # Log the initial state
+            print("Initial Section Widgets:", list(self.section_widgets.keys()))
+            print("Initial Categories:", list(self.categories.keys()))
+            print("Initial Disabled Buttons:", self.disabled_buttons)
+
+            # If changes were made in Account Number and Name Manager
+            if source == "AccountNumberAndNameManager":
+                # Log data update
+                print("Updating Case Data...")
+                
+                # Update the case data if a new case data is provided
+                if new_case_data is not None:
+                    self.case = new_case_data
+                    print("New case data loaded")
+                
+                # Clear existing section widgets
+                print("Clearing section widgets...")
+                self.section_widgets.clear()
+                
+                # Reset lazy loading categories
+                print("Resetting categories...")
+                self.categories = {
+                    category: None for category in self.lazy_categories.keys()
+                }
+                
+                # Reload disabled buttons based on name merging status
+                print("Checking name merging status...")
+                similar_names_groups = find_merge_name_object(self.case_id)
+                if similar_names_groups is None or similar_names_groups["final_merged_status"] == False:
+                    self.disabled_buttons = ["Link Analysis", "Bi-Directional Analysis", "FIFO LIFO", "Fund Tracking", "Entites Distribution", "Network Graph"]
+                    
+                    print("Disabling buttons:", self.disabled_buttons)
+                    # Disable corresponding buttons
+                    for category in self.disabled_buttons:
+                        if category in self.buttons:
+                            self.buttons[category].setDisabled(True)
+                            self.buttons[category].installEventFilter(self)
+                else:
+                    # If names are merged, enable all buttons
+                    print("Enabling all buttons...")
+                    self.enable_disabled_options()
+                
+                # Reload the current section (or default to Name Manager)
+                current_section = self.current_section_label.text()
+                
+                if current_section == "Acc No and Name Manager":
+                    current_section = "Account Number and Name Manager"
+                
+                print(f"Reloading section: {current_section}")
+                # Find the corresponding widget and reload
+                for section, widget in self.lazy_categories.items():
+                    if section.replace(" ", "") == current_section.replace(" ", ""):
+                        self.showSection(section, widget)
+                        break
+                    
+                    # Log final state
+                    print("\n" + "=" * 50)
+                    print("Refresh Complete")
+                    print("Final Section Widgets:", list(self.section_widgets.keys()))
+                    print("Final Categories:", list(self.categories.keys()))
+                    print("Final Disabled Buttons:", self.disabled_buttons)
+                    print("=" * 50)
+
+        except Exception as e:
+            print(f"Error during dashboard refresh: {e}")
+            import traceback
+            traceback.print_exc()
+        
         
         

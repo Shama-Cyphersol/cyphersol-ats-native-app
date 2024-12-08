@@ -18,7 +18,7 @@ class SummaryOtherExpenses(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
 
-        print("Other expenses Data: \n",data)
+        # print("Other expenses Data: \n",data)
         
         # print("Data: \n",data)
         self.months = self.get_months_from_data(data)

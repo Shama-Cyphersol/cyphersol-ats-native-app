@@ -1,21 +1,21 @@
 [
     {
-        "case_id": "ATS_unit_1_00023",
+        "case_id": "ATS_unit_1_00027",
         "file_names": [
-            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf",
-            "C:/Users/qures/Downloads/ATS_TESTING_BANK_PDF/ATS_TESTING_BANK_PDF/IndusIndAccountStatement_XXXXXXXX2819_18-10-2024_15.30.411729245641363.pdf"
+            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
+            "C:/Users/qures/Downloads/hdfc poojan.pdf"
         ],
-        "start_date": "",
-        "end_date": "",
-        "report_name": "Report_ATS_unit_1_00023",
+        "start_date": "-",
+        "end_date": "-",
+        "report_name": "Report_ATS_unit_1_00027",
         "individual_names": {
             "Name": [
-                "PRATIK N TRIVEDI",
-                "PRATIK N TRIVEDI"
+                "MR AIYAZANWARQURESHI\n",
+                "Person 2"
             ],
             "Acc Number": [
-                "XXXXXXXXXXX",
-                "XXXXXXXXXXX"
+                "50100575475699",
+                "18002026161"
             ]
         },
         "date": "08-12-2024"
@@ -39,7 +39,7 @@
         "report_name": "Report_ATS_unit_1_00014",
         "individual_names": {
             "Name": [
-                "Mr. PRATIK NILESH  TRIVEDI",
+                "Mr. hi",
                 "CKYCR Number",
                 "LOWER MOHALLA ROHA RAIGAD",
                 "LOWER MOHALLA ROHA RAIGAD",
@@ -60,8 +60,7 @@
                 "10031489251",
                 "10031489251",
                 "10031489251",
-                "10031489251",
-                "1637 PLOT NO"
+                "10031489251"
             ]
         },
         "date": "07-12-2024"

@@ -103,10 +103,14 @@ class IndividualDashboard(QMainWindow):
         self.showSection("Summary", SummaryWindow)
     
     def create_id(self):
-        id = chr(ord('A') + self.row_id)
-        id+=str(self.row_id)
+        keys = [*self.single_df.keys()]
+        # id = chr(ord('A') + self.row_id)
+        # id+=str(self.row_id)
         # print("ID - ",id)
-        return id
+        # return id
+        key = keys[self.row_id]
+        print("key ",key)
+        return key
     
     def createSidebar(self):
         sidebar = QWidget()

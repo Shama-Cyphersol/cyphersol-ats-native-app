@@ -364,13 +364,15 @@ class AccountNumberAndNameManager(QMainWindow):
             new_process_df = refresh_name_n_acc_number(process_df,old_name_new_name)
             update_process_df(self.case_id,new_process_df)
 
-            msg = QMessageBox(self)
+            msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.NoIcon)
             msg.setWindowTitle("Success")
             msg.setText("Changes have been saved successfully.")
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.setStyleSheet(f"""
-               
+                QMessageBox{{
+                              background-color:white;
+                }}
                 QLabel {{
                     color: {TEXT_COLOR};
                     font-size: 14px;
@@ -424,37 +426,3 @@ class AccountNumberAndNameManager(QMainWindow):
             """)
             
             msg.exec()
-def main():
-    # Sample data
-    data = {
-        "case_id": "CA_ID_Q7IHPUDFL4S81DU8",
-        "file_names": [
-            "C:/Users/qures/Downloads/Aiyaz hdf 23.pdf",
-            "C:/Users/qures/Downloads/hdfc poojan.pdf",
-            "C:/Users/qures/Downloads/aiyaz jupiter.pdf"
-        ],
-        "start_date": "-",
-        "end_date": "-",
-        "report_name": "Report_CA_ID_Q7IHPUDFL4S81DU8",
-        "individual_names": {
-            "Name": [
-                "AIYAZ ANWAR QURESHI",
-                "POOJAN MANISH VIG",
-                "AIYAZ ANWAR QURESHI"
-            ],
-            "Acc Number": [
-                "1637 PLOT NO",
-                "50100575475700",
-                "77770106311893"
-            ]
-        },
-        "date": "30-11-2024"
-    }
-
-    app = QApplication(sys.argv)
-    viewer = PDFTableViewer(data)
-    viewer.show()
-    sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()

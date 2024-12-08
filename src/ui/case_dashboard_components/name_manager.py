@@ -10,6 +10,7 @@ from PyQt6.QtGui import QBrush
 from utils.json_logic import *
 import time
 from utils.refresh import replace_entities
+import copy
 
 BLUE_COLOR = "#3498db"  
 WHITE_COLOR = "#FFFFFF"
@@ -406,7 +407,7 @@ class SimilarNameGroups(QMainWindow):
             process_df = get_process_df(self.case_id)
             print("Got old process df, now replacing entities")
 
-            groups_to_merge = self.merged_groups
+            groups_to_merge = copy.deepcopy(self.merged_groups)
             for group in self.unselected_groups:
                 if group != None:
                     for item in group:

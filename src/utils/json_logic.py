@@ -288,11 +288,11 @@ def update_serial_number_history(old_serial_number):
             json.dump(serial_number,f,indent=4)
 
 
+# test = load_result("ATS_unit_1_00014")
+# # cummalative_df =  test["cummalative_df"]["process_df"]
+# single_df =  test["single_df"]["B1"]["data"][""]
 
-# test = load_result("CA_ID_BCZV8JZ9A7KNP7W2")
-# cummalative_df =  test["cummalative_df"]["process_df"]
-# cummalative_df.to_excel("delhey.xlsx")
-# print(cummalative_df.head(15))
+# print(single_df.keys())
 
 # test = load_result("CA_ID_SLXPFRN8LHTVEQ51")
 # test = test["cummalative_df"]["bidirectional_analysis"]["bda_weekly_analysis"]
