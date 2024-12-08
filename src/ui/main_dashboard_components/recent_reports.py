@@ -22,6 +22,11 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QObject, pyqtSlot, QUrl
 import json
 from utils.pdf_to_name import extract_entities
+from ui.signals.global_signals import global_signal_manager
+
+
+
+# Create a global instance
 
 class WebBridge(QObject):
     def __init__(self, parent=None):
@@ -519,6 +524,7 @@ class RecentReportsTable:
         if reply == QMessageBox.StandardButton.Yes:
             print(f"Deleting case: {case_id}")
             delete_case_data(case_id)
+            global_signal_manager.update_table.emit(case_id)
 
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.NoIcon)

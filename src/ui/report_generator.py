@@ -13,11 +13,14 @@ from ui.main_dashboard_components.recent_reports import RecentReportsTable
 from utils.name_merge import *
 from utils.pdf_to_name import extract_entities
 from utils.account_number_ifsc_extraction import extract_accno_ifsc
+from ui.signals.global_signals import global_signal_manager
+
 
 
 class UnitDialog(QDialog):
     def __init__(self, existing_units, parent=None):
         super().__init__(parent)
+
         self.setWindowTitle("Add New Unit")
         self.setModal(True)
         
@@ -59,6 +62,8 @@ class ReportGeneratorTab(QWidget):
         self.selectd_unit = ""
         self.serial_number = self.process_serial_number(serial_number)
         self.tab_widget = QWidget()
+        global_signal_manager.update_table.connect(self.update_recent_report_table)
+
         self.init_ui()
 
     def init_ui(self):
@@ -779,6 +784,9 @@ class ReportGeneratorTab(QWidget):
             print("Time taken to process the form", end-start)
 
             self.update_table_data()
+            global_signal_manager.update_table.emit(self.case_id)
+
+
 
     def create_label(self, text):
         label = QLabel(text)
@@ -826,3 +834,7 @@ class ReportGeneratorTab(QWidget):
         group_of_similar_entities = obj
 
         return group_of_similar_entities
+        
+    def update_recent_report_table(self):
+            self.recent_reports_table.update_table_data()
+

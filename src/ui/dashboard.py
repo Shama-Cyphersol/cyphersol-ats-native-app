@@ -12,6 +12,7 @@ from PyQt6.QtWebChannel import QWebChannel
 from utils.json_logic import *
 from ui.main_dashboard_components.recent_reports import RecentReportsTable
 from PyQt6.QtWidgets import QScrollArea,QWidget
+from ui.signals.global_signals import global_signal_manager
 
 
 class WebBridge(QObject):
@@ -27,6 +28,7 @@ class CustomWebPage(QWebEnginePage):
 class DashboardTab(QWidget):
     def __init__(self):
         super().__init__()
+        global_signal_manager.update_table.connect(self.update_recent_report_table)
         self.init_ui()
 
     def init_ui(self):
@@ -99,8 +101,8 @@ class DashboardTab(QWidget):
 
     def create_recent_reports_section(self):
         # Create the recent reports table view
-        recent_reports_table = RecentReportsTable()
-        recent_reports_web_view = recent_reports_table.get_web_view()
+        self.recent_reports_table = RecentReportsTable()
+        recent_reports_web_view = self.recent_reports_table.get_web_view()
         recent_reports_web_view.setMinimumHeight(200)  # Default minimum height
 
         def adjust_height(size):
@@ -134,6 +136,7 @@ class DashboardTab(QWidget):
 
         # Wrap in a frame with title
         return self.create_section_frame('Recent Reports', recent_reports_web_view)
+    
     
     def create_chart_section(self):
         # Create the chart WebEngine view
@@ -404,3 +407,7 @@ class DashboardTab(QWidget):
         }
 
         return chart_data
+
+    def update_recent_report_table(self):
+        self.recent_reports_table.update_table_data()
+

@@ -508,6 +508,7 @@ class CashFlowNetwork(QMainWindow):
                         margin: 0;
                         background-color: #f4f6f7;
                         width: 100%;
+                        height:100%;
                     }}
                     .no-data {{ 
                         color: #e74c3c; 

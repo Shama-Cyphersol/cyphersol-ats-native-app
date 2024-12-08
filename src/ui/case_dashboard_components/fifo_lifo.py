@@ -223,6 +223,7 @@ class FIFO_LFIO_Analysis(QWidget):
                     self.widget.lifo_fifo_analysis_data = filtered_result
 
                     # print("\nUpdated LIFO FIFO data:", self.widget.lifo_fifo_analysis_data)
+                    print("got filtered data Now Updating data")
                     self.update_accordion_content()
 
         
@@ -262,7 +263,7 @@ class FIFO_LFIO_Analysis(QWidget):
                     padding: 0;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     background: var(--background);
-                    height: 100vh;
+                    height: 100%;
                 }}
 
                 .filters-container {{

@@ -150,7 +150,7 @@ class AccountNumberAndNameManager(QMainWindow):
                     padding: 20px;
                     display: flex;
                     flex-direction: column;
-                    height: 90vh;
+                    height: 100%;
                 }}
                 .table-container {{
                     flex-grow: 1;
@@ -162,13 +162,15 @@ class AccountNumberAndNameManager(QMainWindow):
                     background-color: white;
                     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                     border-radius: 8px;
-                    overflow: hidden;
+                    table-layout: fixed; /* This ensures equal column widths */
                 }}
                 th, td {{
                     padding: 12px;
-                    text-align: left;
                     border-bottom: 1px solid #e0e0e0;
-                    text-align:center;
+                    text-align: center;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }}
                 th {{
                     background-color: #3498db;
@@ -208,6 +210,58 @@ class AccountNumberAndNameManager(QMainWindow):
                 }}
                 #submitButton:hover {{
                     background-color: #2980b9;
+                }}
+
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    background-color: white;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    table-layout: fixed; /* Ensures equal column width distribution */
+                }}
+
+                /* Add these new styles */
+                table th:first-child, table td:first-child {{
+                    width: 75px; /* Fixed width for serial number column */
+                    flex-grow: 0;
+                    text-align: center;
+                }}
+
+                table th:nth-child(2), table td:nth-child(2) {{
+                    width: calc(40%); /* pdf path column gets 40% */
+                    font-size: 14px;
+
+                }}
+
+                table th:nth-child(3), table td:nth-child(3) {{
+                    width: calc(30%); /* Name column gets 30% */
+                }}
+
+                table th:nth-child(4), table td:nth-child(4) {{
+                    width: calc(30%); /* Account Number column gets 30% */
+                    max-width:0;
+                }}
+                
+                td {{
+                    padding: 12px 15px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                    word-wrap: break-word;  /* Allow long words to break */
+                    word-break: break-word; /* Break words at any point if needed */
+                    white-space: normal;    /* Allow text to wrap */
+                    overflow-wrap: break-word; /* Another method to break long words */
+                }}
+                
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                    padding: 12px;
+                    text-align: center;
+                    position: sticky;
+                    top: 0;
                 }}
             </style>
             <script>

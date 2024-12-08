@@ -54,6 +54,7 @@ class IndividualDashboardTable(QWidget):
         self.web_view = QWebEngineView()
         self.web_page = CustomWebPage(self.web_view)
         self.web_view.setPage(self.web_page)
+        self.web_view.setMinimumHeight(1000)
         
         self.channel = QWebChannel()
         self.web_page.setWebChannel(self.channel)
@@ -106,13 +107,39 @@ class IndividualDashboardTable(QWidget):
                     border-radius: 10px;
                     overflow: hidden;
                     box-shadow: 0 0 20px rgba(0,0,0,0.1);
-                    max-width:100%;
+                    table-layout: fixed; /* Ensures equal column width distribution */
+                }
+
+                /* Add these new styles */
+                table th:first-child, table td:first-child {
+                    width: 50px; /* Fixed width for serial number column */
+                    flex-grow: 0;
+                    text-align: center;
+                }
+
+                table th:nth-child(2), table td:nth-child(2) {
+                    width: calc(30%); /* Name column gets 40% */
+                }
+
+                table th:nth-child(3), table td:nth-child(3) {
+                    width: calc(30%); /* Account Number column gets 30% */
+                }
+
+                table th:nth-child(4), table td:nth-child(4) {
+                    width: calc(40%); /* PDF Path column gets 30% */
+                    max-width:0;
+                    font-size: 14px;
+
                 }
                 
                 td {
                     padding: 12px 15px;
                     text-align: left;
                     border-bottom: 1px solid #ddd;
+                    word-wrap: break-word;  /* Allow long words to break */
+                    word-break: break-word; /* Break words at any point if needed */
+                    white-space: normal;    /* Allow text to wrap */
+                    overflow-wrap: break-word; /* Another method to break long words */
                 }
                 
                 th {
@@ -165,19 +192,6 @@ class IndividualDashboardTable(QWidget):
                     padding: 20px;
                     color: #666;
                     font-style: italic;
-                }
-
-                th:first-child, 
-                td:first-child {
-                    width: 50px; /* Adjust this value as needed */
-                    text-align: center; /* Center-align the serial numbers */
-                    flex-grow: 0;
-                }
-
-                /* Distribute remaining space equally among other columns */
-                th:not(:first-child), 
-                td:not(:first-child) {
-                    width: calc((100% - 50px)
                 }
             </style>
             <script>
